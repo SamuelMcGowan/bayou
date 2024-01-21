@@ -5,15 +5,6 @@ use owo_colors::OwoColorize;
 
 use crate::CompilerResult;
 
-fn get_stage_path(stage: usize) -> PathBuf {
-    let mut path = PathBuf::new();
-
-    path.push("test_suite");
-    path.push(format!("stage_{stage}"));
-
-    path
-}
-
 pub fn run_test_suite(stage: usize) -> CompilerResult<()> {
     println!("{}", "running tests...".blue().bold());
 
@@ -93,6 +84,15 @@ fn run_tests_in_entry(entry: DirEntry, expect_error: bool) -> CompilerResult<Tes
 
         Ok(TestOutput::new(if passed { 1 } else { 0 }, 1))
     }
+}
+
+fn get_stage_path(stage: usize) -> PathBuf {
+    let mut path = PathBuf::new();
+
+    path.push("test_suite");
+    path.push(format!("stage_{stage}"));
+
+    path
 }
 
 #[derive(Clone, Copy)]
