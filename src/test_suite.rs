@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use owo_colors::OwoColorize;
 
-use crate::CompilerResult;
+use crate::{compile, CompilerResult};
 
 pub fn run_test_suite(stage: usize) -> CompilerResult<()> {
     println!("{}", "running tests...".blue().bold());
@@ -55,10 +55,10 @@ fn run_tests_in_entry(entry: DirEntry, expect_error: bool) -> CompilerResult<Tes
 
         Ok(output)
     } else {
-        let s = fs::read_to_string(&path)?;
+        let source = fs::read_to_string(&path)?;
 
         print!(" - {} - ", path.display());
-        let result = run_source(s);
+        let result = compile(&source);
 
         let passed = if expect_error {
             if result.is_err() {
@@ -110,8 +110,4 @@ impl TestOutput {
         self.passed += other.passed;
         self.total += other.total;
     }
-}
-
-fn run_source(_s: String) -> CompilerResult<()> {
-    Ok(())
 }
