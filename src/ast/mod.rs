@@ -1,20 +1,31 @@
 use crate::session::InternedStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Token {
-    Keyword(Keyword),
-    Identifier(InternedStr),
-    Integer(u64),
+pub mod token;
 
-    OpenBrace,
-    CloseBrace,
-    OpenParen,
-    CloseParen,
-    Semicolon,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Module {
+    pub item: Item,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Keyword {
-    Int,
-    Return,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Item {
+    FuncDecl(FuncDecl),
+    ParseError,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FuncDecl {
+    pub name: InternedStr,
+    pub statement: Statement,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Statement {
+    Return(Expression),
+    ParseError,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Expression {
+    Constant(u64),
 }

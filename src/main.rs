@@ -1,6 +1,7 @@
-use clap::Parser;
+use clap::Parser as _;
 use cli::{Cli, Command};
-use lexer::Lexer;
+use parser::Parser;
+use session::Session;
 
 #[cfg(feature = "test_suite")]
 mod test_suite;
@@ -8,6 +9,7 @@ mod test_suite;
 mod ast;
 mod cli;
 mod lexer;
+mod parser;
 mod session;
 
 #[derive(thiserror::Error, Debug)]
@@ -21,34 +23,38 @@ enum CompilerError {
 
 type CompilerResult<T> = Result<T, CompilerError>;
 
-fn main() -> CompilerResult<()> {
+fn main() {
+    if let Err(err) = run() {
+        eprintln!("{err}");
+    }
+}
+
+fn run() -> CompilerResult<()> {
     let cli = Cli::parse();
 
     match cli.command {
         Command::Build { file } => {
             println!("building file {}", file.display());
             let s = std::fs::read_to_string(file)?;
-            println!("s: {s:?}");
+            compile(&s, true)
         }
 
         #[cfg(feature = "test_suite")]
-        Command::RunTestSuite { stage } => {
-            test_suite::run_test_suite(stage)?;
-        }
+        Command::RunTestSuite { stage } => test_suite::run_test_suite(stage),
     }
-
-    Ok(())
 }
 
-fn compile(source: &str) -> CompilerResult<()> {
-    let mut lexer = Lexer::new(source);
+fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<()> {
+    let session = Session::default();
 
-    while lexer.lex_token().is_some() {}
+    let parser = Parser::new(&session, source);
 
-    let session = lexer.into_session();
+    let _module = parser.parse_module();
 
     if session.had_errors() {
-        session.flush_diagnostics();
+        if print_diagnostics {
+            session.flush_diagnostics();
+        }
         Err(CompilerError::HadErrors)
     } else {
         Ok(())

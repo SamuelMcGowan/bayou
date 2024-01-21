@@ -1,6 +1,6 @@
 use std::str::Chars;
 
-use crate::ast::{Keyword, Token};
+use crate::ast::token::{Keyword, Token};
 use crate::session::{Diagnostic, IntoDiagnostic, Session};
 
 #[derive(thiserror::Error, Debug)]
@@ -26,29 +26,31 @@ impl IntoDiagnostic for LexerError {
 
 pub type LexerResult<T> = Result<T, LexerError>;
 
-pub struct Lexer<'a> {
-    all: &'a str,
-    chars: Chars<'a>,
+pub struct Lexer<'sess> {
+    session: &'sess Session,
+
+    all: &'sess str,
+    chars: Chars<'sess>,
 
     token_start: usize,
 
-    session: Session,
+    current: Option<Token>,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Self {
+impl<'sess> Lexer<'sess> {
+    pub fn new(session: &'sess Session, source: &'sess str) -> Self {
+        let mut lexer = Self {
+            session,
+
             all: source,
             chars: source.chars(),
 
             token_start: 0,
 
-            session: Session::default(),
-        }
-    }
-
-    pub fn into_session(self) -> Session {
-        self.session
+            current: None,
+        };
+        lexer.current = lexer.lex_token();
+        lexer
     }
 
     pub fn lex_token(&mut self) -> Option<Token> {
@@ -65,7 +67,7 @@ impl<'a> Lexer<'a> {
                 }};
             }
 
-            self.token_start = self.position();
+            self.token_start = self.byte_pos();
 
             let token = match self.chars.next()? {
                 // comment
@@ -76,10 +78,10 @@ impl<'a> Lexer<'a> {
 
                 ch if ch.is_ascii_whitespace() => continue,
 
-                '{' => Token::OpenBrace,
-                '}' => Token::CloseBrace,
-                '(' => Token::OpenParen,
-                ')' => Token::CloseParen,
+                '{' => Token::LBrace,
+                '}' => Token::RBrace,
+                '(' => Token::LParen,
+                ')' => Token::RParen,
                 ';' => Token::Semicolon,
 
                 '0' if self.chars.eat('x') => try_lex!(self.lex_integer(0, 16)),
@@ -131,7 +133,7 @@ impl<'a> Lexer<'a> {
             self.chars.next();
         }
 
-        let s = &self.all[self.token_start..self.position()];
+        let s = &self.all[self.token_start..self.byte_pos()];
 
         match s {
             "int" => Token::Keyword(Keyword::Int),
@@ -140,7 +142,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn position(&self) -> usize {
+    fn byte_pos(&self) -> usize {
         self.all.len() - self.chars.as_str().len()
     }
 
@@ -149,7 +151,23 @@ impl<'a> Lexer<'a> {
     }
 }
 
-trait Peek: Iterator {
+impl Iterator for Lexer<'_> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let token = self.current.take();
+        self.current = self.lex_token();
+        token
+    }
+}
+
+impl Peek for Lexer<'_> {
+    fn peek(&self) -> Option<Self::Item> {
+        self.current
+    }
+}
+
+pub trait Peek: Iterator {
     fn peek(&self) -> Option<Self::Item>;
 
     fn eat<P>(&mut self, pat: P) -> bool
@@ -163,6 +181,10 @@ trait Peek: Iterator {
             }
             _ => false,
         }
+    }
+
+    fn at_end(&self) -> bool {
+        self.peek().is_none()
     }
 }
 

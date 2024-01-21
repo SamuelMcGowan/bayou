@@ -57,10 +57,11 @@ fn run_tests_in_entry(entry: DirEntry, expect_error: bool) -> CompilerResult<Tes
     } else {
         let source = fs::read_to_string(&path)?;
 
-        let result = compile(&source);
+        let result = compile(&source, false);
 
         print!(" - {} - ", path.display());
 
+        #[allow(clippy::collapsible_else_if)] // clearer like this
         let passed = if expect_error {
             if result.is_err() {
                 println!("{}", "ok".green().bold());
@@ -70,16 +71,12 @@ fn run_tests_in_entry(entry: DirEntry, expect_error: bool) -> CompilerResult<Tes
                 false
             }
         } else {
-            match result {
-                Ok(_) => {
-                    println!("{}", "ok".green().bold());
-                    true
-                }
-                Err(err) => {
-                    println!("{}", "err (failed to compile)".red().bold());
-                    println!("  {err}");
-                    false
-                }
+            if result.is_ok() {
+                println!("{}", "ok".green().bold());
+                true
+            } else {
+                println!("{}", "err (failed to compile)".red().bold());
+                false
             }
         };
 
