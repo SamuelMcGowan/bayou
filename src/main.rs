@@ -35,6 +35,8 @@ mod test_suite {
     use std::fs::{self, DirEntry};
     use std::path::PathBuf;
 
+    use owo_colors::OwoColorize;
+
     use crate::CompilerResult;
 
     fn get_stage_path(stage: usize) -> PathBuf {
@@ -47,7 +49,7 @@ mod test_suite {
     }
 
     pub fn run_test_suite(stage: usize) -> CompilerResult<()> {
-        println!("RUNNING TEST SUITE:");
+        println!("{}", "running tests...".blue().bold());
 
         let mut output = TestOutput::new(0, 0);
 
@@ -66,12 +68,18 @@ mod test_suite {
             }
         }
 
-        println!(
-            "\n{} of {} tests passed, {} failed",
-            output.passed,
-            output.total,
-            output.total - output.passed,
-        );
+        print!("\n{} of {} tests passed - ", output.passed, output.total);
+
+        if output.passed == output.total {
+            println!("{}", "all ok".green());
+        } else {
+            println!(
+                "{}",
+                format_args!("{} tests failed", output.total - output.passed)
+                    .red()
+                    .bold()
+            );
+        }
 
         Ok(())
     }
@@ -92,25 +100,25 @@ mod test_suite {
         } else {
             let s = fs::read_to_string(&path)?;
 
-            print!(" - compiling {}... ", path.display());
+            print!(" - {} - ", path.display());
             let result = run_source(s);
 
             let passed = if expect_error {
                 if result.is_err() {
-                    println!("ok");
+                    println!("{}", "ok".green().bold());
                     true
                 } else {
-                    println!("err (unexpectedly compiled)");
+                    println!("{}", "err (unexpectedly compiled)".red().bold());
                     false
                 }
             } else {
                 match result {
                     Ok(_) => {
-                        println!("ok");
+                        println!("{}", "ok".green().bold());
                         true
                     }
                     Err(err) => {
-                        println!("err (failed to compile)");
+                        println!("{}", "err (failed to compile)".red().bold());
                         println!("  {err}");
                         false
                     }
