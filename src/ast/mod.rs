@@ -1,5 +1,4 @@
-pub type InternedStr = lasso::Spur;
-pub type Interner = lasso::Rodeo;
+use crate::session::InternedStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Token {

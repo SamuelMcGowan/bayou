@@ -1,6 +1,7 @@
 use std::str::Chars;
 
-use crate::ast::{Interner, Keyword, Token};
+use crate::ast::{Keyword, Token};
+use crate::session::{Diagnostic, IntoDiagnostic, Session};
 
 #[derive(thiserror::Error, Debug)]
 pub enum LexerError {
@@ -14,6 +15,15 @@ pub enum LexerError {
     IntegerDigitWrongBase { base: u32, digit: char },
 }
 
+impl IntoDiagnostic for LexerError {
+    fn into_diagnostic(self) -> Diagnostic {
+        Diagnostic {
+            message: self.to_string(),
+            context: "while parsing".to_string(),
+        }
+    }
+}
+
 pub type LexerResult<T> = Result<T, LexerError>;
 
 pub struct Lexer<'a> {
@@ -22,8 +32,7 @@ pub struct Lexer<'a> {
 
     token_start: usize,
 
-    interner: Interner,
-    errors: Vec<LexerError>,
+    session: Session,
 }
 
 impl<'a> Lexer<'a> {
@@ -34,13 +43,12 @@ impl<'a> Lexer<'a> {
 
             token_start: 0,
 
-            interner: Interner::new(),
-            errors: vec![],
+            session: Session::default(),
         }
     }
 
-    pub fn into_errors(self) -> Vec<LexerError> {
-        self.errors
+    pub fn into_session(self) -> Session {
+        self.session
     }
 
     pub fn lex_token(&mut self) -> Option<Token> {
@@ -128,7 +136,7 @@ impl<'a> Lexer<'a> {
         match s {
             "int" => Token::Keyword(Keyword::Int),
             "return" => Token::Keyword(Keyword::Return),
-            _ => Token::Identifier(self.interner.get_or_intern(s)),
+            _ => Token::Identifier(self.session.intern(s)),
         }
     }
 
@@ -137,7 +145,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn report_error(&mut self, error: LexerError) {
-        self.errors.push(error);
+        self.session.report(error);
     }
 }
 
