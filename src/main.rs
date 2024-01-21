@@ -1,7 +1,6 @@
 use clap::Parser;
 use cli::{Cli, Command};
 use lexer::Lexer;
-use session::Diagnostics;
 
 #[cfg(feature = "test_suite")]
 mod test_suite;
@@ -16,8 +15,8 @@ enum CompilerError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("{0}")]
-    Diagnostics(Diagnostics),
+    #[error("errors while compiling")]
+    HadErrors,
 }
 
 type CompilerResult<T> = Result<T, CompilerError>;
@@ -47,10 +46,10 @@ fn compile(source: &str) -> CompilerResult<()> {
     while lexer.lex_token().is_some() {}
 
     let session = lexer.into_session();
-    let (diagnostics, _) = session.into_inner();
 
-    if diagnostics.had_errors() {
-        Err(CompilerError::Diagnostics(diagnostics))
+    if session.had_errors() {
+        session.flush_diagnostics();
+        Err(CompilerError::HadErrors)
     } else {
         Ok(())
     }

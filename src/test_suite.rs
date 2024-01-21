@@ -57,8 +57,9 @@ fn run_tests_in_entry(entry: DirEntry, expect_error: bool) -> CompilerResult<Tes
     } else {
         let source = fs::read_to_string(&path)?;
 
-        print!(" - {} - ", path.display());
         let result = compile(&source);
+
+        print!(" - {} - ", path.display());
 
         let passed = if expect_error {
             if result.is_err() {
