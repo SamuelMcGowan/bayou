@@ -70,18 +70,18 @@ impl<'sess> Parser<'sess> {
         Ok(FuncDecl { name, statement })
     }
 
-    fn parse_statement_or_recover(&mut self) -> Statement {
+    fn parse_statement_or_recover(&mut self) -> Stmt {
         self.parse_or_recover(Self::parse_statement, |parser| {
             parser.recover_past(Token::Semicolon);
-            Statement::ParseError
+            Stmt::ParseError
         })
     }
 
-    fn parse_statement(&mut self) -> ParseResult<Statement> {
+    fn parse_statement(&mut self) -> ParseResult<Stmt> {
         self.expect(Token::Keyword(Keyword::Return))?;
         let expr = self.parse_expr()?;
         self.expect(Token::Semicolon)?;
-        Ok(Statement::Return(expr))
+        Ok(Stmt::Return(expr))
     }
 
     fn parse_ident(&mut self) -> ParseResult<InternedStr> {
@@ -91,9 +91,9 @@ impl<'sess> Parser<'sess> {
         }
     }
 
-    fn parse_expr(&mut self) -> ParseResult<Expression> {
+    fn parse_expr(&mut self) -> ParseResult<Expr> {
         match self.lexer.next() {
-            Some(Token::Integer(n)) => Ok(Expression::Constant(n)),
+            Some(Token::Integer(n)) => Ok(Expr::Constant(n)),
             other => Err(ParseError::expected("an expression", other)),
         }
     }

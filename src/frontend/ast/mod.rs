@@ -16,16 +16,16 @@ pub enum Item {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FuncDecl {
     pub name: InternedStr,
-    pub statement: Statement,
+    pub statement: Stmt,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Statement {
-    Return(Expression),
+pub enum Stmt {
+    Return(Expr),
     ParseError,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expression {
+pub enum Expr {
     Constant(u64),
 }

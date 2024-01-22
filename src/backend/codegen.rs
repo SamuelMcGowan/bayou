@@ -32,21 +32,21 @@ impl<'sess> CodeGenerator<'sess> {
         self.gen_stmt(&f.statement);
     }
 
-    fn gen_stmt(&mut self, stmt: &Statement) {
+    fn gen_stmt(&mut self, stmt: &Stmt) {
         match stmt {
-            Statement::Return(expr) => {
+            Stmt::Return(expr) => {
                 self.gen_expr(expr);
 
                 self.push_line(1, "ret");
             }
-            Statement::ParseError => unreachable!(),
+            Stmt::ParseError => unreachable!(),
         }
     }
 
     /// Outputs to `rax`.
-    fn gen_expr(&mut self, expr: &Expression) {
+    fn gen_expr(&mut self, expr: &Expr) {
         match expr {
-            Expression::Constant(n) => self.push_line(1, format!("movq ${n}, %rax")),
+            Expr::Constant(n) => self.push_line(1, format!("movq ${n}, %rax")),
         }
     }
 
