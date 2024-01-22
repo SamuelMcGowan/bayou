@@ -25,7 +25,7 @@ pub struct FuncIr {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BasicBlock {
-    pub stmts: Vec<Op>,
+    pub ops: Vec<Op>,
     pub terminator: Terminator,
 }
 

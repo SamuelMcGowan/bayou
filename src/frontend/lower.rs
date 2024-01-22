@@ -27,7 +27,7 @@ fn lower_func_decl(func: FuncDecl) -> FuncIr {
                 .collect();
 
             BasicBlock {
-                stmts: vec![],
+                ops: vec![],
                 terminator: Terminator::Return(expr_outputs),
             }
         }

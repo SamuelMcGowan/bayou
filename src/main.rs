@@ -3,7 +3,7 @@ use cli::{Cli, Command};
 use session::Session;
 
 use crate::backend::CodeGenerator;
-use crate::frontend::Parser;
+use crate::frontend::parse_and_build_ir;
 
 mod backend;
 mod frontend;
@@ -56,18 +56,17 @@ fn run() -> CompilerResult<()> {
 fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<String> {
     let session = Session::default();
 
-    let parser = Parser::new(&session, source);
-    let module = parser.parse_module();
-
-    if session.had_errors() {
-        if print_diagnostics {
-            session.flush_diagnostics();
+    let ir = parse_and_build_ir(&session, source).map_err(|err| {
+        if let CompilerError::HadErrors = err {
+            if print_diagnostics {
+                session.flush_diagnostics();
+            }
         }
-        return Err(CompilerError::HadErrors);
-    }
+        err
+    })?;
 
     let codegen = CodeGenerator::new(&session);
-    let asm = codegen.run(&module);
+    let asm = codegen.run(&ir);
 
     Ok(asm)
 }

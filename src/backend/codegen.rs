@@ -1,4 +1,4 @@
-use crate::frontend::ast::*;
+use crate::ir::ssa::*;
 use crate::session::Session;
 
 pub struct CodeGenerator<'sess> {
@@ -14,39 +14,39 @@ impl<'sess> CodeGenerator<'sess> {
         }
     }
 
-    pub fn run(mut self, module: &Module) -> String {
-        match &module.item {
-            Item::FuncDecl(func) => self.gen_func_decl(func),
-            Item::ParseError => unreachable!(),
-        };
+    pub fn run(mut self, module: &ModuleIr) -> String {
+        for func in &module.functions {
+            self.gen_func(func);
+        }
 
         self.output
     }
 
-    fn gen_func_decl(&mut self, f: &FuncDecl) {
-        let name = self.session.lookup_str(f.name);
+    fn gen_func(&mut self, func: &FuncIr) {
+        let name = self.session.lookup_str(func.name);
 
         self.push_line(0, format!(".globl {name}"));
         self.push_line(0, format!("{name}:"));
 
-        self.gen_stmt(&f.statement);
-    }
+        // FIXME: need to support multiple blocks!
+        let block = &func.blocks[0];
 
-    fn gen_stmt(&mut self, stmt: &Stmt) {
-        match stmt {
-            Stmt::Return(expr) => {
-                self.gen_expr(expr);
+        // FIXME: emit code for ops
 
-                self.push_line(1, "ret");
+        match &block.terminator {
+            Terminator::Jump { .. } => todo!(),
+            Terminator::JumpIf { .. } => todo!(),
+            Terminator::Return(operands) => {
+                // FIXME: support more than one return value
+                match operands[0] {
+                    Operand::Constant(n) => {
+                        self.push_line(1, format!("movq ${n}, %rax"));
+                        self.push_line(1, "ret");
+                    }
+                    // FIXME: support variables properly
+                    Operand::Var(_) => {}
+                }
             }
-            Stmt::ParseError => unreachable!(),
-        }
-    }
-
-    /// Outputs to `rax`.
-    fn gen_expr(&mut self, expr: &Expr) {
-        match expr {
-            Expr::Constant(n) => self.push_line(1, format!("movq ${n}, %rax")),
         }
     }
 
