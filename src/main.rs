@@ -1,5 +1,6 @@
 use clap::Parser as _;
 use cli::{Cli, Command};
+use codegen::CodeGenerator;
 use parser::Parser;
 use session::Session;
 
@@ -8,6 +9,7 @@ mod test_suite;
 
 mod ast;
 mod cli;
+mod codegen;
 mod lexer;
 mod parser;
 mod session;
@@ -48,15 +50,17 @@ fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<()> {
     let session = Session::default();
 
     let parser = Parser::new(&session, source);
-
-    let _module = parser.parse_module();
+    let module = parser.parse_module();
 
     if session.had_errors() {
         if print_diagnostics {
             session.flush_diagnostics();
         }
-        Err(CompilerError::HadErrors)
-    } else {
-        Ok(())
+        return Err(CompilerError::HadErrors);
     }
+
+    let codegen = CodeGenerator::new(&session);
+    let _asm = codegen.run(&module);
+
+    Ok(())
 }
