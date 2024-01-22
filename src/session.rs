@@ -30,7 +30,7 @@ impl Diagnostics {
     }
 
     pub fn flush_diagnostics(&self) {
-        for diagnostic in self.diagnostics.borrow().iter() {
+        for diagnostic in self.diagnostics.borrow_mut().drain(..) {
             eprintln!("error {}: {}", diagnostic.context, diagnostic.message);
         }
     }
