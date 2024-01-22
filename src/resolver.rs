@@ -4,8 +4,52 @@
 */
 
 use crate::ast::registers::{Ownership, VirtualRegister};
-use crate::session::InternedStr;
+use crate::ast::Item;
+use crate::session::{Diagnostic, InternedStr, Session};
+use crate::symbols::GlobalSymbol;
 
+pub struct Resolver<'sess> {
+    session: &'sess Session,
+    locals: Locals,
+}
+
+impl<'sess> Resolver<'sess> {
+    pub fn new(session: &'sess Session) -> Self {
+        Self {
+            session,
+            locals: Locals::default(),
+        }
+    }
+
+    pub fn run(mut self, items: &mut [Item]) {
+        self.declare_globals(items);
+    }
+
+    fn declare_globals(&mut self, items: &mut [Item]) {
+        for item in items.iter_mut() {
+            match item {
+                Item::FuncDecl(func) => self.declare_global(func.name, GlobalSymbol {}),
+                Item::ParseError => unreachable!(),
+            }
+        }
+    }
+
+    fn declare_global(&mut self, name: InternedStr, symbol: GlobalSymbol) {
+        let mut symbols = self.session.symbols.borrow_mut();
+
+        if symbols.globals.insert(name, symbol).is_some() {
+            let interner = self.session.interner.borrow();
+            let name_str = interner.resolve(&name);
+
+            self.session.diagnostics.report(Diagnostic::new(
+                format!("duplicate global `{name_str}`"),
+                "while resolving names",
+            ));
+        }
+    }
+}
+
+#[derive(Default)]
 struct Locals {
     vregs: Vec<Option<InternedStr>>,
     num_vregs: usize,

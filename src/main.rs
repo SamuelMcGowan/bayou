@@ -56,7 +56,9 @@ fn compile(source: &str, print_output: bool) -> CompilerResult<String> {
 
     let ast = run_frontend(&session, source, print_output)?;
 
-    // let asm = run_backend(&session, symbols, &ir, print_output);
+    if print_output {
+        println!("{session:?}");
+    }
 
     Ok(format!("{ast:?}"))
 }

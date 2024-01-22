@@ -23,10 +23,10 @@ impl ParseError {
 
 impl IntoDiagnostic for ParseError {
     fn into_diagnostic(self) -> Diagnostic {
-        Diagnostic {
-            message: format!("expected {}, but found {:?}", self.expected, self.found),
-            context: "while parsing".to_string(),
-        }
+        Diagnostic::new(
+            format!("expected {}, but found {:?}", self.expected, self.found),
+            "while parsing",
+        )
     }
 }
 

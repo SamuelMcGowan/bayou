@@ -5,7 +5,7 @@ use crate::symbols::Symbols;
 pub type InternedStr = lasso::Spur;
 pub type Interner = lasso::Rodeo;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Session {
     pub diagnostics: Diagnostics,
     pub symbols: RefCell<Symbols>,
@@ -42,6 +42,21 @@ pub struct Diagnostic {
     pub context: String,
 }
 
+impl Diagnostic {
+    pub fn new(message: impl Into<String>, context: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            context: context.into(),
+        }
+    }
+}
+
 pub trait IntoDiagnostic {
     fn into_diagnostic(self) -> Diagnostic;
+}
+
+impl IntoDiagnostic for Diagnostic {
+    fn into_diagnostic(self) -> Diagnostic {
+        self
+    }
 }

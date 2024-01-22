@@ -17,10 +17,7 @@ pub enum LexerError {
 
 impl IntoDiagnostic for LexerError {
     fn into_diagnostic(self) -> Diagnostic {
-        Diagnostic {
-            message: self.to_string(),
-            context: "while parsing".to_string(),
-        }
+        Diagnostic::new(self.to_string(), "while parsing")
     }
 }
 
