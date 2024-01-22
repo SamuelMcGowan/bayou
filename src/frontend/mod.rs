@@ -13,9 +13,9 @@ pub fn run_frontend(session: &Session, source: &str, print_output: bool) -> Comp
     let parser = Parser::new(session, source);
     let ast = parser.parse_module();
 
-    if session.had_errors() {
+    if session.diagnostics.had_errors() {
         if print_output {
-            session.flush_diagnostics();
+            session.diagnostics.flush_diagnostics();
         }
 
         return Err(CompilerError::HadErrors);

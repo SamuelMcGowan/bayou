@@ -138,7 +138,10 @@ impl<'sess> Lexer<'sess> {
         match s {
             "int" => Token::Keyword(Keyword::Int),
             "return" => Token::Keyword(Keyword::Return),
-            _ => Token::Identifier(self.session.intern(s)),
+            _ => {
+                let interned = self.session.interner.borrow_mut().get_or_intern(s);
+                Token::Identifier(interned)
+            }
         }
     }
 
@@ -147,7 +150,7 @@ impl<'sess> Lexer<'sess> {
     }
 
     fn report_error(&mut self, error: LexerError) {
-        self.session.report(error);
+        self.session.diagnostics.report(error);
     }
 }
 

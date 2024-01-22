@@ -107,7 +107,7 @@ impl<'sess> Parser<'sess> {
         recover: impl FnOnce(&mut Self) -> T,
     ) -> T {
         parse(self).unwrap_or_else(|err| {
-            self.session.report(err);
+            self.session.diagnostics.report(err);
             recover(self)
         })
     }
