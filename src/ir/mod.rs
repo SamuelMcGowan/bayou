@@ -1,9 +1,8 @@
-pub mod registers;
 pub mod token;
 pub mod vars;
 
 pub mod ast {
-    use super::registers::{Ownership, Place};
+    use super::vars::PlaceRef;
     use crate::session::InternedStr;
 
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,7 +32,7 @@ pub mod ast {
     pub struct Expr {
         pub kind: ExprKind,
 
-        pub place: Option<(Place, Ownership)>,
+        pub place: Option<PlaceRef>,
     }
 
     #[derive(Debug, Clone, PartialEq, Eq)]

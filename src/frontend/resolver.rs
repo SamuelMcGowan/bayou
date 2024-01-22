@@ -1,10 +1,5 @@
-/*
-- resolve virtual registers
-- allocate physical registers / stack slots
-*/
-
 use crate::ir::ast::{Item, Module};
-use crate::ir::registers::{Ownership, VirtualRegister};
+use crate::ir::vars::{Ownership, Place, PlaceRef};
 use crate::session::{Diagnostic, InternedStr, Session};
 use crate::symbols::GlobalSymbol;
 
@@ -51,51 +46,46 @@ impl<'sess> Resolver<'sess> {
 
 #[derive(Default)]
 struct Locals {
-    vregs: Vec<Option<InternedStr>>,
-    num_vregs: usize,
-
-    scope_items: Vec<(VirtualRegister, Ownership)>,
+    places: Vec<Option<InternedStr>>,
+    scope_items: Vec<PlaceRef>,
 }
 
 impl Locals {
     pub fn reset(&mut self) {
-        self.vregs.clear();
-        self.num_vregs = 0;
-
+        self.places.clear();
         self.scope_items.clear();
     }
 
-    pub fn push_owned(&mut self, name: Option<InternedStr>) -> VirtualRegister {
-        if self.vregs.len() == isize::MAX as usize {
+    pub fn push_owned(&mut self, name: Option<InternedStr>) -> Place {
+        if self.places.len() == isize::MAX as usize {
             panic!("don't know how you used that many registers");
         }
 
-        let vreg = VirtualRegister(self.vregs.len());
-        self.vregs.push(name);
-        self.num_vregs = self.num_vregs.max(self.vregs.len());
+        let place = Place(self.places.len());
+        self.places.push(name);
 
-        self.scope_items.push((vreg, Ownership::Owned));
+        self.scope_items.push(PlaceRef::owned(place));
 
-        vreg
+        place
     }
 
-    pub fn push_borrowed(&mut self, vreg: VirtualRegister) {
-        self.scope_items.push((vreg, Ownership::Borrowed));
+    pub fn push_borrowed(&mut self, place: Place) {
+        self.scope_items.push(PlaceRef::borrowed(place));
     }
 
-    pub fn resolve_name(&self, name: InternedStr) -> Option<VirtualRegister> {
-        for (i, name_candidate) in self.vregs.iter().enumerate().rev() {
+    pub fn resolve_name(&self, name: InternedStr) -> Option<Place> {
+        for (i, name_candidate) in self.places.iter().enumerate().rev() {
             if *name_candidate == Some(name) {
-                return Some(VirtualRegister(i));
+                return Some(Place(i));
             }
         }
         None
     }
 
     pub fn pop(&mut self) {
-        let (_, ownership) = self.scope_items.pop().unwrap();
-        if ownership == Ownership::Owned {
-            self.vregs.pop();
+        let place_ref = self.scope_items.pop().unwrap();
+        if place_ref.ownership == Ownership::Owned {
+            self.places.pop();
         }
     }
 }
