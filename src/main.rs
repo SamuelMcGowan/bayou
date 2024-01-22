@@ -1,18 +1,15 @@
 use clap::Parser as _;
 use cli::{Cli, Command};
-use codegen::CodeGenerator;
-use parser::Parser;
 use session::Session;
 
-#[cfg(test)]
-mod tests;
+use crate::backend::CodeGenerator;
+use crate::frontend::Parser;
 
-mod ast;
+mod backend;
+mod frontend;
+mod ir;
+
 mod cli;
-mod codegen;
-mod lexer;
-mod parser;
-mod registers;
 mod session;
 
 #[derive(thiserror::Error, Debug)]

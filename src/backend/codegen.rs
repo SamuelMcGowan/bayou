@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::frontend::ast::*;
 use crate::session::Session;
 
 pub struct CodeGenerator<'sess> {
