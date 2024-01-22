@@ -1,4 +1,4 @@
 mod codegen;
-mod registers;
+pub mod registers;
 
 pub use codegen::CodeGenerator;

@@ -1,16 +1,9 @@
 use super::ops::{BinOp, CmpOp, UnOp};
 use crate::session::InternedStr;
+use crate::symbols::{SymbolId, VarSymbol};
+use crate::utils::index_types;
 
-macro_rules! index_types {
-    ($($t:ident),+ $(,)?) => {
-        $(
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-            pub struct $t(pub usize);
-        )*
-    };
-}
-
-index_types! { FuncId, BlockId, Var }
+index_types! { FuncId, BlockId }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModuleIr {
@@ -33,32 +26,32 @@ pub struct BasicBlock {
 pub enum Op {
     Copy {
         source: Operand,
-        dest: Var,
+        dest: SymbolId<VarSymbol>,
     },
 
     UnOp {
         op: UnOp,
         source: Operand,
-        dest: Var,
+        dest: SymbolId<VarSymbol>,
     },
 
     BinOp {
         op: BinOp,
         lhs: Operand,
         rhs: Operand,
-        dest: Var,
+        dest: SymbolId<VarSymbol>,
     },
 
     Call {
         func: FuncId,
 
         args: Vec<Operand>,
-        dests: Vec<Var>,
+        dests: Vec<SymbolId<VarSymbol>>,
     },
 }
 
 impl Op {
-    pub fn dests(&self) -> &[Var] {
+    pub fn dests(&self) -> &[SymbolId<VarSymbol>] {
         use std::slice::from_ref;
 
         match self {
@@ -73,7 +66,7 @@ impl Op {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operand {
     Constant(u64),
-    Var(Var),
+    Var(SymbolId<VarSymbol>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

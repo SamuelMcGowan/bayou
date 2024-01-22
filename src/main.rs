@@ -11,6 +11,8 @@ mod ir;
 
 mod cli;
 mod session;
+mod symbols;
+mod utils;
 
 #[derive(thiserror::Error, Debug)]
 enum CompilerError {
@@ -56,7 +58,7 @@ fn run() -> CompilerResult<()> {
 fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<String> {
     let session = Session::default();
 
-    let ir = parse_and_build_ir(&session, source).map_err(|err| {
+    let (ir, symbols) = parse_and_build_ir(&session, source).map_err(|err| {
         if let CompilerError::HadErrors = err {
             if print_diagnostics {
                 session.flush_diagnostics();
@@ -65,7 +67,7 @@ fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<String> {
         err
     })?;
 
-    let codegen = CodeGenerator::new(&session);
+    let codegen = CodeGenerator::new(&session, symbols);
     let asm = codegen.run(&ir);
 
     Ok(asm)

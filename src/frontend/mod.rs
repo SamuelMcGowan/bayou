@@ -7,13 +7,17 @@ mod lexer;
 mod lower;
 mod parser;
 
-use self::lower::lower;
+use self::lower::Lowerer;
 use self::parser::Parser;
 use crate::ir::ssa::ModuleIr;
 use crate::session::Session;
+use crate::symbols::SymbolTable;
 use crate::{CompilerError, CompilerResult};
 
-pub fn parse_and_build_ir(session: &Session, source: &str) -> CompilerResult<ModuleIr> {
+pub fn parse_and_build_ir(
+    session: &Session,
+    source: &str,
+) -> CompilerResult<(ModuleIr, SymbolTable)> {
     let parser = Parser::new(session, source);
     let ast = parser.parse_module();
 
@@ -21,5 +25,8 @@ pub fn parse_and_build_ir(session: &Session, source: &str) -> CompilerResult<Mod
         return Err(CompilerError::HadErrors);
     }
 
-    Ok(lower(ast))
+    let lowerer = Lowerer::default();
+    let (ir, symbols) = lowerer.run(ast);
+
+    Ok((ir, symbols))
 }
