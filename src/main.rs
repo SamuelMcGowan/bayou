@@ -4,11 +4,8 @@ use codegen::CodeGenerator;
 use parser::Parser;
 use session::Session;
 
-#[cfg(feature = "test_suite")]
-mod test_suite;
-
 #[cfg(test)]
-mod tests2;
+mod tests;
 
 mod ast;
 mod cli;
@@ -38,10 +35,19 @@ fn run() -> CompilerResult<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Build { file } => {
-            println!("building file {}", file.display());
-            let s = std::fs::read_to_string(file)?;
-            compile(&s, true)
+        Command::Build { input, output } => {
+            println!("building file {}", input.display());
+            let source = std::fs::read_to_string(input)?;
+            let asm = compile(&source, true)?;
+
+            if let Some(path) = output {
+                println!("writing assembly to {}", path.display());
+                std::fs::write(path, asm)?;
+            } else {
+                println!("ASSEMBLY OUTPUT:\n\n{asm}");
+            }
+
+            Ok(())
         }
 
         #[cfg(feature = "test_suite")]
@@ -49,14 +55,14 @@ fn run() -> CompilerResult<()> {
     }
 }
 
-fn compile(source: &str, show_output: bool) -> CompilerResult<()> {
+fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<String> {
     let session = Session::default();
 
     let parser = Parser::new(&session, source);
     let module = parser.parse_module();
 
     if session.had_errors() {
-        if show_output {
+        if print_diagnostics {
             session.flush_diagnostics();
         }
         return Err(CompilerError::HadErrors);
@@ -65,9 +71,5 @@ fn compile(source: &str, show_output: bool) -> CompilerResult<()> {
     let codegen = CodeGenerator::new(&session);
     let asm = codegen.run(&module);
 
-    if show_output {
-        println!("ASSEMBLY:\n\n{asm}");
-    }
-
-    Ok(())
+    Ok(asm)
 }

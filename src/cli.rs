@@ -11,12 +11,16 @@ pub struct Cli {
 
 #[derive(Subcommand)]
 pub enum Command {
+    /// Build a program.
     Build {
-        file: PathBuf,
+        /// The input file.
+        input: PathBuf,
+
+        /// The output file. If not specified, prints assembly to stdout.
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
 
     #[cfg(feature = "test_suite")]
-    RunTestSuite {
-        stage: usize,
-    },
+    RunTestSuite { stage: usize },
 }
