@@ -26,8 +26,8 @@ impl<'sess> CodeGenerator<'sess> {
     fn gen_func_decl(&mut self, f: &FuncDecl) {
         let name = self.session.lookup_str(f.name);
 
-        self.push_line(0, format!(".globl _{name}"));
-        self.push_line(0, format!("_{name}:"));
+        self.push_line(0, format!(".globl {name}"));
+        self.push_line(0, format!("{name}:"));
 
         self.gen_stmt(&f.statement);
     }
