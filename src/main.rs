@@ -8,6 +8,7 @@ mod frontend;
 
 mod ast;
 mod cli;
+mod resolver;
 mod session;
 mod utils;
 

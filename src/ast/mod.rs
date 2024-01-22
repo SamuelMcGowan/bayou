@@ -1,4 +1,4 @@
-use self::registers::Place;
+use self::registers::{Ownership, Place};
 use crate::session::InternedStr;
 
 pub mod registers;
@@ -30,7 +30,8 @@ pub enum Stmt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr {
     pub kind: ExprKind,
-    pub place: Option<Place>,
+
+    pub place: Option<(Place, Ownership)>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
