@@ -81,6 +81,17 @@ impl<'sess> Lexer<'sess> {
                 ')' => Token::RParen,
                 ';' => Token::Semicolon,
 
+                '+' => Token::Add,
+                '-' => Token::Sub,
+                '*' => Token::Mul,
+                '/' => Token::Div,
+                '%' => Token::Mod,
+
+                '&' => Token::BitwiseAnd,
+                '|' => Token::BitwiseOr,
+                '^' => Token::BitwiseXor,
+                '~' => Token::BitwiseInvert,
+
                 '0' if self.chars.eat('x') => try_lex!(self.lex_integer(0, 16)),
                 '0' if self.chars.eat('o') => try_lex!(self.lex_integer(0, 8)),
                 '0' if self.chars.eat('b') => try_lex!(self.lex_integer(0, 2)),

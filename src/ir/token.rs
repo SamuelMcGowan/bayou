@@ -11,6 +11,32 @@ pub enum Token {
     LParen,
     RParen,
     Semicolon,
+
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+
+    // TODO: uncomment when assignment is added
+    // AddEq,
+    // SubEq,
+    // MulEq,
+    // DivEq,
+    // ModEq,
+
+    // TODO: uncomment when boolean operations are added
+    // EqEq,
+    // NotEq,
+
+    // Gt,
+    // Lt,
+    // GtEq,
+    // LtEq,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor,
+    BitwiseInvert,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
