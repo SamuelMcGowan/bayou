@@ -94,5 +94,5 @@ pub enum Terminator {
         args: Vec<Operand>,
     },
 
-    Return(Vec<Operand>),
+    Return(Vec<PlaceId>),
 }

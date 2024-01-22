@@ -13,11 +13,19 @@ use crate::ir::ssa::ModuleIr;
 use crate::session::{Session, Symbols};
 use crate::{CompilerError, CompilerResult};
 
-pub fn parse_and_build_ir(session: &Session, source: &str) -> CompilerResult<(ModuleIr, Symbols)> {
+pub fn run_frontend(
+    session: &Session,
+    source: &str,
+    print_output: bool,
+) -> CompilerResult<(ModuleIr, Symbols)> {
     let parser = Parser::new(session, source);
     let ast = parser.parse_module();
 
     if session.had_errors() {
+        if print_output {
+            session.flush_diagnostics();
+        }
+
         return Err(CompilerError::HadErrors);
     }
 

@@ -26,14 +26,10 @@ impl Lowerer {
             Stmt::Return(expr) => {
                 let expr_ir = self.lower_expr(expr);
 
-                let expr_outputs = expr_ir
-                    .dests()
-                    .iter()
-                    .map(|&var| Operand::Var(var))
-                    .collect();
+                let expr_outputs = expr_ir.dests().iter().copied().collect();
 
                 BasicBlock {
-                    ops: vec![],
+                    ops: vec![expr_ir],
                     terminator: Terminator::Return(expr_outputs),
                 }
             }

@@ -37,20 +37,43 @@ impl<'sess> CodeGenerator<'sess> {
 
         // FIXME: emit code for ops
 
+        for op in &block.ops {
+            match op {
+                Op::Copy { source, dest } => {
+                    self.push_line(
+                        1,
+                        format!(
+                            "movq {}, {}",
+                            self.operand_to_str(*source),
+                            self.place_to_str(*dest)
+                        ),
+                    );
+                }
+                _ => todo!(),
+            }
+        }
+
         match &block.terminator {
             Terminator::Jump { .. } => todo!(),
             Terminator::JumpIf { .. } => todo!(),
-            Terminator::Return(operands) => {
-                // FIXME: support more than one return value
-                match operands[0] {
-                    Operand::Constant(n) => {
-                        self.push_line(1, format!("movq ${n}, %rax"));
-                        self.push_line(1, "ret");
-                    }
-                    // FIXME: support variables properly
-                    Operand::Var(_) => {}
-                }
+            Terminator::Return(_) => {
+                self.push_line(1, "ret");
             }
+        }
+    }
+
+    fn operand_to_str(&self, operand: Operand) -> String {
+        match operand {
+            Operand::Constant(n) => format!("${n}"),
+            Operand::Var(place) => self.place_to_str(place),
+        }
+    }
+
+    fn place_to_str(&self, place: PlaceId) -> String {
+        match self.symbols.places[place] {
+            Place::Register(reg) => format!("%{reg}"),
+            Place::StackSlot(slot) => format!("{}(rsp)", slot * 8),
+            Place::Unresolved => unreachable!(),
         }
     }
 

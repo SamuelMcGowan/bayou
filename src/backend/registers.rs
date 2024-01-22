@@ -1,11 +1,5 @@
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Location {
-    Reg(Register),
-    StackOffset(usize),
-}
-
 #[derive(enumn::N, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Register {
@@ -52,128 +46,9 @@ impl fmt::Display for Register {
     }
 }
 
-pub type ScopeState = usize;
-
-pub struct RegAlloc {
-    regs: [bool; 16],
-    stack: Vec<bool>,
-}
-
-impl RegAlloc {
-    pub fn new() -> Self {
-        let mut alloc = Self {
-            regs: [false; 16],
-            stack: vec![],
-        };
-
-        alloc.reserve_register(Register::Rsp);
-
-        alloc
-    }
-
-    /// Mark a register as in-use.
-    ///
-    /// Panics if the register is already in use.
-    pub fn reserve_register(&mut self, reg: Register) {
-        if self.regs[reg as usize] {
-            panic!("register {reg:?} already in use");
-        }
-
-        self.regs[reg as usize] = true;
-    }
-
-    /// Allocate a location.
-    ///
-    /// Tries to allocate a register first, if one is not available,
-    /// spills to the stack.
-    pub fn alloc(&mut self) -> Location {
-        if let Some(reg) = self.alloc_reg() {
-            Location::Reg(reg)
-        } else {
-            Location::StackOffset(self.alloc_stack())
-        }
-    }
-
-    /// Free a location, marking it for reuse.
-    ///
-    /// Panics if the location is already free or
-    /// (if it's a stack offset) it's out of bounds.
-    pub fn free(&mut self, loc: Location) {
-        match loc {
-            Location::Reg(reg) => self.free_reg(reg),
-            Location::StackOffset(slot) => self.free_stack(slot),
-        }
-    }
-
-    fn alloc_reg(&mut self) -> Option<Register> {
-        self.regs
-            .iter()
-            .position(|&in_use| !in_use)
-            .and_then(|i| Register::n(i as u8))
-    }
-
-    /// Panics if the register is already free.
-    fn free_reg(&mut self, reg: Register) {
-        if !self.regs[reg as usize] {
-            panic!("register {reg:?} already free");
-        }
-
-        self.regs[reg as usize] = false;
-    }
-
-    fn alloc_stack(&mut self) -> usize {
-        let reuse_slot = self.stack.iter().position(|&in_use| !in_use);
-
-        match reuse_slot {
-            Some(slot) => {
-                self.stack[slot] = true;
-                slot
-            }
-            None => {
-                let slot = self.stack.len();
-                self.stack.push(true);
-                slot
-            }
-        }
-    }
-
-    /// Panics if the slot is already free or is out of bounds.
-    fn free_stack(&mut self, slot: usize) {
-        if !self.regs[slot] {
-            panic!("stack slot {slot} already free");
-        }
-    }
-
-    /// Get all callee-saved registers.
-    pub fn callee_saved(&self) -> &[Register] {
-        &[
-            Register::Rbp,
-            Register::R12,
-            Register::R13,
-            Register::R14,
-            Register::R15,
-        ]
-    }
-
-    /// Get all (currently allocated) caller-saved registers.
-    pub fn caller_saved(&self) -> impl Iterator<Item = Register> + '_ {
-        const CALLER_SAVED: &[Register] = &[
-            Register::Rax,
-            Register::Rcx,
-            Register::Rdx,
-            Register::Rbx,
-            Register::Rsi,
-            Register::Rdi,
-            Register::Rsp,
-            Register::R8,
-            Register::R9,
-            Register::R10,
-            Register::R11,
-        ];
-
-        CALLER_SAVED
-            .iter()
-            .copied()
-            .filter(|&reg| !self.regs[reg as usize])
-    }
-}
+// CALLEE-SAVED:
+// Rbp,
+// R12,
+// R13,
+// R14,
+// R15

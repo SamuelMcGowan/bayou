@@ -2,8 +2,8 @@ use clap::Parser as _;
 use cli::{Cli, Command};
 use session::Session;
 
-use crate::backend::CodeGenerator;
-use crate::frontend::parse_and_build_ir;
+use crate::backend::run_backend;
+use crate::frontend::run_frontend;
 
 mod backend;
 mod frontend;
@@ -54,20 +54,12 @@ fn run() -> CompilerResult<()> {
     }
 }
 
-fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<String> {
+fn compile(source: &str, print_output: bool) -> CompilerResult<String> {
     let session = Session::default();
 
-    let (ir, symbols) = parse_and_build_ir(&session, source).map_err(|err| {
-        if let CompilerError::HadErrors = err {
-            if print_diagnostics {
-                session.flush_diagnostics();
-            }
-        }
-        err
-    })?;
+    let (ir, symbols) = run_frontend(&session, source, print_output)?;
 
-    let codegen = CodeGenerator::new(&session, symbols);
-    let asm = codegen.run(&ir);
+    let asm = run_backend(&session, symbols, &ir, print_output);
 
     Ok(asm)
 }
