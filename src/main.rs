@@ -8,7 +8,6 @@ mod frontend;
 
 mod ast;
 mod cli;
-mod resolver;
 mod session;
 pub mod symbols;
 mod utils;
@@ -54,11 +53,19 @@ fn run() -> CompilerResult<()> {
 fn compile(source: &str, print_output: bool) -> CompilerResult<String> {
     let session = Session::default();
 
-    let ast = run_frontend(&session, source, print_output)?;
+    let ast = run_frontend(&session, source)?;
 
-    if print_output {
-        println!("{session:?}");
+    if session.diagnostics.had_errors() {
+        if print_output {
+            session.diagnostics.flush_diagnostics();
+        }
+
+        return Err(CompilerError::HadErrors);
     }
 
-    Ok(format!("{ast:?}"))
+    if print_output {
+        println!("{session:#?}");
+    }
+
+    Ok(format!("{ast:#?}"))
 }

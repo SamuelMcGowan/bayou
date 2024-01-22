@@ -4,7 +4,7 @@
 */
 
 use crate::ast::registers::{Ownership, VirtualRegister};
-use crate::ast::Item;
+use crate::ast::{Item, Module};
 use crate::session::{Diagnostic, InternedStr, Session};
 use crate::symbols::GlobalSymbol;
 
@@ -21,8 +21,8 @@ impl<'sess> Resolver<'sess> {
         }
     }
 
-    pub fn run(mut self, items: &mut [Item]) {
-        self.declare_globals(items);
+    pub fn run(mut self, module: &mut Module) {
+        self.declare_globals(std::slice::from_mut(&mut module.item));
     }
 
     fn declare_globals(&mut self, items: &mut [Item]) {
