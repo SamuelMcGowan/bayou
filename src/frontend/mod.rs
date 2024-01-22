@@ -10,14 +10,10 @@ mod parser;
 use self::lower::Lowerer;
 use self::parser::Parser;
 use crate::ir::ssa::ModuleIr;
-use crate::session::Session;
-use crate::symbols::SymbolTable;
+use crate::session::{Session, Symbols};
 use crate::{CompilerError, CompilerResult};
 
-pub fn parse_and_build_ir(
-    session: &Session,
-    source: &str,
-) -> CompilerResult<(ModuleIr, SymbolTable)> {
+pub fn parse_and_build_ir(session: &Session, source: &str) -> CompilerResult<(ModuleIr, Symbols)> {
     let parser = Parser::new(session, source);
     let ast = parser.parse_module();
 

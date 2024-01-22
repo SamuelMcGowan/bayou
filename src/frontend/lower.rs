@@ -1,14 +1,14 @@
 use super::ast::*;
 use crate::ir::ssa::*;
-use crate::symbols::{SymbolTable, VarSymbol};
+use crate::session::Symbols;
 
 #[derive(Default)]
 pub struct Lowerer {
-    symbols: SymbolTable,
+    symbols: Symbols,
 }
 
 impl Lowerer {
-    pub fn run(mut self, module: Module) -> (ModuleIr, SymbolTable) {
+    pub fn run(mut self, module: Module) -> (ModuleIr, Symbols) {
         match module.item {
             Item::FuncDecl(func_decl) => {
                 let func_ir = self.lower_func_decl(func_decl);
@@ -49,13 +49,10 @@ impl Lowerer {
 
     fn lower_expr(&mut self, expr: Expr) -> Op {
         match expr {
-            Expr::Constant(n) => {
-                let var = self.symbols.insert(VarSymbol::default());
-                Op::Copy {
-                    source: Operand::Constant(n),
-                    dest: var,
-                }
-            }
+            Expr::Constant(n) => Op::Copy {
+                source: Operand::Constant(n),
+                dest: self.symbols.places.insert(Place::Unresolved),
+            },
         }
     }
 }

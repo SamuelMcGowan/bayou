@@ -6,7 +6,7 @@ pub enum Location {
     StackOffset(usize),
 }
 
-#[derive(enumn::N, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(enumn::N, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum Register {
     Rax = 0,

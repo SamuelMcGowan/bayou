@@ -11,7 +11,6 @@ mod ir;
 
 mod cli;
 mod session;
-mod symbols;
 mod utils;
 
 #[derive(thiserror::Error, Debug)]

@@ -1,16 +1,15 @@
 use crate::ir::ssa::*;
-use crate::session::Session;
-use crate::symbols::SymbolTable;
+use crate::session::{Session, Symbols};
 
 pub struct CodeGenerator<'sess> {
     session: &'sess Session,
-    symbols: SymbolTable,
+    symbols: Symbols,
 
     output: String,
 }
 
 impl<'sess> CodeGenerator<'sess> {
-    pub fn new(session: &'sess Session, symbols: SymbolTable) -> Self {
+    pub fn new(session: &'sess Session, symbols: Symbols) -> Self {
         Self {
             session,
             symbols,

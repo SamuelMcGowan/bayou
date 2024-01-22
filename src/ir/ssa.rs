@@ -1,7 +1,7 @@
 use super::ops::{BinOp, CmpOp, UnOp};
+use crate::backend::registers::Register;
 use crate::session::InternedStr;
-use crate::symbols::{SymbolId, VarSymbol};
-use crate::utils::index_types;
+use crate::utils::{declare_key_type, index_types};
 
 index_types! { FuncId, BlockId }
 
@@ -26,32 +26,32 @@ pub struct BasicBlock {
 pub enum Op {
     Copy {
         source: Operand,
-        dest: SymbolId<VarSymbol>,
+        dest: PlaceId,
     },
 
     UnOp {
         op: UnOp,
         source: Operand,
-        dest: SymbolId<VarSymbol>,
+        dest: PlaceId,
     },
 
     BinOp {
         op: BinOp,
         lhs: Operand,
         rhs: Operand,
-        dest: SymbolId<VarSymbol>,
+        dest: PlaceId,
     },
 
     Call {
         func: FuncId,
 
         args: Vec<Operand>,
-        dests: Vec<SymbolId<VarSymbol>>,
+        dests: Vec<PlaceId>,
     },
 }
 
 impl Op {
-    pub fn dests(&self) -> &[SymbolId<VarSymbol>] {
+    pub fn dests(&self) -> &[PlaceId] {
         use std::slice::from_ref;
 
         match self {
@@ -66,7 +66,16 @@ impl Op {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operand {
     Constant(u64),
-    Var(SymbolId<VarSymbol>),
+    Var(PlaceId),
+}
+
+declare_key_type! { pub struct PlaceId; }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Place {
+    Register(Register),
+    StackSlot(usize),
+    Unresolved,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

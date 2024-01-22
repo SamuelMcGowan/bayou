@@ -118,7 +118,7 @@ macro_rules! declare_key_type {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         $v struct $i(pub usize);
 
-        impl Key for $i {
+        impl $crate::utils::Key for $i {
             fn from_usize(n: usize) -> Self {
                 Self(n)
             }
