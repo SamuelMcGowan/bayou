@@ -7,7 +7,7 @@ mod resolver;
 
 use self::parser::Parser;
 use self::resolver::Resolver;
-use crate::ast::Module;
+use crate::ir::ast::Module;
 use crate::session::Session;
 use crate::{CompilerError, CompilerResult};
 

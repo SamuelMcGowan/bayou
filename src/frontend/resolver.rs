@@ -3,8 +3,8 @@
 - allocate physical registers / stack slots
 */
 
-use crate::ast::registers::{Ownership, VirtualRegister};
-use crate::ast::{Item, Module};
+use crate::ir::ast::{Item, Module};
+use crate::ir::registers::{Ownership, VirtualRegister};
 use crate::session::{Diagnostic, InternedStr, Session};
 use crate::symbols::GlobalSymbol;
 
