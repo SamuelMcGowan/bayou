@@ -1,5 +1,7 @@
+use self::registers::Place;
 use crate::session::InternedStr;
 
+pub mod registers;
 pub mod token;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,7 +28,13 @@ pub enum Stmt {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr {
+pub struct Expr {
+    pub kind: ExprKind,
+    pub place: Option<Place>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ExprKind {
     Constant(u64),
 
     UnOp {

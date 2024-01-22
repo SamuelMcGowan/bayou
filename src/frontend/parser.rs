@@ -93,7 +93,10 @@ impl<'sess> Parser<'sess> {
 
     fn parse_expr(&mut self) -> ParseResult<Expr> {
         match self.lexer.next() {
-            Some(Token::Integer(n)) => Ok(Expr::Constant(n)),
+            Some(Token::Integer(n)) => Ok(Expr {
+                kind: ExprKind::Constant(n),
+                place: None,
+            }),
             other => Err(ParseError::expected("an expression", other)),
         }
     }
