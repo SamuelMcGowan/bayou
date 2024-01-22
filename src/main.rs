@@ -12,6 +12,7 @@ mod cli;
 mod codegen;
 mod lexer;
 mod parser;
+mod registers;
 mod session;
 
 #[derive(thiserror::Error, Debug)]
