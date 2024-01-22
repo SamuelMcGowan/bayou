@@ -1,6 +1,6 @@
-use super::ast::token::{Keyword, Token};
-use super::ast::*;
 use super::lexer::{Lexer, Peek};
+use crate::ast::token::{Keyword, Token};
+use crate::ast::*;
 use crate::session::{Diagnostic, InternedStr, IntoDiagnostic, Session};
 
 pub struct ParseError {

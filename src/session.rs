@@ -47,11 +47,3 @@ pub struct Diagnostic {
 pub trait IntoDiagnostic {
     fn into_diagnostic(self) -> Diagnostic;
 }
-
-use crate::ir::ssa::{Place, PlaceId};
-use crate::utils::KeyVec;
-
-#[derive(Default, Debug, Clone)]
-pub struct Symbols {
-    pub places: KeyVec<PlaceId, Place>,
-}

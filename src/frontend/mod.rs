@@ -1,23 +1,15 @@
 #[cfg(test)]
 mod tests;
 
-// FIXME: hide internals
-mod ast;
 mod lexer;
-mod lower;
 mod parser;
 
-use self::lower::Lowerer;
 use self::parser::Parser;
-use crate::ir::ssa::ModuleIr;
-use crate::session::{Session, Symbols};
+use crate::ast::Module;
+use crate::session::Session;
 use crate::{CompilerError, CompilerResult};
 
-pub fn run_frontend(
-    session: &Session,
-    source: &str,
-    print_output: bool,
-) -> CompilerResult<(ModuleIr, Symbols)> {
+pub fn run_frontend(session: &Session, source: &str, print_output: bool) -> CompilerResult<Module> {
     let parser = Parser::new(session, source);
     let ast = parser.parse_module();
 
@@ -29,8 +21,5 @@ pub fn run_frontend(
         return Err(CompilerError::HadErrors);
     }
 
-    let lowerer = Lowerer::default();
-    let (ir, symbols) = lowerer.run(ast);
-
-    Ok((ir, symbols))
+    Ok(ast)
 }

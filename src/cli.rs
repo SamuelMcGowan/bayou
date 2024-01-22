@@ -20,7 +20,4 @@ pub enum Command {
         #[arg(short, long)]
         output: Option<PathBuf>,
     },
-
-    #[cfg(feature = "test_suite")]
-    RunTestSuite { stage: usize },
 }

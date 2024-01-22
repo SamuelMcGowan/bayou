@@ -1,6 +1,6 @@
 use std::str::Chars;
 
-use super::ast::token::{Keyword, Token};
+use crate::ast::token::{Keyword, Token};
 use crate::session::{Diagnostic, IntoDiagnostic, Session};
 
 #[derive(thiserror::Error, Debug)]
