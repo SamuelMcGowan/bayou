@@ -7,6 +7,9 @@ use session::Session;
 #[cfg(feature = "test_suite")]
 mod test_suite;
 
+#[cfg(test)]
+mod tests2;
+
 mod ast;
 mod cli;
 mod codegen;
@@ -46,21 +49,25 @@ fn run() -> CompilerResult<()> {
     }
 }
 
-fn compile(source: &str, print_diagnostics: bool) -> CompilerResult<()> {
+fn compile(source: &str, show_output: bool) -> CompilerResult<()> {
     let session = Session::default();
 
     let parser = Parser::new(&session, source);
     let module = parser.parse_module();
 
     if session.had_errors() {
-        if print_diagnostics {
+        if show_output {
             session.flush_diagnostics();
         }
         return Err(CompilerError::HadErrors);
     }
 
     let codegen = CodeGenerator::new(&session);
-    let _asm = codegen.run(&module);
+    let asm = codegen.run(&module);
+
+    if show_output {
+        println!("ASSEMBLY:\n\n{asm}");
+    }
 
     Ok(())
 }
