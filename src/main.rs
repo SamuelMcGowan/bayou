@@ -10,6 +10,7 @@ mod ast;
 mod cli;
 mod resolver;
 mod session;
+pub mod symbols;
 mod utils;
 
 #[derive(thiserror::Error, Debug)]

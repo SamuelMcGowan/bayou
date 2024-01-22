@@ -1,5 +1,7 @@
 use std::cell::{Cell, Ref, RefCell};
 
+use crate::symbols::Symbols;
+
 pub type InternedStr = lasso::Spur;
 pub type Interner = lasso::Rodeo;
 
@@ -9,6 +11,8 @@ pub struct Session {
     had_errors: Cell<bool>,
 
     interner: RefCell<Interner>,
+
+    pub symbols: RefCell<Symbols>,
 }
 
 impl Session {
