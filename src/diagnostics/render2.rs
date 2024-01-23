@@ -164,9 +164,10 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         line: usize,
         source_line: bool,
     ) -> io::Result<()> {
-        self.stream.set_color(&self.config.emphasis)?;
-
         for snippet in multiline_snippets {
+            self.stream
+                .set_color(self.get_snippet_color(snippet.kind))?;
+
             let ch = if source_line {
                 if line < snippet.lines.start {
                     self.config.multiline_empty
