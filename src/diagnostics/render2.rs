@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::io;
 use std::ops::Range;
 
-use termcolor::WriteColor;
+use termcolor::{ColorSpec, WriteColor};
 use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, Sources};
-use super::{Config, Diagnostic, DiagnosticKind};
+use super::{Config, Diagnostic, DiagnosticKind, SnippetKind};
 
 const TAB: &str = "    ";
 
@@ -52,18 +52,14 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
     }
 
     fn draw_header(&mut self) -> io::Result<()> {
-        let (kind, kind_color) = match self.diagnostic.kind {
-            DiagnosticKind::Warning => ("Warning", &self.config.warning_color),
-            DiagnosticKind::Error => ("Error", &self.config.error_color),
-        };
-
-        self.stream.set_color(kind_color)?;
+        self.stream.set_color(self.get_primary_color())?;
 
         if let Some(id) = &self.diagnostic.id {
             write!(self.stream, "[{id}] ")?;
         }
 
-        write!(self.stream, "{kind}:")?;
+        let kind_str = self.get_kind_str();
+        write!(self.stream, "{kind_str}:")?;
 
         self.stream.reset()?;
 
@@ -120,7 +116,8 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                 let before_snippet = &source.source_str()[line_start..snippet.bytes.start];
                 let offset = str_width(before_snippet);
 
-                self.stream.set_color(&self.config.emphasis)?;
+                self.stream
+                    .set_color(self.get_snippet_color(snippet.kind))?;
 
                 for _ in 0..offset {
                     write!(self.stream, " ")?;
@@ -154,7 +151,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             write!(self.stream, "{:>width$}", "", width = line_num_width)?;
         }
 
-        write!(self.stream, " {}", self.config.gutter_main)?;
+        write!(self.stream, " {} ", self.config.gutter)?;
 
         self.stream.reset()?;
 
@@ -172,24 +169,24 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         for snippet in multiline_snippets {
             let ch = if source_line {
                 if line < snippet.lines.start {
-                    self.config.gutter_empty
+                    self.config.multiline_empty
                 } else if line == snippet.lines.start {
-                    self.config.gutter_top
+                    self.config.multiline_top
                 } else if line + 1 == snippet.lines.end {
-                    self.config.gutter_bottom
+                    self.config.multiline_bottom
                 } else if line < snippet.lines.end {
-                    self.config.gutter_main
+                    self.config.multiline_main
                 } else {
-                    self.config.gutter_trace
+                    self.config.multiline_trace
                 }
             } else {
                 #[allow(clippy::collapsible_else_if)]
                 if line < snippet.lines.start {
-                    self.config.gutter_empty
+                    self.config.multiline_empty
                 } else if line + 1 >= snippet.lines.end {
-                    self.config.gutter_trace
+                    self.config.multiline_trace
                 } else {
-                    self.config.gutter_main
+                    self.config.multiline_main
                 }
             };
 
@@ -228,12 +225,40 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
 
             source_data.snippets.push(SnippetData {
                 label: &snippet.label,
+                kind: snippet.kind,
+
                 bytes: snippet.span.clone(),
                 lines,
             });
         }
 
         source_datas
+    }
+
+    // TODO: make this a method on `DiagnosticKind`.
+    fn get_kind_str(&self) -> &'static str {
+        match self.diagnostic.kind {
+            DiagnosticKind::Warning => "Warning",
+            DiagnosticKind::Error => "Error",
+        }
+    }
+
+    fn get_primary_color(&self) -> &'a ColorSpec {
+        match self.diagnostic.kind {
+            DiagnosticKind::Warning => &self.config.warning_color,
+            DiagnosticKind::Error => &self.config.error_color,
+        }
+    }
+
+    fn get_secondary_color(&self) -> &'a ColorSpec {
+        &self.config.emphasis
+    }
+
+    fn get_snippet_color(&self, kind: SnippetKind) -> &'a ColorSpec {
+        match kind {
+            SnippetKind::Primary => self.get_primary_color(),
+            SnippetKind::Secondary => self.get_secondary_color(),
+        }
     }
 }
 
@@ -245,6 +270,7 @@ struct SourceData<'a, S: Sources> {
 #[derive(Clone)]
 struct SnippetData<'a> {
     label: &'a str,
+    kind: SnippetKind,
 
     bytes: Range<usize>,
     lines: Range<usize>,
@@ -335,9 +361,9 @@ mod tests {
         let diagnostic = Diagnostic::error()
             .with_message("Incompatible types")
             .with_id("E03")
-            .with_snippet(Snippet::new("This is of type `Nat`", 0, 32..33))
-            .with_snippet(Snippet::new("This is of type `Str`", 0, 42..45))
-            .with_snippet(Snippet::new(
+            .with_snippet(Snippet::primary("This is of type `Nat`", 0, 32..33))
+            .with_snippet(Snippet::secondary("This is of type `Str`", 0, 42..45))
+            .with_snippet(Snippet::secondary(
                 "The values are outputs of this `match` expression",
                 0,
                 11..48,

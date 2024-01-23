@@ -64,20 +64,41 @@ pub enum DiagnosticKind {
 
 pub struct Snippet<S: Sources> {
     label: String,
+    kind: SnippetKind,
 
     source_id: S::SourceId,
     span: Range<usize>,
 }
 
 impl<S: Sources> Snippet<S> {
-    pub fn new(label: impl Into<String>, source_id: S::SourceId, span: Range<usize>) -> Self {
+    pub fn new(
+        kind: SnippetKind,
+        label: impl Into<String>,
+        source_id: S::SourceId,
+        span: Range<usize>,
+    ) -> Self {
         Self {
             label: label.into(),
+            kind,
 
             source_id,
             span,
         }
     }
+
+    pub fn primary(label: impl Into<String>, source_id: S::SourceId, span: Range<usize>) -> Self {
+        Self::new(SnippetKind::Primary, label, source_id, span)
+    }
+
+    pub fn secondary(label: impl Into<String>, source_id: S::SourceId, span: Range<usize>) -> Self {
+        Self::new(SnippetKind::Secondary, label, source_id, span)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum SnippetKind {
+    Primary,
+    Secondary,
 }
 
 pub struct Config {
@@ -87,11 +108,13 @@ pub struct Config {
     pub emphasis: ColorSpec,
     pub subtle: ColorSpec,
 
-    pub gutter_top: &'static str,
-    pub gutter_main: &'static str,
-    pub gutter_bottom: &'static str,
-    pub gutter_trace: &'static str,
-    pub gutter_empty: &'static str,
+    pub gutter: &'static str,
+
+    pub multiline_top: &'static str,
+    pub multiline_main: &'static str,
+    pub multiline_bottom: &'static str,
+    pub multiline_trace: &'static str,
+    pub multiline_empty: &'static str,
 
     pub underline: &'static str,
     pub underline_trace: &'static str,
@@ -121,11 +144,13 @@ impl Default for Config {
             emphasis,
             subtle,
 
-            gutter_top: "╭─▷",
-            gutter_main: "│  ",
-            gutter_bottom: "├─▷",
-            gutter_trace: "│  ",
-            gutter_empty: "   ",
+            gutter: "│",
+
+            multiline_top: "╭─▷",
+            multiline_main: "│  ",
+            multiline_bottom: "├─▷",
+            multiline_trace: "│  ",
+            multiline_empty: "   ",
 
             underline: "-",
             underline_trace: "  ",
