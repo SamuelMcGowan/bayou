@@ -113,11 +113,11 @@ pub struct Config {
     pub multiline_top: &'static str,
     pub multiline_main: &'static str,
     pub multiline_bottom: &'static str,
-    pub multiline_trace: &'static str,
+    pub multiline_very_bottom: &'static str,
     pub multiline_empty: &'static str,
 
     pub underline: &'static str,
-    pub underline_trace: &'static str,
+    pub underline_after: &'static str,
 }
 
 impl Default for Config {
@@ -149,11 +149,11 @@ impl Default for Config {
             multiline_top: "╭─▷",
             multiline_main: "│  ",
             multiline_bottom: "├─▷",
-            multiline_trace: "│  ",
+            multiline_very_bottom: "╰─◎",
             multiline_empty: "   ",
 
             underline: "^",
-            underline_trace: "  ",
+            underline_after: "  ",
         }
     }
 }

@@ -131,9 +131,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                 self.stream
                     .set_color(self.get_snippet_color(snippet.kind))?;
 
-                for _ in 0..offset {
-                    write!(self.stream, " ")?;
-                }
+                write!(self.stream, "{:<offset$}", "")?;
 
                 for _ in 0..snippet.bytes.len() {
                     write!(self.stream, "{}", self.config.underline)?;
@@ -142,12 +140,14 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                 writeln!(
                     self.stream,
                     "{}{}",
-                    self.config.underline_trace, snippet.label
+                    self.config.underline_after, snippet.label
                 )?;
 
                 self.stream.reset()?;
             }
         }
+
+        self.draw_multiline_labels(&multiline_snippets, line_num_width)?;
 
         writeln!(self.stream)?;
 
@@ -187,23 +187,65 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                     self.config.multiline_top
                 } else if line + 1 == snippet.lines.end {
                     self.config.multiline_bottom
-                } else if line < snippet.lines.end {
-                    self.config.multiline_main
                 } else {
-                    self.config.multiline_trace
+                    self.config.multiline_main
                 }
             } else {
                 #[allow(clippy::collapsible_else_if)]
                 if line < snippet.lines.start {
                     self.config.multiline_empty
-                } else if line + 1 >= snippet.lines.end {
-                    self.config.multiline_trace
                 } else {
                     self.config.multiline_main
                 }
             };
 
             write!(self.stream, "{ch} ")?;
+        }
+
+        self.stream.reset()?;
+
+        Ok(())
+    }
+
+    fn draw_multilines_simple(&mut self, multiline_snippets: &[SnippetData]) -> io::Result<()> {
+        for snippet in multiline_snippets {
+            self.stream
+                .set_color(&self.get_snippet_color(snippet.kind))?;
+
+            write!(self.stream, "{} ", self.config.multiline_main)?;
+        }
+
+        Ok(())
+    }
+
+    fn draw_multiline_labels(
+        &mut self,
+        mut multiline_snippets: &[SnippetData],
+        line_num_width: usize,
+    ) -> io::Result<()> {
+        // blank line
+        self.draw_gutter(None, line_num_width)?;
+        self.draw_multilines_simple(multiline_snippets)?;
+        writeln!(self.stream)?;
+
+        let multiline_width = self.config.multiline_empty.len() + 1;
+
+        while let [prevs @ .., snippet] = multiline_snippets {
+            self.draw_gutter(None, line_num_width)?;
+            self.draw_multilines_simple(prevs)?;
+
+            self.stream
+                .set_color(&self.get_snippet_color(snippet.kind))?;
+
+            write!(
+                self.stream,
+                "{} {}",
+                self.config.multiline_very_bottom, snippet.label
+            )?;
+
+            writeln!(self.stream)?;
+
+            multiline_snippets = prevs;
         }
 
         self.stream.reset()?;
@@ -382,8 +424,8 @@ mod tests {
                 "The values are outputs of this `match` expression",
                 0,
                 11..48,
-            ));
-        // .with_snippet(Snippet::new("hehe", 0, 32..45));
+            ))
+            .with_snippet(Snippet::primary("hehe", 0, 32..45));
 
         let s = diagnostic_to_string(
             diagnostic,
