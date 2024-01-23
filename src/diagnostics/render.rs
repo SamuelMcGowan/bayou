@@ -1,9 +1,9 @@
 use std::io;
 
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+use termcolor::{Color, ColorSpec, WriteColor};
 
-use super::sources::{Cached, Source, Sources};
-use super::{Diagnostic, DiagnosticKind, Snippet};
+use super::sources::{Source, Sources};
+use super::{Diagnostic, DiagnosticKind};
 
 impl<S: Sources> Diagnostic<S> {
     pub fn write_to_stream(
@@ -88,19 +88,37 @@ impl Default for Config {
     }
 }
 
-#[test]
-fn foo() {
-    let diagnostic = Diagnostic::error()
-        .with_message("oops")
-        .with_id("E01")
-        .with_snippet(Snippet::new("this is a label", 0, 13..13));
+#[cfg(test)]
+mod tests {
+    use insta::assert_yaml_snapshot;
+    use termcolor::NoColor;
 
-    let sources = vec![Cached::new(("my_file", "some contents"))];
+    use super::Config;
+    use crate::diagnostics::sources::{Cached, Sources};
+    use crate::diagnostics::{Diagnostic, Snippet};
 
-    let config = Config::default();
-    let mut stream = StandardStream::stderr(ColorChoice::Auto);
+    #[must_use]
+    fn diagnostic_to_string<S: Sources>(diagnostic: Diagnostic<S>, sources: S) -> String {
+        let config = Config::default();
+        let mut stream = NoColor::new(vec![]);
 
-    diagnostic
-        .write_to_stream(&sources, &config, &mut stream)
-        .unwrap();
+        diagnostic
+            .write_to_stream(&sources, &config, &mut stream)
+            .unwrap();
+
+        let bytes = stream.into_inner();
+        String::from_utf8_lossy(&bytes).into_owned()
+    }
+
+    #[test]
+    fn simple_diagnostic() {
+        let s = diagnostic_to_string(
+            Diagnostic::error()
+                .with_message("oops")
+                .with_id("E01")
+                .with_snippet(Snippet::new("this is a label", 0, 13..13)),
+            vec![Cached::new(("my_file", "some contents"))],
+        );
+        assert_yaml_snapshot!(s);
+    }
 }

@@ -10,4 +10,4 @@ macro_rules! assert_yaml_snapshot_with_source {
         })
     }};
 }
-use assert_yaml_snapshot_with_source;
+pub(crate) use assert_yaml_snapshot_with_source;

@@ -95,23 +95,23 @@ impl<S: Source> Source for Cached<S> {
 #[test]
 fn test_line_breaks() {
     let cached = Cached::new(("a", ""));
-    assert_eq!(cached.byte_to_line_index(0), Some(1));
+    assert_eq!(cached.byte_to_line_index(0), Some(0));
     assert_eq!(cached.byte_to_line_index(1), None);
 
     let cached = Cached::new(("a", "\n"));
-    assert_eq!(cached.byte_to_line_index(0), Some(1));
-    assert_eq!(cached.byte_to_line_index(1), Some(2));
+    assert_eq!(cached.byte_to_line_index(0), Some(0));
+    assert_eq!(cached.byte_to_line_index(1), Some(1));
     assert_eq!(cached.byte_to_line_index(2), None);
 
     let cached = Cached::new(("a", "x\n"));
-    assert_eq!(cached.byte_to_line_index(0), Some(1));
-    assert_eq!(cached.byte_to_line_index(1), Some(1));
-    assert_eq!(cached.byte_to_line_index(2), Some(2));
+    assert_eq!(cached.byte_to_line_index(0), Some(0));
+    assert_eq!(cached.byte_to_line_index(1), Some(0));
+    assert_eq!(cached.byte_to_line_index(2), Some(1));
     assert_eq!(cached.byte_to_line_index(3), None);
 
     let cached = Cached::new(("a", "\nx"));
-    assert_eq!(cached.byte_to_line_index(0), Some(1));
-    assert_eq!(cached.byte_to_line_index(1), Some(2));
-    assert_eq!(cached.byte_to_line_index(2), Some(2));
+    assert_eq!(cached.byte_to_line_index(0), Some(0));
+    assert_eq!(cached.byte_to_line_index(1), Some(1));
+    assert_eq!(cached.byte_to_line_index(2), Some(1));
     assert_eq!(cached.byte_to_line_index(3), None);
 }
