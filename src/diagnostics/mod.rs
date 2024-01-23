@@ -31,6 +31,7 @@ impl<S: Sources> Diagnostic<S> {
     pub fn error() -> Self {
         Self::new(DiagnosticKind::Error)
     }
+
     pub fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = Some(message.into());
         self

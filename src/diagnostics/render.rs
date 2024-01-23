@@ -2,7 +2,7 @@ use std::io;
 
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
-use super::sources::{Source, Sources};
+use super::sources::{Cached, Source, Sources};
 use super::{Diagnostic, DiagnosticKind, Snippet};
 
 impl<S: Sources> Diagnostic<S> {
@@ -42,7 +42,7 @@ impl<S: Sources> Diagnostic<S> {
                 .expect("source not in sources");
 
             stream.set_color(&config.emphasis)?;
-            write!(stream, "  in {}:", file.name())?;
+            write!(stream, "  in {}:", file.name_str())?;
             stream.reset()?;
             writeln!(stream, " {}\n", snippet.label)?;
         }
@@ -86,7 +86,7 @@ fn foo() {
         .with_id("E01")
         .with_snippet(Snippet::new("this is a label", 0, 0..0));
 
-    let sources = vec![("my_file", "some contents")];
+    let sources = vec![Cached::new(("my_file", "some contents"))];
 
     let config = Config::default();
     let mut stream = StandardStream::stderr(ColorChoice::Auto);
