@@ -1,3 +1,10 @@
+use std::ops::Range;
+
+use self::sources::Sources;
+
+mod render;
+mod sources;
+
 pub struct Diagnostic<S: Sources> {
     kind: DiagnosticKind,
 
@@ -52,10 +59,19 @@ pub enum DiagnosticKind {
 }
 
 pub struct Snippet<S: Sources> {
-    source: S::SourceId,
     label: String,
+
+    source_id: S::SourceId,
+    span: Range<usize>,
 }
 
-pub trait Sources {
-    type SourceId;
+impl<S: Sources> Snippet<S> {
+    pub fn new(label: impl Into<String>, source_id: S::SourceId, span: Range<usize>) -> Self {
+        Self {
+            label: label.into(),
+
+            source_id,
+            span,
+        }
+    }
 }
