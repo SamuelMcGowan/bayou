@@ -52,13 +52,32 @@ impl<S: Source> Cached<S> {
         &self.source
     }
 
-    pub(super) fn byte_to_line(&self, byte: usize) -> Option<usize> {
+    pub fn byte_to_line_col(&self, byte: usize) -> Option<(usize, usize)> {
+        let line = self.byte_to_line_index(byte)?;
+
+        let line_start = self.line_to_byte(line)?;
+        let col = byte - line_start;
+
+        Some((line + 1, col + 1))
+    }
+
+    pub fn byte_to_line_index(&self, byte: usize) -> Option<usize> {
         if byte > self.source_str().len() {
             return None;
         }
 
         match self.line_breaks.binary_search(&byte) {
-            Ok(line) | Err(line) => Some(line + 1),
+            Ok(line) | Err(line) => Some(line),
+        }
+    }
+
+    pub fn line_to_byte(&self, line: usize) -> Option<usize> {
+        if line == 0 {
+            Some(0)
+        } else if line == self.line_breaks.len() {
+            Some(self.source_str().len())
+        } else {
+            self.line_breaks.get(line - 1).copied()
         }
     }
 }
@@ -76,23 +95,23 @@ impl<S: Source> Source for Cached<S> {
 #[test]
 fn test_line_breaks() {
     let cached = Cached::new(("a", ""));
-    assert_eq!(cached.byte_to_line(0), Some(1));
-    assert_eq!(cached.byte_to_line(1), None);
+    assert_eq!(cached.byte_to_line_index(0), Some(1));
+    assert_eq!(cached.byte_to_line_index(1), None);
 
     let cached = Cached::new(("a", "\n"));
-    assert_eq!(cached.byte_to_line(0), Some(1));
-    assert_eq!(cached.byte_to_line(1), Some(2));
-    assert_eq!(cached.byte_to_line(2), None);
+    assert_eq!(cached.byte_to_line_index(0), Some(1));
+    assert_eq!(cached.byte_to_line_index(1), Some(2));
+    assert_eq!(cached.byte_to_line_index(2), None);
 
     let cached = Cached::new(("a", "x\n"));
-    assert_eq!(cached.byte_to_line(0), Some(1));
-    assert_eq!(cached.byte_to_line(1), Some(1));
-    assert_eq!(cached.byte_to_line(2), Some(2));
-    assert_eq!(cached.byte_to_line(3), None);
+    assert_eq!(cached.byte_to_line_index(0), Some(1));
+    assert_eq!(cached.byte_to_line_index(1), Some(1));
+    assert_eq!(cached.byte_to_line_index(2), Some(2));
+    assert_eq!(cached.byte_to_line_index(3), None);
 
     let cached = Cached::new(("a", "\nx"));
-    assert_eq!(cached.byte_to_line(0), Some(1));
-    assert_eq!(cached.byte_to_line(1), Some(2));
-    assert_eq!(cached.byte_to_line(2), Some(2));
-    assert_eq!(cached.byte_to_line(3), None);
+    assert_eq!(cached.byte_to_line_index(0), Some(1));
+    assert_eq!(cached.byte_to_line_index(1), Some(2));
+    assert_eq!(cached.byte_to_line_index(2), Some(2));
+    assert_eq!(cached.byte_to_line_index(3), None);
 }

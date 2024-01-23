@@ -26,7 +26,7 @@ impl<S: Sources> Diagnostic<S> {
             }
 
             write!(stream, "{kind_str}:")?;
-            stream.reset()?;
+            stream.set_color(&config.emphasis)?;
 
             if let Some(msg) = &self.message {
                 write!(stream, " {msg}")?;
@@ -41,10 +41,14 @@ impl<S: Sources> Diagnostic<S> {
                 .get_source(snippet.source_id)
                 .expect("source not in sources");
 
-            stream.set_color(&config.emphasis)?;
-            write!(stream, "  in {}:", file.name_str())?;
+            let (line, col) = file
+                .byte_to_line_col(snippet.span.start)
+                .expect("line out of range");
+
+            stream.set_color(&config.subtle)?;
+            write!(stream, "  in {}:{line}:{col} - ", file.name_str())?;
             stream.reset()?;
-            writeln!(stream, " {}\n", snippet.label)?;
+            writeln!(stream, "{}\n", snippet.label)?;
         }
 
         Ok(())
@@ -56,6 +60,7 @@ pub struct Config {
     pub warning_color: ColorSpec,
 
     pub emphasis: ColorSpec,
+    pub subtle: ColorSpec,
 }
 
 impl Default for Config {
@@ -68,13 +73,17 @@ impl Default for Config {
         warning_color.set_fg(Some(Color::Yellow));
         warning_color.set_bold(true);
 
+        let mut subtle = ColorSpec::new();
+        subtle.set_italic(true);
+
         let mut emphasis = ColorSpec::new();
-        emphasis.set_italic(true);
+        emphasis.set_bold(true);
 
         Self {
             error_color,
             warning_color,
             emphasis,
+            subtle,
         }
     }
 }
@@ -84,7 +93,7 @@ fn foo() {
     let diagnostic = Diagnostic::error()
         .with_message("oops")
         .with_id("E01")
-        .with_snippet(Snippet::new("this is a label", 0, 0..0));
+        .with_snippet(Snippet::new("this is a label", 0, 13..13));
 
     let sources = vec![Cached::new(("my_file", "some contents"))];
 
