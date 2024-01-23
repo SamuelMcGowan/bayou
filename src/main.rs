@@ -8,6 +8,7 @@ mod ir;
 mod session;
 mod symbols;
 mod utils;
+mod diagnostics;
 
 use clap::Parser as _;
 use cli::{Cli, Command};

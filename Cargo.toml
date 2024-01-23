@@ -12,6 +12,7 @@ lasso = { version = "0.7.2", features = ["serialize"] }
 enumn = "0.1.13"
 serde = { version = "1.0.195", features = ["derive"] }
 macro_rules_attribute = "0.2.0"
+ariadne = "0.4.0"
 
 [dev-dependencies]
 insta = { version = "1.34.0", features = ["yaml"] }
