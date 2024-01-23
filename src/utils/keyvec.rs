@@ -1,16 +1,6 @@
-macro_rules! index_types {
-    ($($t:ident),+ $(,)?) => {
-        $(
-            #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-            pub struct $t(pub usize);
-        )*
-    };
-}
 use std::fmt;
 use std::marker::PhantomData;
 use std::ops::{Deref, Index, IndexMut};
-
-pub(crate) use index_types;
 
 pub struct KeyVec<K, V> {
     inner: Vec<V>,
@@ -112,23 +102,21 @@ pub trait Key: Copy {
 }
 
 macro_rules! declare_key_type {
-    (
-        $v:vis struct $i:ident;
-    ) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-        $v struct $i(pub usize);
+(
+    $v:vis struct $i:ident;
+) => {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    $v struct $i(pub usize);
 
-        impl $crate::utils::Key for $i {
-            fn from_usize(n: usize) -> Self {
-                Self(n)
-            }
-
-            fn as_usize(&self) -> usize {
-                self.0
-            }
+    impl $crate::utils::keyvec::Key for $i {
+        fn from_usize(n: usize) -> Self {
+            Self(n)
         }
-    };
+
+        fn as_usize(&self) -> usize {
+            self.0
+        }
+    }
+};
 }
 pub(crate) use declare_key_type;
-
-declare_key_type! { struct Foo; }
