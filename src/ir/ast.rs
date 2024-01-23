@@ -1,30 +1,31 @@
 use super::vars::PlaceRef;
+use super::{Node, NodeCopy};
 use crate::session::InternedStr;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Node!)]
 pub struct Module {
     pub item: Item,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Node!)]
 pub enum Item {
     FuncDecl(FuncDecl),
     ParseError,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Node!)]
 pub struct FuncDecl {
     pub name: InternedStr,
     pub statement: Stmt,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Node!)]
 pub enum Stmt {
     Return(Expr),
     ParseError,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Node!)]
 pub struct Expr {
     pub kind: ExprKind,
     pub place: Option<PlaceRef>,
@@ -36,7 +37,7 @@ impl Expr {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Node!)]
 pub enum ExprKind {
     Constant(u64),
 
@@ -54,7 +55,7 @@ pub enum ExprKind {
     ParseError,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(NodeCopy!)]
 pub enum BinOp {
     Add,
     Sub,
@@ -74,7 +75,7 @@ pub enum BinOp {
     // LtEq,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(NodeCopy!)]
 pub enum UnOp {
     Negate,
     BitwiseInvert,

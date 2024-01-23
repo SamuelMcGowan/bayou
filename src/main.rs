@@ -1,16 +1,19 @@
-use clap::Parser as _;
-use cli::{Cli, Command};
-use session::Session;
-
-use crate::frontend::run_frontend;
+#[macro_use]
+extern crate macro_rules_attribute;
 
 mod frontend;
 
 mod cli;
 mod ir;
 mod session;
-pub mod symbols;
+mod symbols;
 mod utils;
+
+use clap::Parser as _;
+use cli::{Cli, Command};
+use session::Session;
+
+use crate::frontend::run_frontend;
 
 #[derive(thiserror::Error, Debug)]
 enum CompilerError {

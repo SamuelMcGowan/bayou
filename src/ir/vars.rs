@@ -1,7 +1,9 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use super::NodeCopy;
+
+#[derive(NodeCopy!)]
 pub struct Place(pub usize);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(NodeCopy!)]
 pub struct PlaceRef {
     pub place: Place,
     pub ownership: Ownership,
@@ -23,7 +25,7 @@ impl PlaceRef {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(NodeCopy!)]
 pub enum Ownership {
     Owned,
     Borrowed,
