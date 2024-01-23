@@ -89,8 +89,19 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
 
         let line_num_width = 1 + (lines.end.saturating_sub(1)).ilog10() as usize;
 
+        // all groups have at least one snippet
+        let (line_num, col_num) = source
+            .byte_to_line_col(snippets[0].bytes.start)
+            .expect("position out of bounds");
+
         self.stream.set_color(&self.config.subtle)?;
-        writeln!(self.stream, "In {}", source.name_str())?;
+        writeln!(
+            self.stream,
+            "In {}:{}:{}",
+            source.name_str(),
+            line_num,
+            col_num
+        )?;
         self.stream.reset()?;
 
         for line in lines {
