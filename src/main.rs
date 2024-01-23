@@ -53,15 +53,11 @@ fn run() -> CompilerResult<()> {
 fn compile(source: &str, print_output: bool) -> CompilerResult<String> {
     let session = Session::default();
 
-    let ast = run_frontend(&session, source)?;
-
-    if session.diagnostics.had_errors() {
-        if print_output {
-            session.diagnostics.flush_diagnostics();
-        }
-
-        return Err(CompilerError::HadErrors);
+    let ast_result = run_frontend(&session, source);
+    if ast_result.is_err() && print_output {
+        session.diagnostics.flush_diagnostics();
     }
+    let ast = ast_result?;
 
     if print_output {
         println!("{session:#?}");

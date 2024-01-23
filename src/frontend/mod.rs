@@ -15,7 +15,6 @@ pub fn run_frontend(session: &Session, source: &str) -> CompilerResult<Module> {
     let parser = Parser::new(session, source);
     let mut ast = parser.parse_module();
 
-    // TODO: avoid this
     if session.diagnostics.had_errors() {
         return Err(CompilerError::HadErrors);
     }
