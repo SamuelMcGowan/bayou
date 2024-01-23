@@ -1,5 +1,7 @@
+use std::ops::Range;
+
 pub trait Sources {
-    type SourceId: Copy + Eq;
+    type SourceId: Copy + Eq + std::hash::Hash;
     type Source: Source;
 
     fn get_source(&self, id: Self::SourceId) -> Option<&Cached<Self::Source>>;
@@ -79,6 +81,13 @@ impl<S: Source> Cached<S> {
         } else {
             self.line_breaks.get(line - 1).copied()
         }
+    }
+
+    pub fn line_range(&self, index: usize) -> Option<Range<usize>> {
+        let start = self.line_to_byte(index)?;
+        let end = self.line_to_byte(index + 1).unwrap_or(start);
+
+        Some(start..end)
     }
 }
 
