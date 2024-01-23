@@ -152,7 +152,7 @@ impl Default for Config {
             multiline_trace: "│  ",
             multiline_empty: "   ",
 
-            underline: "-",
+            underline: "^",
             underline_trace: "  ",
         }
     }
