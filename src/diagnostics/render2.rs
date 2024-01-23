@@ -6,7 +6,7 @@ use termcolor::WriteColor;
 use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, Sources};
-use super::{Config, Diagnostic};
+use super::{Config, Diagnostic, DiagnosticKind};
 
 const TAB: &str = "    ";
 
@@ -37,6 +37,8 @@ struct DiagnosticWriter<'stream, 'a, W: WriteColor, S: Sources> {
 
 impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
     fn draw_all(mut self) -> io::Result<()> {
+        self.draw_header()?;
+
         let source_datas = self.snippets_by_source();
 
         for source_data in source_datas.into_values() {
@@ -44,6 +46,29 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             for (snippets, lines) in groups {
                 self.draw_group(source_data.source, &snippets, lines)?;
             }
+        }
+
+        Ok(())
+    }
+
+    fn draw_header(&mut self) -> io::Result<()> {
+        let (kind, kind_color) = match self.diagnostic.kind {
+            DiagnosticKind::Warning => ("Warning", &self.config.warning_color),
+            DiagnosticKind::Error => ("Error", &self.config.error_color),
+        };
+
+        self.stream.set_color(kind_color)?;
+
+        if let Some(id) = &self.diagnostic.id {
+            write!(self.stream, "[{id}] ")?;
+        }
+
+        write!(self.stream, "{kind}:")?;
+
+        self.stream.reset()?;
+
+        if let Some(message) = &self.diagnostic.message {
+            writeln!(self.stream, " {message}")?;
         }
 
         Ok(())
@@ -66,8 +91,10 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             }
         }
 
+        let line_num_digits = 1 + (lines.end.saturating_sub(1)).ilog10() as usize;
+
         for line in lines {
-            self.draw_multiline_snippets(&multiline_snippets, line, true)?;
+            self.draw_gutter(&multiline_snippets, line, line_num_digits, true)?;
 
             let line_str = source
                 .line_str(line)
@@ -82,10 +109,12 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                     continue;
                 }
 
-                self.draw_multiline_snippets(&multiline_snippets, line, false)?;
+                self.draw_gutter(&multiline_snippets, line, line_num_digits, false)?;
 
                 let before_snippet = &source.source_str()[line_start..snippet.bytes.start];
                 let offset = str_width(before_snippet);
+
+                self.stream.set_color(&self.config.emphasis)?;
 
                 for _ in 0..offset {
                     write!(self.stream, " ")?;
@@ -97,25 +126,40 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
 
                 writeln!(
                     self.stream,
-                    "{}{}{}",
-                    self.config.underline_trace, self.config.underline_trace, snippet.label
+                    "{}{}",
+                    self.config.underline_trace, snippet.label
                 )?;
+
+                self.stream.reset()?;
             }
         }
 
         Ok(())
     }
 
-    fn draw_multiline_snippets(
+    fn draw_gutter(
         &mut self,
         multiline_snippets: &[SnippetData],
         line: usize,
+        line_num_digits: usize,
         source_line: bool,
     ) -> io::Result<()> {
+        self.stream.set_color(&self.config.subtle)?;
+
+        if source_line {
+            write!(self.stream, "{line:>width$}", width = line_num_digits)?;
+        } else {
+            write!(self.stream, "{:>width$}", "", width = line_num_digits)?;
+        }
+
+        write!(self.stream, " {}", self.config.gutter_main)?;
+
+        self.stream.set_color(&self.config.emphasis)?;
+
         for snippet in multiline_snippets {
             let ch = if source_line {
                 if line < snippet.lines.start {
-                    ' '
+                    self.config.gutter_empty
                 } else if line == snippet.lines.start {
                     self.config.gutter_top
                 } else if line + 1 == snippet.lines.end {
@@ -128,7 +172,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             } else {
                 #[allow(clippy::collapsible_else_if)]
                 if line < snippet.lines.start {
-                    ' '
+                    self.config.gutter_empty
                 } else if line + 1 >= snippet.lines.end {
                     self.config.gutter_trace
                 } else {
@@ -138,6 +182,8 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
 
             write!(self.stream, "{ch} ")?;
         }
+
+        self.stream.reset()?;
 
         Ok(())
     }
@@ -235,7 +281,7 @@ fn str_width(s: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use termcolor::NoColor;
+    use termcolor::Ansi;
 
     use super::get_overlapping_groups;
     use crate::diagnostics::sources::{Cached, Sources};
@@ -244,7 +290,7 @@ mod tests {
     #[must_use]
     fn diagnostic_to_string<S: Sources>(diagnostic: Diagnostic<S>, sources: S) -> String {
         let config = Config::default();
-        let mut stream = NoColor::new(vec![]);
+        let mut stream = Ansi::new(vec![]);
 
         diagnostic
             .write_to_stream(&sources, &config, &mut stream)
@@ -275,14 +321,15 @@ mod tests {
 
         let diagnostic = Diagnostic::error()
             .with_message("Incompatible types")
+            .with_id("E03")
             .with_snippet(Snippet::new("This is of type `Nat`", 0, 32..33))
             .with_snippet(Snippet::new("This is of type `Str`", 0, 42..45))
             .with_snippet(Snippet::new(
                 "The values are outputs of this `match` expression",
                 0,
                 11..48,
-            ))
-            .with_snippet(Snippet::new("hehe", 0, 32..45));
+            ));
+        // .with_snippet(Snippet::new("hehe", 0, 32..45));
 
         let s = diagnostic_to_string(diagnostic, vec![Cached::new(("sample.tao", SOURCE))]);
 

@@ -87,13 +87,14 @@ pub struct Config {
     pub emphasis: ColorSpec,
     pub subtle: ColorSpec,
 
-    pub gutter_top: char,
-    pub gutter_main: char,
-    pub gutter_bottom: char,
-    pub gutter_trace: char,
+    pub gutter_top: &'static str,
+    pub gutter_main: &'static str,
+    pub gutter_bottom: &'static str,
+    pub gutter_trace: &'static str,
+    pub gutter_empty: &'static str,
 
-    pub underline: char,
-    pub underline_trace: char,
+    pub underline: &'static str,
+    pub underline_trace: &'static str,
 }
 
 impl Default for Config {
@@ -108,8 +109,10 @@ impl Default for Config {
 
         let mut subtle = ColorSpec::new();
         subtle.set_italic(true);
+        subtle.set_dimmed(true);
 
         let mut emphasis = ColorSpec::new();
+        emphasis.set_fg(Some(Color::Blue));
         emphasis.set_bold(true);
 
         Self {
@@ -118,13 +121,14 @@ impl Default for Config {
             emphasis,
             subtle,
 
-            gutter_top: '┏',
-            gutter_main: '┃',
-            gutter_bottom: '┡',
-            gutter_trace: '│',
+            gutter_top: "╭─▷",
+            gutter_main: "│  ",
+            gutter_bottom: "├─▷",
+            gutter_trace: "│  ",
+            gutter_empty: "   ",
 
-            underline: '━',
-            underline_trace: '─',
+            underline: "-",
+            underline_trace: "  ",
         }
     }
 }
