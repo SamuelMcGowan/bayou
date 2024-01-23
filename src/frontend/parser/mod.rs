@@ -1,3 +1,5 @@
+mod expr;
+
 use super::lexer::{Lexer, Peek};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token};
@@ -88,16 +90,6 @@ impl<'sess> Parser<'sess> {
         match self.lexer.next() {
             Some(Token::Identifier(ident)) => Ok(ident),
             other => Err(ParseError::expected("an integer", other)),
-        }
-    }
-
-    fn parse_expr(&mut self) -> ParseResult<Expr> {
-        match self.lexer.next() {
-            Some(Token::Integer(n)) => Ok(Expr {
-                kind: ExprKind::Constant(n),
-                place: None,
-            }),
-            other => Err(ParseError::expected("an expression", other)),
         }
     }
 

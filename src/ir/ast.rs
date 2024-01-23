@@ -27,8 +27,13 @@ pub enum Stmt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expr {
     pub kind: ExprKind,
-
     pub place: Option<PlaceRef>,
+}
+
+impl Expr {
+    pub fn new(kind: ExprKind) -> Self {
+        Self { kind, place: None }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,12 +50,12 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+
+    ParseError,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum BinOp {
-    CmpOp(CmpOp),
-
     Add,
     Sub,
     Mul,
@@ -60,21 +65,17 @@ pub enum BinOp {
     BitwiseAnd,
     BitwiseOr,
     BitwiseXor,
+    // Eq,
+    // NotEq,
+
+    // Gt,
+    // Lt,
+    // GtEq,
+    // LtEq,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum UnOp {
-    Neg,
-    BitwiseNot,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum CmpOp {
-    Eq,
-    NotEq,
-
-    Gt,
-    Lt,
-    GtEq,
-    LtEq,
+    Negate,
+    BitwiseInvert,
 }

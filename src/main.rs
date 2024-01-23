@@ -6,8 +6,8 @@ use crate::frontend::run_frontend;
 
 mod frontend;
 
-mod ir;
 mod cli;
+mod ir;
 mod session;
 pub mod symbols;
 mod utils;
