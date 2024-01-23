@@ -86,6 +86,14 @@ pub struct Config {
 
     pub emphasis: ColorSpec,
     pub subtle: ColorSpec,
+
+    pub gutter_top: char,
+    pub gutter_main: char,
+    pub gutter_bottom: char,
+    pub gutter_trace: char,
+
+    pub underline: char,
+    pub underline_trace: char,
 }
 
 impl Default for Config {
@@ -109,6 +117,14 @@ impl Default for Config {
             warning_color,
             emphasis,
             subtle,
+
+            gutter_top: '┏',
+            gutter_main: '┃',
+            gutter_bottom: '┡',
+            gutter_trace: '│',
+
+            underline: '━',
+            underline_trace: '─',
         }
     }
 }

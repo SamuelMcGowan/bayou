@@ -92,10 +92,14 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                 }
 
                 for _ in 0..snippet.bytes.len() {
-                    write!(self.stream, "^")?;
+                    write!(self.stream, "{}", self.config.underline)?;
                 }
 
-                writeln!(self.stream, " - {}", snippet.label)?;
+                writeln!(
+                    self.stream,
+                    "{}{}{}",
+                    self.config.underline_trace, self.config.underline_trace, snippet.label
+                )?;
             }
         }
 
@@ -109,11 +113,30 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         source_line: bool,
     ) -> io::Result<()> {
         for snippet in multiline_snippets {
-            if snippet.lines.contains(&line) {
-                write!(self.stream, "| ")?;
+            let ch = if source_line {
+                if line < snippet.lines.start {
+                    ' '
+                } else if line == snippet.lines.start {
+                    self.config.gutter_top
+                } else if line + 1 == snippet.lines.end {
+                    self.config.gutter_bottom
+                } else if line < snippet.lines.end {
+                    self.config.gutter_main
+                } else {
+                    self.config.gutter_trace
+                }
             } else {
-                write!(self.stream, "  ")?;
-            }
+                #[allow(clippy::collapsible_else_if)]
+                if line < snippet.lines.start {
+                    ' '
+                } else if line + 1 >= snippet.lines.end {
+                    self.config.gutter_trace
+                } else {
+                    self.config.gutter_main
+                }
+            };
+
+            write!(self.stream, "{ch} ")?;
         }
 
         Ok(())
@@ -258,7 +281,8 @@ mod tests {
                 "The values are outputs of this `match` expression",
                 0,
                 11..48,
-            ));
+            ))
+            .with_snippet(Snippet::new("hehe", 0, 32..45));
 
         let s = diagnostic_to_string(diagnostic, vec![Cached::new(("sample.tao", SOURCE))]);
 
