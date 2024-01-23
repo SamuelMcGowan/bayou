@@ -81,7 +81,8 @@ impl<S: Sources> Diagnostic<S> {
                 .expect("span start out of bounds");
             let last_line = source
                 .byte_to_line_index(snippet.span.end)
-                .expect("span end out of bounds");
+                .expect("span end out of bounds")
+                + 1;
             let line_range = first_line..last_line;
 
             file_snippets.push(SnippetProcessed {
@@ -101,7 +102,7 @@ impl<S: Sources> Diagnostic<S> {
                 let mut inline_snippets = vec![];
 
                 for snippet in snippets {
-                    if snippet.lines.is_empty() {
+                    if snippet.lines.len() <= 1 {
                         let line = snippet.lines.start;
 
                         let line_start = source.line_to_byte(line).expect("line out of bounds");

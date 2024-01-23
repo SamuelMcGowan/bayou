@@ -1,4 +1,89 @@
+use std::collections::HashMap;
+use std::io;
 use std::ops::Range;
+
+use termcolor::WriteColor;
+
+use super::sources::{Cached, Sources};
+use super::{Config, Diagnostic};
+
+impl<S: Sources> Diagnostic<S> {
+    pub fn write_to_stream(
+        &self,
+        sources: &S,
+        config: &Config,
+        stream: &mut impl WriteColor,
+    ) -> io::Result<()> {
+        DiagnosticWriter {
+            diagnostic: self,
+            sources,
+            stream,
+            config,
+        }
+        .run()
+    }
+}
+
+struct DiagnosticWriter<'stream, 'a, W: WriteColor, S: Sources> {
+    diagnostic: &'a Diagnostic<S>,
+    sources: &'a S,
+
+    stream: &'stream mut W,
+    config: &'a Config,
+}
+
+impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
+    fn run(mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn snippets_by_source(&self) -> HashMap<S::SourceId, SourceData<'a, S>> {
+        let mut source_datas = HashMap::new();
+
+        for snippet in &self.diagnostic.snippets {
+            let source_data = source_datas
+                .entry(snippet.source_id)
+                .or_insert_with(|| SourceData {
+                    source: self
+                        .sources
+                        .get_source(snippet.source_id)
+                        .expect("source missing"),
+                    snippets: vec![],
+                });
+
+            let start_line = source_data
+                .source
+                .byte_to_line_index(snippet.span.start)
+                .expect("span start out of bounds");
+            let end_line = source_data
+                .source
+                .byte_to_line_index(snippet.span.start)
+                .expect("span end out of bounds")
+                + 1;
+            let lines = start_line..end_line;
+
+            source_data.snippets.push(SnippetData {
+                label: &snippet.label,
+                bytes: snippet.span.clone(),
+                lines,
+            });
+        }
+
+        source_datas
+    }
+}
+
+struct SourceData<'a, S: Sources> {
+    source: &'a Cached<S::Source>,
+    snippets: Vec<SnippetData<'a>>,
+}
+
+struct SnippetData<'a> {
+    label: &'a str,
+
+    bytes: Range<usize>,
+    lines: Range<usize>,
+}
 
 fn get_overlapping_groups<T, F: Fn(&T) -> Range<usize>>(
     mut ranges: Vec<T>,
@@ -39,7 +124,7 @@ fn get_overlapping_groups<T, F: Fn(&T) -> Range<usize>>(
 
 #[cfg(test)]
 mod tests {
-    use crate::diagnostics::render2::get_overlapping_groups;
+    use super::get_overlapping_groups;
 
     #[test]
     #[allow(clippy::single_range_in_vec_init)]
