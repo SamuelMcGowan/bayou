@@ -79,7 +79,7 @@ impl<S: Source> Cached<S> {
         } else if line == self.line_breaks.len() {
             Some(self.source_str().len())
         } else {
-            self.line_breaks.get(line - 1).copied()
+            self.line_breaks.get(line - 1).map(|&byte| byte + 1)
         }
     }
 

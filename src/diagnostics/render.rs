@@ -8,7 +8,7 @@ use super::sources::{Source, Sources};
 use super::{Diagnostic, DiagnosticKind, Snippet};
 
 impl<S: Sources> Diagnostic<S> {
-    pub fn write_to_stream(
+    pub fn write_to_stream_old(
         &self,
         sources: &S,
         config: &Config,
@@ -56,7 +56,7 @@ impl<S: Sources> Diagnostic<S> {
         Ok(())
     }
 
-    pub fn write_to_stream2(
+    pub fn write_to_stream(
         &self,
         sources: &S,
         config: &Config,
@@ -85,8 +85,8 @@ impl<S: Sources> Diagnostic<S> {
             let line_range = first_line..last_line;
 
             file_snippets.push(SnippetProcessed {
-                byte_range: snippet.span.clone(),
-                line_range,
+                bytes: snippet.span.clone(),
+                lines: line_range,
                 message: &snippet.label,
             });
         }
@@ -94,31 +94,74 @@ impl<S: Sources> Diagnostic<S> {
         for (source, snippets) in file_snippets.into_values() {
             writeln!(stream, "in {}", source.name_str())?;
 
-            let groups = get_overlapping_ranges(snippets, |snippet| snippet.line_range.clone());
+            let groups = get_overlapping_ranges(snippets, |snippet| snippet.lines.clone());
             for (snippets, group_line_range) in groups {
+                // split snippets into multiline/inline snippets
+                let mut multiline_snippets = vec![];
+                let mut inline_snippets = vec![];
+
+                for snippet in snippets {
+                    if snippet.lines.is_empty() {
+                        let line = snippet.lines.start;
+
+                        let line_start = source.line_to_byte(line).expect("line out of bounds");
+                        let offset = snippet.bytes.start - line_start;
+
+                        inline_snippets.push(InlineSnippet {
+                            line,
+                            offset, // TODO: proper unicode width
+                            width: snippet.bytes.len(),
+                            message: snippet.message,
+                        });
+                    } else {
+                        multiline_snippets.push(MultilineSnippet {
+                            lines: snippet.lines,
+                            message: snippet.message,
+                        });
+                    }
+                }
+
+                // draw snippets
                 for line in group_line_range {
-                    // // snippets containing line
-                    // for snippet in &snippets {
-                    //     if snippet.line_range.is_empty() {
-                    //         write!(stream, "| ")?;
-                    //     } else {
-                    //         write!(stream, "  ")?;
-                    //     }
-                    // }
+                    macro_rules! draw_multiline_snippets {
+                        () => {{
+                            for snippet in &multiline_snippets {
+                                if snippet.lines.contains(&line) {
+                                    write!(stream, "| ")?;
+                                } else {
+                                    write!(stream, "  ")?;
+                                }
+                            }
+                        }};
+                    }
 
-                    // // line
-                    // let line_range = source.line_range(line).expect("line out of bounds");
-                    // let line_str = &source.source_str()[line_range.clone()];
-                    // writeln!(stream, "{line_str}")?;
+                    draw_multiline_snippets!();
 
-                    // // snippets within line
-                    // for snippet in &snippets {
-                    //     // TODO: unicode width
-                    //     let start = snippet.byte_range.start - line_range.start;
-                    //     let end = snippet.byte_range.end - line_range.start;
+                    // draw line
+                    let line_range = source.line_range(line).expect("line out of bounds");
+                    let line_str = &source.source_str()[line_range].trim_end();
+                    writeln!(stream, "{line_str}")?;
 
-                    //     write!("")
-                    // }
+                    if !inline_snippets.iter().any(|s| s.line == line) {
+                        continue;
+                    }
+
+                    draw_multiline_snippets!();
+
+                    // draw inline snippets
+                    for snippet in &inline_snippets {
+                        if snippet.line != line {
+                            continue;
+                        }
+
+                        for _ in 0..(multiline_snippets.len() * 2 + snippet.offset) {
+                            write!(stream, " ")?;
+                        }
+                        for _ in 0..snippet.width {
+                            write!(stream, "^")?;
+                        }
+                        writeln!(stream, "{}", snippet.message)?;
+                    }
                 }
             }
         }
@@ -128,12 +171,29 @@ impl<S: Sources> Diagnostic<S> {
 }
 
 struct SnippetGroup<'a> {
-    snippets: Vec<SnippetProcessed<'a>>,
+    lines: Range<usize>,
+
+    side_snippets: Vec<MultilineSnippet<'a>>,
+    inline_snippets: Vec<InlineSnippet<'a>>,
+}
+
+struct MultilineSnippet<'a> {
+    lines: Range<usize>,
+    message: &'a str,
+}
+
+struct InlineSnippet<'a> {
+    line: usize,
+
+    offset: usize,
+    width: usize,
+
+    message: &'a str,
 }
 
 struct SnippetProcessed<'a> {
-    byte_range: Range<usize>,
-    line_range: Range<usize>,
+    bytes: Range<usize>,
+    lines: Range<usize>,
     message: &'a str,
 }
 
@@ -240,6 +300,25 @@ mod tests {
             vec![Cached::new(("my_file", "some contents"))],
         );
         assert_yaml_snapshot!(s);
+    }
+
+    #[test]
+    fn example_from_ariadne() {
+        const SOURCE: &str = "def five = match () in {\n    () => 5,\n    () => \"5\",\n}";
+
+        let diagnostic = Diagnostic::error()
+            .with_message("Incompatible types")
+            .with_snippet(Snippet::new("This is of type `Nat`", 0, 32..33))
+            .with_snippet(Snippet::new("This is of type `Str`", 0, 42..45))
+            .with_snippet(Snippet::new(
+                "The values are outputs of this `match` expression",
+                0,
+                11..48,
+            ));
+
+        let s = diagnostic_to_string(diagnostic, vec![Cached::new(("sample.tao", SOURCE))]);
+
+        println!("{s}");
     }
 
     #[test]

@@ -1,8 +1,11 @@
 use std::ops::Range;
 
+use termcolor::{Color, ColorSpec};
+
 use self::sources::Sources;
 
-mod render;
+// mod render;
+mod render2;
 mod sources;
 
 pub struct Diagnostic<S: Sources> {
@@ -73,6 +76,39 @@ impl<S: Sources> Snippet<S> {
 
             source_id,
             span,
+        }
+    }
+}
+
+pub struct Config {
+    pub error_color: ColorSpec,
+    pub warning_color: ColorSpec,
+
+    pub emphasis: ColorSpec,
+    pub subtle: ColorSpec,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        let mut error_color = ColorSpec::new();
+        error_color.set_fg(Some(Color::Red));
+        error_color.set_bold(true);
+
+        let mut warning_color = ColorSpec::new();
+        warning_color.set_fg(Some(Color::Yellow));
+        warning_color.set_bold(true);
+
+        let mut subtle = ColorSpec::new();
+        subtle.set_italic(true);
+
+        let mut emphasis = ColorSpec::new();
+        emphasis.set_bold(true);
+
+        Self {
+            error_color,
+            warning_color,
+            emphasis,
+            subtle,
         }
     }
 }
