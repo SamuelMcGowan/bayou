@@ -91,10 +91,15 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             }
         }
 
-        let line_num_digits = 1 + (lines.end.saturating_sub(1)).ilog10() as usize;
+        let line_num_width = 1 + (lines.end.saturating_sub(1)).ilog10() as usize;
+
+        self.stream.set_color(&self.config.subtle)?;
+        writeln!(self.stream, "In {}", source.name_str())?;
+        self.stream.reset()?;
 
         for line in lines {
-            self.draw_gutter(&multiline_snippets, line, line_num_digits, true)?;
+            self.draw_gutter(Some(line), line_num_width)?;
+            self.draw_multilines(&multiline_snippets, line, true)?;
 
             let line_str = source
                 .line_str(line)
@@ -109,7 +114,8 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                     continue;
                 }
 
-                self.draw_gutter(&multiline_snippets, line, line_num_digits, false)?;
+                self.draw_gutter(None, line_num_width)?;
+                self.draw_multilines(&multiline_snippets, line, false)?;
 
                 let before_snippet = &source.source_str()[line_start..snippet.bytes.start];
                 let offset = str_width(before_snippet);
@@ -134,26 +140,33 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             }
         }
 
+        writeln!(self.stream)?;
+
         Ok(())
     }
 
-    fn draw_gutter(
-        &mut self,
-        multiline_snippets: &[SnippetData],
-        line: usize,
-        line_num_digits: usize,
-        source_line: bool,
-    ) -> io::Result<()> {
+    fn draw_gutter(&mut self, line: Option<usize>, line_num_width: usize) -> io::Result<()> {
         self.stream.set_color(&self.config.subtle)?;
 
-        if source_line {
-            write!(self.stream, "{line:>width$}", width = line_num_digits)?;
+        if let Some(line) = line {
+            write!(self.stream, "{line:>width$}", width = line_num_width)?;
         } else {
-            write!(self.stream, "{:>width$}", "", width = line_num_digits)?;
+            write!(self.stream, "{:>width$}", "", width = line_num_width)?;
         }
 
         write!(self.stream, " {}", self.config.gutter_main)?;
 
+        self.stream.reset()?;
+
+        Ok(())
+    }
+
+    fn draw_multilines(
+        &mut self,
+        multiline_snippets: &[SnippetData],
+        line: usize,
+        source_line: bool,
+    ) -> io::Result<()> {
         self.stream.set_color(&self.config.emphasis)?;
 
         for snippet in multiline_snippets {
