@@ -342,6 +342,7 @@ dependencies = [
  "serde",
  "termcolor",
  "thiserror",
+ "unicode-width",
 ]
 
 [[package]]
