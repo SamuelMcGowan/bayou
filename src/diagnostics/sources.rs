@@ -76,18 +76,22 @@ impl<S: Source> Cached<S> {
     pub fn line_to_byte(&self, line: usize) -> Option<usize> {
         if line == 0 {
             Some(0)
-        } else if line == self.line_breaks.len() {
-            Some(self.source_str().len())
         } else {
             self.line_breaks.get(line - 1).map(|&byte| byte + 1)
         }
     }
 
-    pub fn line_range(&self, index: usize) -> Option<Range<usize>> {
+    pub fn line_str(&self, index: usize) -> Option<&str> {
         let start = self.line_to_byte(index)?;
-        let end = self.line_to_byte(index + 1).unwrap_or(start);
+        let end = self
+            .line_to_byte(index + 1)
+            .unwrap_or(self.source_str().len());
 
-        Some(start..end)
+        let s = &self.source_str()[start..end];
+        let s = s.strip_suffix('\n').unwrap_or(s);
+        let s = s.strip_suffix('\r').unwrap_or(s);
+
+        Some(s)
     }
 }
 
@@ -101,26 +105,101 @@ impl<S: Source> Source for Cached<S> {
     }
 }
 
-#[test]
-fn test_line_breaks() {
-    let cached = Cached::new(("a", ""));
-    assert_eq!(cached.byte_to_line_index(0), Some(0));
-    assert_eq!(cached.byte_to_line_index(1), None);
+#[cfg(test)]
+mod tests {
+    use super::Cached;
 
-    let cached = Cached::new(("a", "\n"));
-    assert_eq!(cached.byte_to_line_index(0), Some(0));
-    assert_eq!(cached.byte_to_line_index(1), Some(1));
-    assert_eq!(cached.byte_to_line_index(2), None);
+    fn cached_str(s: &str) -> Cached<(&str, &str)> {
+        Cached::new(("sample", s))
+    }
 
-    let cached = Cached::new(("a", "x\n"));
-    assert_eq!(cached.byte_to_line_index(0), Some(0));
-    assert_eq!(cached.byte_to_line_index(1), Some(0));
-    assert_eq!(cached.byte_to_line_index(2), Some(1));
-    assert_eq!(cached.byte_to_line_index(3), None);
+    #[test]
+    fn test_line_breaks() {
+        let cached = cached_str("");
+        assert_eq!(cached.byte_to_line_index(0), Some(0));
+        assert_eq!(cached.byte_to_line_index(1), None);
 
-    let cached = Cached::new(("a", "\nx"));
-    assert_eq!(cached.byte_to_line_index(0), Some(0));
-    assert_eq!(cached.byte_to_line_index(1), Some(1));
-    assert_eq!(cached.byte_to_line_index(2), Some(1));
-    assert_eq!(cached.byte_to_line_index(3), None);
+        let cached = cached_str("\n");
+        assert_eq!(cached.byte_to_line_index(0), Some(0));
+        assert_eq!(cached.byte_to_line_index(1), Some(1));
+        assert_eq!(cached.byte_to_line_index(2), None);
+
+        let cached = cached_str("x\n");
+        assert_eq!(cached.byte_to_line_index(0), Some(0));
+        assert_eq!(cached.byte_to_line_index(1), Some(0));
+        assert_eq!(cached.byte_to_line_index(2), Some(1));
+        assert_eq!(cached.byte_to_line_index(3), None);
+
+        let cached = cached_str("\nx");
+        assert_eq!(cached.byte_to_line_index(0), Some(0));
+        assert_eq!(cached.byte_to_line_index(1), Some(1));
+        assert_eq!(cached.byte_to_line_index(2), Some(1));
+        assert_eq!(cached.byte_to_line_index(3), None);
+    }
+
+    #[test]
+    fn test_line_col() {
+        let cached = cached_str("");
+        assert_eq!(cached.byte_to_line_col(0), Some((1, 1)));
+        assert_eq!(cached.byte_to_line_col(1), None);
+
+        let cached = cached_str("\n");
+        assert_eq!(cached.byte_to_line_col(0), Some((1, 1)));
+        assert_eq!(cached.byte_to_line_col(1), Some((2, 1)));
+        assert_eq!(cached.byte_to_line_col(2), None);
+
+        let cached = cached_str("x\n");
+        assert_eq!(cached.byte_to_line_col(0), Some((1, 1)));
+        assert_eq!(cached.byte_to_line_col(1), Some((1, 2)));
+        assert_eq!(cached.byte_to_line_col(2), Some((2, 1)));
+
+        let cached = cached_str("\nx");
+        assert_eq!(cached.byte_to_line_col(0), Some((1, 1)));
+        assert_eq!(cached.byte_to_line_col(1), Some((2, 1)));
+        assert_eq!(cached.byte_to_line_col(2), Some((2, 2)));
+    }
+
+    #[test]
+    fn test_line_to_byte() {
+        let cached = cached_str("");
+        assert_eq!(cached.line_to_byte(0), Some(0));
+        assert_eq!(cached.line_to_byte(1), None);
+
+        let cached = cached_str("\n");
+        assert_eq!(cached.line_to_byte(0), Some(0));
+        assert_eq!(cached.line_to_byte(1), Some(1));
+        assert_eq!(cached.line_to_byte(2), None);
+
+        let cached = cached_str("x\n");
+        assert_eq!(cached.line_to_byte(0), Some(0));
+        assert_eq!(cached.line_to_byte(1), Some(2));
+        assert_eq!(cached.line_to_byte(2), None);
+
+        let cached = cached_str("\nx");
+        assert_eq!(cached.line_to_byte(0), Some(0));
+        assert_eq!(cached.line_to_byte(1), Some(1));
+        assert_eq!(cached.line_to_byte(2), None);
+    }
+
+    #[test]
+    fn test_line_str() {
+        let cached = cached_str("");
+        assert_eq!(cached.line_str(0), Some(""));
+        assert_eq!(cached.line_str(1), None);
+
+        let cached = cached_str("\n");
+        assert_eq!(cached.line_str(0), Some(""));
+        assert_eq!(cached.line_str(1), Some(""));
+        assert_eq!(cached.line_str(2), None);
+
+        let cached = cached_str("x\n");
+        assert_eq!(cached.line_str(0), Some("x"));
+        assert_eq!(cached.line_str(1), Some(""));
+        assert_eq!(cached.line_str(2), None);
+
+        let cached = cached_str("\nx");
+        assert_eq!(cached.line_str(0), Some(""));
+        assert_eq!(cached.line_str(1), Some("x"));
+        assert_eq!(cached.line_str(2), None);
+    }
 }
