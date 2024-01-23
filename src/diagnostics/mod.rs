@@ -4,8 +4,7 @@ use termcolor::{Color, ColorSpec};
 
 use self::sources::Sources;
 
-// mod render;
-mod render2;
+mod render;
 mod sources;
 
 pub struct Diagnostic<S: Sources> {

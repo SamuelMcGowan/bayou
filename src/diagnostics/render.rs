@@ -1,204 +1,337 @@
 use std::collections::HashMap;
 use std::io;
 use std::ops::Range;
+use std::os::unix::ffi::OsStrExt;
 
-use termcolor::{Color, ColorSpec, WriteColor};
+use termcolor::{ColorSpec, HyperlinkSpec, WriteColor};
+use unicode_width::UnicodeWidthStr;
 
-use super::sources::{Source, Sources};
-use super::{Diagnostic, DiagnosticKind, Snippet};
+use super::sources::{Cached, Source, Sources};
+use super::{Config, Diagnostic, DiagnosticKind, SnippetKind};
+
+const TAB: &str = "    ";
 
 impl<S: Sources> Diagnostic<S> {
-    pub fn write_to_stream_old(
-        &self,
-        sources: &S,
-        config: &Config,
-        stream: &mut impl WriteColor,
-    ) -> io::Result<()> {
-        let (kind_str, kind_color) = match self.kind {
-            DiagnosticKind::Warning => ("Warning", &config.warning_color),
-            DiagnosticKind::Error => ("Error", &config.error_color),
-        };
-
-        // top line
-        {
-            stream.set_color(kind_color)?;
-
-            if let Some(id) = &self.id {
-                write!(stream, "[{id}] ")?;
-            }
-
-            write!(stream, "{kind_str}:")?;
-            stream.set_color(&config.emphasis)?;
-
-            if let Some(msg) = &self.message {
-                write!(stream, " {msg}")?;
-            }
-
-            writeln!(stream)?;
-        }
-
-        // snippets
-        for snippet in &self.snippets {
-            let file = sources
-                .get_source(snippet.source_id)
-                .expect("source not in sources");
-
-            let (line, col) = file
-                .byte_to_line_col(snippet.span.start)
-                .expect("line out of range");
-
-            stream.set_color(&config.subtle)?;
-            write!(stream, "  in {}:{line}:{col} - ", file.name_str())?;
-            stream.reset()?;
-            writeln!(stream, "{}\n", snippet.label)?;
-        }
-
-        Ok(())
-    }
-
     pub fn write_to_stream(
         &self,
         sources: &S,
         config: &Config,
         stream: &mut impl WriteColor,
     ) -> io::Result<()> {
-        // split snippets up by source
-        let mut file_snippets = HashMap::new();
-        for snippet in &self.snippets {
-            // get the source entry, or make a new one
-            let (source, file_snippets) =
-                file_snippets.entry(snippet.source_id).or_insert_with(|| {
-                    let source = sources
-                        .get_source(snippet.source_id)
-                        .expect("source missing");
-
-                    (source, vec![])
-                });
-
-            // calculate line range
-            let first_line = source
-                .byte_to_line_index(snippet.span.start)
-                .expect("span start out of bounds");
-            let last_line = source
-                .byte_to_line_index(snippet.span.end)
-                .expect("span end out of bounds")
-                + 1;
-            let line_range = first_line..last_line;
-
-            file_snippets.push(SnippetProcessed {
-                bytes: snippet.span.clone(),
-                lines: line_range,
-                message: &snippet.label,
-            });
+        DiagnosticWriter {
+            diagnostic: self,
+            sources,
+            stream,
+            config,
         }
+        .draw_all()
+    }
+}
 
-        for (source, snippets) in file_snippets.into_values() {
-            writeln!(stream, "in {}", source.name_str())?;
+struct DiagnosticWriter<'stream, 'a, W: WriteColor, S: Sources> {
+    diagnostic: &'a Diagnostic<S>,
+    sources: &'a S,
 
-            let groups = get_overlapping_ranges(snippets, |snippet| snippet.lines.clone());
-            for (snippets, group_line_range) in groups {
-                // split snippets into multiline/inline snippets
-                let mut multiline_snippets = vec![];
-                let mut inline_snippets = vec![];
+    stream: &'stream mut W,
+    config: &'a Config,
+}
 
-                for snippet in snippets {
-                    if snippet.lines.len() <= 1 {
-                        let line = snippet.lines.start;
+impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
+    fn draw_all(mut self) -> io::Result<()> {
+        self.draw_header()?;
 
-                        let line_start = source.line_to_byte(line).expect("line out of bounds");
-                        let offset = snippet.bytes.start - line_start;
+        let source_datas = self.snippets_by_source();
 
-                        inline_snippets.push(InlineSnippet {
-                            line,
-                            offset, // TODO: proper unicode width
-                            width: snippet.bytes.len(),
-                            message: snippet.message,
-                        });
-                    } else {
-                        multiline_snippets.push(MultilineSnippet {
-                            lines: snippet.lines,
-                            message: snippet.message,
-                        });
-                    }
-                }
-
-                // draw snippets
-                for line in group_line_range {
-                    macro_rules! draw_multiline_snippets {
-                        () => {{
-                            for snippet in &multiline_snippets {
-                                if snippet.lines.contains(&line) {
-                                    write!(stream, "| ")?;
-                                } else {
-                                    write!(stream, "  ")?;
-                                }
-                            }
-                        }};
-                    }
-
-                    draw_multiline_snippets!();
-
-                    // draw line
-                    let line_range = source.line_range(line).expect("line out of bounds");
-                    let line_str = &source.source_str()[line_range].trim_end();
-                    writeln!(stream, "{line_str}")?;
-
-                    if !inline_snippets.iter().any(|s| s.line == line) {
-                        continue;
-                    }
-
-                    draw_multiline_snippets!();
-
-                    // draw inline snippets
-                    for snippet in &inline_snippets {
-                        if snippet.line != line {
-                            continue;
-                        }
-
-                        for _ in 0..(multiline_snippets.len() * 2 + snippet.offset) {
-                            write!(stream, " ")?;
-                        }
-                        for _ in 0..snippet.width {
-                            write!(stream, "^")?;
-                        }
-                        writeln!(stream, "{}", snippet.message)?;
-                    }
-                }
+        for source_data in source_datas.into_values() {
+            let groups = get_overlapping_groups(source_data.snippets, |s| s.lines.clone());
+            for (snippets, lines) in groups {
+                self.draw_group(source_data.source, &snippets, lines)?;
             }
         }
 
         Ok(())
     }
+
+    fn draw_header(&mut self) -> io::Result<()> {
+        self.stream.set_color(self.get_primary_color())?;
+
+        if let Some(id) = &self.diagnostic.id {
+            write!(self.stream, "[{id}] ")?;
+        }
+
+        let kind_str = self.get_kind_str();
+        write!(self.stream, "{kind_str}:")?;
+
+        self.stream.reset()?;
+
+        if let Some(message) = &self.diagnostic.message {
+            writeln!(self.stream, " {message}")?;
+        }
+
+        Ok(())
+    }
+
+    fn draw_group(
+        &mut self,
+        source: &Cached<S::Source>,
+        snippets: &[SnippetData],
+        lines: Range<usize>,
+    ) -> io::Result<()> {
+        let mut multiline_snippets = vec![];
+        let mut inline_snippets = vec![];
+
+        for snippet in snippets.iter().cloned() {
+            if snippet.lines.len() > 1 {
+                multiline_snippets.push(snippet);
+            } else {
+                inline_snippets.push(snippet);
+            }
+        }
+
+        let line_num_width = 1 + (lines.end.saturating_sub(1)).ilog10() as usize;
+
+        // all groups have at least one snippet
+        let (line_num, col_num) = source
+            .byte_to_line_col(snippets[0].bytes.start)
+            .expect("position out of bounds");
+
+        self.stream.set_color(&self.config.subtle)?;
+        write!(self.stream, "In {}", source.name_str())?;
+
+        if let Some(path) = source.path() {
+            write!(self.stream, " ({}:{line_num}:{col_num})", path.display())?;
+        }
+
+        writeln!(self.stream)?;
+        self.stream.reset()?;
+
+        for line in lines {
+            self.draw_gutter(Some(line), line_num_width)?;
+            self.draw_multilines(&multiline_snippets, line, true)?;
+
+            let line_str = source
+                .line_str(line)
+                .expect("line out of bounds")
+                .replace('\t', TAB);
+
+            writeln!(self.stream, "{line_str}")?;
+
+            let line_start = source.line_to_byte(line).expect("line out of bounds");
+            for snippet in &inline_snippets {
+                if snippet.lines.start != line {
+                    continue;
+                }
+
+                self.draw_gutter(None, line_num_width)?;
+                self.draw_multilines(&multiline_snippets, line, false)?;
+
+                let before_snippet = &source.source_str()[line_start..snippet.bytes.start];
+                let offset = str_width(before_snippet);
+
+                self.stream
+                    .set_color(self.get_snippet_color(snippet.kind))?;
+
+                write!(self.stream, "{:<offset$}", "")?;
+
+                for _ in 0..snippet.bytes.len() {
+                    write!(self.stream, "{}", self.config.underline)?;
+                }
+
+                writeln!(
+                    self.stream,
+                    "{}{}",
+                    self.config.underline_after, snippet.label
+                )?;
+
+                self.stream.reset()?;
+            }
+        }
+
+        self.draw_multiline_labels(&multiline_snippets, line_num_width)?;
+
+        writeln!(self.stream)?;
+
+        Ok(())
+    }
+
+    fn draw_gutter(&mut self, line: Option<usize>, line_num_width: usize) -> io::Result<()> {
+        self.stream.set_color(&self.config.subtle)?;
+
+        if let Some(line) = line {
+            write!(self.stream, "{line:>width$}", width = line_num_width)?;
+        } else {
+            write!(self.stream, "{:>width$}", "", width = line_num_width)?;
+        }
+
+        write!(self.stream, " {} ", self.config.gutter)?;
+
+        self.stream.reset()?;
+
+        Ok(())
+    }
+
+    fn draw_multilines(
+        &mut self,
+        multiline_snippets: &[SnippetData],
+        line: usize,
+        source_line: bool,
+    ) -> io::Result<()> {
+        for snippet in multiline_snippets {
+            self.stream
+                .set_color(self.get_snippet_color(snippet.kind))?;
+
+            let ch = if source_line {
+                if line < snippet.lines.start {
+                    self.config.multiline_empty
+                } else if line == snippet.lines.start {
+                    self.config.multiline_top
+                } else if line + 1 == snippet.lines.end {
+                    self.config.multiline_bottom
+                } else {
+                    self.config.multiline_main
+                }
+            } else {
+                #[allow(clippy::collapsible_else_if)]
+                if line < snippet.lines.start {
+                    self.config.multiline_empty
+                } else {
+                    self.config.multiline_main
+                }
+            };
+
+            write!(self.stream, "{ch} ")?;
+        }
+
+        self.stream.reset()?;
+
+        Ok(())
+    }
+
+    fn draw_multilines_simple(&mut self, multiline_snippets: &[SnippetData]) -> io::Result<()> {
+        for snippet in multiline_snippets {
+            self.stream
+                .set_color(&self.get_snippet_color(snippet.kind))?;
+
+            write!(self.stream, "{} ", self.config.multiline_main)?;
+        }
+
+        Ok(())
+    }
+
+    fn draw_multiline_labels(
+        &mut self,
+        mut multiline_snippets: &[SnippetData],
+        line_num_width: usize,
+    ) -> io::Result<()> {
+        // blank line
+        self.draw_gutter(None, line_num_width)?;
+        self.draw_multilines_simple(multiline_snippets)?;
+        writeln!(self.stream)?;
+
+        let multiline_width = self.config.multiline_empty.len() + 1;
+
+        while let [prevs @ .., snippet] = multiline_snippets {
+            self.draw_gutter(None, line_num_width)?;
+            self.draw_multilines_simple(prevs)?;
+
+            self.stream
+                .set_color(&self.get_snippet_color(snippet.kind))?;
+
+            write!(
+                self.stream,
+                "{} {}",
+                self.config.multiline_very_bottom, snippet.label
+            )?;
+
+            writeln!(self.stream)?;
+
+            multiline_snippets = prevs;
+        }
+
+        self.stream.reset()?;
+
+        Ok(())
+    }
+
+    fn snippets_by_source(&self) -> HashMap<S::SourceId, SourceData<'a, S>> {
+        let mut source_datas = HashMap::new();
+
+        for snippet in &self.diagnostic.snippets {
+            let source_data = source_datas
+                .entry(snippet.source_id)
+                .or_insert_with(|| SourceData {
+                    source: self
+                        .sources
+                        .get_source(snippet.source_id)
+                        .expect("source missing"),
+                    snippets: vec![],
+                });
+
+            let start_line = source_data
+                .source
+                .byte_to_line_index(snippet.span.start)
+                .expect("span start out of bounds");
+            let end_line = source_data
+                .source
+                .byte_to_line_index(snippet.span.end)
+                .expect("span end out of bounds")
+                + 1;
+            let lines = start_line..end_line;
+
+            source_data.snippets.push(SnippetData {
+                label: &snippet.label,
+                kind: snippet.kind,
+
+                bytes: snippet.span.clone(),
+                lines,
+            });
+        }
+
+        source_datas
+    }
+
+    // TODO: make this a method on `DiagnosticKind`.
+    fn get_kind_str(&self) -> &'static str {
+        match self.diagnostic.kind {
+            DiagnosticKind::Warning => "Warning",
+            DiagnosticKind::Error => "Error",
+        }
+    }
+
+    fn get_primary_color(&self) -> &'a ColorSpec {
+        match self.diagnostic.kind {
+            DiagnosticKind::Warning => &self.config.warning_color,
+            DiagnosticKind::Error => &self.config.error_color,
+        }
+    }
+
+    fn get_secondary_color(&self) -> &'a ColorSpec {
+        &self.config.emphasis
+    }
+
+    fn get_snippet_color(&self, kind: SnippetKind) -> &'a ColorSpec {
+        match kind {
+            SnippetKind::Primary => self.get_primary_color(),
+            SnippetKind::Secondary => self.get_secondary_color(),
+        }
+    }
 }
 
-struct SnippetGroup<'a> {
-    lines: Range<usize>,
-
-    side_snippets: Vec<MultilineSnippet<'a>>,
-    inline_snippets: Vec<InlineSnippet<'a>>,
+struct SourceData<'a, S: Sources> {
+    source: &'a Cached<S::Source>,
+    snippets: Vec<SnippetData<'a>>,
 }
 
-struct MultilineSnippet<'a> {
-    lines: Range<usize>,
-    message: &'a str,
-}
+#[derive(Clone)]
+struct SnippetData<'a> {
+    label: &'a str,
+    kind: SnippetKind,
 
-struct InlineSnippet<'a> {
-    line: usize,
-
-    offset: usize,
-    width: usize,
-
-    message: &'a str,
-}
-
-struct SnippetProcessed<'a> {
     bytes: Range<usize>,
     lines: Range<usize>,
-    message: &'a str,
 }
 
-fn get_overlapping_ranges<T, F: Fn(&T) -> Range<usize>>(
+fn get_overlapping_groups<T, F: Fn(&T) -> Range<usize>>(
     mut ranges: Vec<T>,
     get_range: F,
 ) -> Vec<(Vec<T>, Range<usize>)> {
@@ -235,53 +368,25 @@ fn get_overlapping_ranges<T, F: Fn(&T) -> Range<usize>>(
     groups
 }
 
-pub struct Config {
-    pub error_color: ColorSpec,
-    pub warning_color: ColorSpec,
-
-    pub emphasis: ColorSpec,
-    pub subtle: ColorSpec,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        let mut error_color = ColorSpec::new();
-        error_color.set_fg(Some(Color::Red));
-        error_color.set_bold(true);
-
-        let mut warning_color = ColorSpec::new();
-        warning_color.set_fg(Some(Color::Yellow));
-        warning_color.set_bold(true);
-
-        let mut subtle = ColorSpec::new();
-        subtle.set_italic(true);
-
-        let mut emphasis = ColorSpec::new();
-        emphasis.set_bold(true);
-
-        Self {
-            error_color,
-            warning_color,
-            emphasis,
-            subtle,
-        }
-    }
+fn str_width(s: &str) -> usize {
+    let num_tabs = s.chars().filter(|&ch| ch == '\t').count();
+    s.width() + num_tabs * TAB.len()
 }
 
 #[cfg(test)]
 mod tests {
-    use insta::assert_yaml_snapshot;
-    use termcolor::NoColor;
+    use std::path::Path;
 
-    use super::Config;
-    use crate::diagnostics::render::get_overlapping_ranges;
+    use termcolor::Ansi;
+
+    use super::get_overlapping_groups;
     use crate::diagnostics::sources::{Cached, Sources};
-    use crate::diagnostics::{Diagnostic, Snippet};
+    use crate::diagnostics::{Config, Diagnostic, Snippet};
 
     #[must_use]
     fn diagnostic_to_string<S: Sources>(diagnostic: Diagnostic<S>, sources: S) -> String {
         let config = Config::default();
-        let mut stream = NoColor::new(vec![]);
+        let mut stream = Ansi::new(vec![]);
 
         diagnostic
             .write_to_stream(&sources, &config, &mut stream)
@@ -292,41 +397,10 @@ mod tests {
     }
 
     #[test]
-    fn simple_diagnostic() {
-        let s = diagnostic_to_string(
-            Diagnostic::error()
-                .with_message("oops")
-                .with_id("E01")
-                .with_snippet(Snippet::new("this is a label", 0, 13..13)),
-            vec![Cached::new(("my_file", "some contents"))],
-        );
-        assert_yaml_snapshot!(s);
-    }
-
-    #[test]
-    fn example_from_ariadne() {
-        const SOURCE: &str = "def five = match () in {\n    () => 5,\n    () => \"5\",\n}";
-
-        let diagnostic = Diagnostic::error()
-            .with_message("Incompatible types")
-            .with_snippet(Snippet::new("This is of type `Nat`", 0, 32..33))
-            .with_snippet(Snippet::new("This is of type `Str`", 0, 42..45))
-            .with_snippet(Snippet::new(
-                "The values are outputs of this `match` expression",
-                0,
-                11..48,
-            ));
-
-        let s = diagnostic_to_string(diagnostic, vec![Cached::new(("sample.tao", SOURCE))]);
-
-        println!("{s}");
-    }
-
-    #[test]
     #[allow(clippy::single_range_in_vec_init)]
     fn overlapping_ranges() {
         let ranges = vec![0..1, 0..10, 1..2, 5..7, 11..12];
-        let overlapping_ranges = get_overlapping_ranges(ranges, |r| r.clone());
+        let overlapping_ranges = get_overlapping_groups(ranges, |r| r.clone());
 
         assert_eq!(
             &overlapping_ranges,
@@ -335,5 +409,29 @@ mod tests {
                 (vec![11..12], 11..12)
             ]
         );
+    }
+
+    #[test]
+    fn example_from_ariadne() {
+        const SOURCE: &str = "def five = match () in {\n\t() => 5,\n\t() => \"5\",\n}";
+
+        let diagnostic = Diagnostic::error()
+            .with_message("Incompatible types")
+            .with_id("E03")
+            .with_snippet(Snippet::primary("This is of type `Nat`", 0, 32..33))
+            .with_snippet(Snippet::secondary("This is of type `Str`", 0, 42..45))
+            .with_snippet(Snippet::secondary(
+                "The values are outputs of this `match` expression",
+                0,
+                11..48,
+            ))
+            .with_snippet(Snippet::primary("hehe", 0, 32..45));
+
+        let s = diagnostic_to_string(
+            diagnostic,
+            vec![Cached::new(("main", Path::new("sample.tao"), SOURCE))],
+        );
+
+        println!("{s}");
     }
 }
