@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{ops::Range, path::Path};
 
 pub trait Sources {
     type SourceId: Copy + Eq + std::hash::Hash;
@@ -9,6 +9,8 @@ pub trait Sources {
 
 pub trait Source {
     fn name_str(&self) -> &str;
+    fn path(&self) -> Option<&Path>;
+
     fn source_str(&self) -> &str;
 }
 
@@ -26,8 +28,26 @@ impl Source for (&str, &str) {
         self.0
     }
 
+    fn path(&self) -> Option<&Path> {
+        None
+    }
+
     fn source_str(&self) -> &str {
         self.1
+    }
+}
+
+impl Source for (&str, &Path, &str) {
+    fn name_str(&self) -> &str {
+        self.0
+    }
+
+    fn path(&self) -> Option<&Path> {
+        Some(self.1)
+    }
+
+    fn source_str(&self) -> &str {
+        self.2
     }
 }
 
@@ -98,6 +118,10 @@ impl<S: Source> Cached<S> {
 impl<S: Source> Source for Cached<S> {
     fn name_str(&self) -> &str {
         self.source.name_str()
+    }
+
+    fn path(&self) -> Option<&Path> {
+        self.source.path()
     }
 
     fn source_str(&self) -> &str {

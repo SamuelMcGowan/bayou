@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::io;
 use std::ops::Range;
+use std::os::unix::ffi::OsStrExt;
 
-use termcolor::{ColorSpec, WriteColor};
+use termcolor::{ColorSpec, HyperlinkSpec, WriteColor};
 use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, Sources};
@@ -95,13 +96,13 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             .expect("position out of bounds");
 
         self.stream.set_color(&self.config.subtle)?;
-        writeln!(
-            self.stream,
-            "In {}:{}:{}",
-            source.name_str(),
-            line_num,
-            col_num
-        )?;
+        write!(self.stream, "In {}", source.name_str())?;
+
+        if let Some(path) = source.path() {
+            write!(self.stream, " ({}:{line_num}:{col_num})", path.display())?;
+        }
+
+        writeln!(self.stream)?;
         self.stream.reset()?;
 
         for line in lines {
@@ -332,6 +333,8 @@ fn str_width(s: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use termcolor::Ansi;
 
     use super::get_overlapping_groups;
@@ -382,7 +385,10 @@ mod tests {
             ));
         // .with_snippet(Snippet::new("hehe", 0, 32..45));
 
-        let s = diagnostic_to_string(diagnostic, vec![Cached::new(("sample.tao", SOURCE))]);
+        let s = diagnostic_to_string(
+            diagnostic,
+            vec![Cached::new(("main", Path::new("sample.tao"), SOURCE))],
+        );
 
         println!("{s}");
     }
