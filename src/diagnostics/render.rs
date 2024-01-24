@@ -6,6 +6,7 @@ use termcolor::{ColorSpec, WriteColor};
 use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, Sources};
+use super::span::Span;
 use super::{Config, Diagnostic, DiagnosticKind, SnippetKind};
 
 const TAB: &str = "    ";
@@ -42,7 +43,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         let source_datas = self.snippets_by_source();
 
         for source_data in source_datas.into_values() {
-            let groups = get_overlapping_groups(source_data.snippets, |s| s.lines.clone());
+            let groups = get_overlapping_groups(source_data.snippets, |s| s.lines);
             for (snippets, lines) in groups {
                 self.draw_group(source_data.source, &snippets, lines)?;
             }
@@ -74,7 +75,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         &mut self,
         source: &Cached<S::Source>,
         snippets: &[SnippetData],
-        lines: Range<usize>,
+        lines: Span,
     ) -> io::Result<()> {
         let mut multiline_snippets = vec![];
         let mut inline_snippets = vec![];
@@ -104,7 +105,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         writeln!(self.stream)?;
         self.stream.reset()?;
 
-        for line in lines {
+        for line in Range::from(lines) {
             self.draw_gutter(Some(line), line_num_width)?;
             self.draw_multilines(&multiline_snippets, line, true)?;
 
@@ -209,7 +210,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
     fn draw_multilines_simple(&mut self, multiline_snippets: &[SnippetData]) -> io::Result<()> {
         for snippet in multiline_snippets {
             self.stream
-                .set_color(&self.get_snippet_color(snippet.kind))?;
+                .set_color(self.get_snippet_color(snippet.kind))?;
 
             write!(self.stream, "{} ", self.config.multiline_main)?;
         }
@@ -234,7 +235,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             self.draw_multilines_simple(prevs)?;
 
             self.stream
-                .set_color(&self.get_snippet_color(snippet.kind))?;
+                .set_color(self.get_snippet_color(snippet.kind))?;
 
             write!(
                 self.stream,
@@ -275,14 +276,13 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                 .byte_to_line_index(snippet.span.end)
                 .expect("span end out of bounds")
                 + 1;
-            let lines = start_line..end_line;
 
             source_data.snippets.push(SnippetData {
                 label: &snippet.label,
                 kind: snippet.kind,
 
-                bytes: snippet.span.clone(),
-                lines,
+                bytes: snippet.span,
+                lines: Span::from(start_line..end_line),
             });
         }
 
@@ -326,14 +326,14 @@ struct SnippetData<'a> {
     label: &'a str,
     kind: SnippetKind,
 
-    bytes: Range<usize>,
-    lines: Range<usize>,
+    bytes: Span,
+    lines: Span,
 }
 
-fn get_overlapping_groups<T, F: Fn(&T) -> Range<usize>>(
+fn get_overlapping_groups<T, F: Fn(&T) -> Span>(
     mut ranges: Vec<T>,
     get_range: F,
-) -> Vec<(Vec<T>, Range<usize>)> {
+) -> Vec<(Vec<T>, Span)> {
     /*
     - sort ranges by starts
     - go through ranges either adding the next range to the current group, or
@@ -352,7 +352,10 @@ fn get_overlapping_groups<T, F: Fn(&T) -> Range<usize>>(
         let range = get_range(&item);
 
         if range.start > group_end && !group.is_empty() {
-            groups.push((std::mem::take(&mut group), group_start..group_end));
+            groups.push((
+                std::mem::take(&mut group),
+                Span::from(group_start..group_end),
+            ));
             group_start = range.start;
         }
 
@@ -361,7 +364,7 @@ fn get_overlapping_groups<T, F: Fn(&T) -> Range<usize>>(
     }
 
     if !group.is_empty() {
-        groups.push((group, group_start..group_end));
+        groups.push((group, Span::from(group_start..group_end)));
     }
 
     groups
@@ -380,6 +383,7 @@ mod tests {
 
     use super::get_overlapping_groups;
     use crate::diagnostics::sources::{Cached, Sources};
+    use crate::diagnostics::span::Span;
     use crate::diagnostics::{Config, Diagnostic, Snippet};
 
     #[must_use]
@@ -398,14 +402,28 @@ mod tests {
     #[test]
     #[allow(clippy::single_range_in_vec_init)]
     fn overlapping_ranges() {
-        let ranges = vec![0..1, 0..10, 1..2, 5..7, 11..12];
-        let overlapping_ranges = get_overlapping_groups(ranges, |r| r.clone());
+        let ranges = vec![
+            Span::from(0..1),
+            Span::from(0..10),
+            Span::from(1..2),
+            Span::from(5..7),
+            Span::from(11..12),
+        ];
+        let overlapping_ranges = get_overlapping_groups(ranges, |&r| r);
 
         assert_eq!(
             &overlapping_ranges,
             &[
-                (vec![0..1, 0..10, 1..2, 5..7], 0..10),
-                (vec![11..12], 11..12)
+                (
+                    vec![
+                        Span::from(0..1),
+                        Span::from(0..10),
+                        Span::from(1..2),
+                        Span::from(5..7)
+                    ],
+                    Span::from(0..10)
+                ),
+                (vec![Span::from(11..12)], Span::from(11..12))
             ]
         );
     }

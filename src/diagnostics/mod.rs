@@ -1,11 +1,11 @@
-use std::ops::Range;
-
 use termcolor::{Color, ColorSpec};
 
 use self::sources::Sources;
+use self::span::Span;
 
 mod render;
 mod sources;
+mod span;
 
 pub struct Diagnostic<S: Sources> {
     kind: DiagnosticKind,
@@ -66,7 +66,7 @@ pub struct Snippet<S: Sources> {
     kind: SnippetKind,
 
     source_id: S::SourceId,
-    span: Range<usize>,
+    span: Span,
 }
 
 impl<S: Sources> Snippet<S> {
@@ -74,22 +74,30 @@ impl<S: Sources> Snippet<S> {
         kind: SnippetKind,
         label: impl Into<String>,
         source_id: S::SourceId,
-        span: Range<usize>,
+        span: impl Into<Span>,
     ) -> Self {
         Self {
             label: label.into(),
             kind,
 
             source_id,
-            span,
+            span: span.into(),
         }
     }
 
-    pub fn primary(label: impl Into<String>, source_id: S::SourceId, span: Range<usize>) -> Self {
+    pub fn primary(
+        label: impl Into<String>,
+        source_id: S::SourceId,
+        span: impl Into<Span>,
+    ) -> Self {
         Self::new(SnippetKind::Primary, label, source_id, span)
     }
 
-    pub fn secondary(label: impl Into<String>, source_id: S::SourceId, span: Range<usize>) -> Self {
+    pub fn secondary(
+        label: impl Into<String>,
+        source_id: S::SourceId,
+        span: impl Into<Span>,
+    ) -> Self {
         Self::new(SnippetKind::Secondary, label, source_id, span)
     }
 }
