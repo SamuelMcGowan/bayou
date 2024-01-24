@@ -1,6 +1,7 @@
 mod render;
 pub mod sources;
 pub mod span;
+pub mod span2;
 
 use termcolor::{Color, ColorSpec};
 
