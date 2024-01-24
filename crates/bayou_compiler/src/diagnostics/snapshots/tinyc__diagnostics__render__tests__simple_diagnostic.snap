@@ -1,6 +1,0 @@
----
-source: src/diagnostics/render.rs
-expression: s
----
-"[E01] Error: oops\n  in my_file:1:14 - this is a label\n\n"
-

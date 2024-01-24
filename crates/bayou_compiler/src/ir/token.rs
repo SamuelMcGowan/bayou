@@ -1,4 +1,5 @@
-use crate::diagnostics::span::Span;
+use bayou_diagnostic::span::Span;
+
 use crate::session::InternedStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

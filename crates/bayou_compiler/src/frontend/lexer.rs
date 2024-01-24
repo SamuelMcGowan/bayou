@@ -1,6 +1,7 @@
 use std::str::Chars;
 
-use crate::diagnostics::span::Span;
+use bayou_diagnostic::span::Span;
+
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::session::{Diagnostic, IntoDiagnostic, Session};
 

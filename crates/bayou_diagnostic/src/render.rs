@@ -382,9 +382,9 @@ mod tests {
     use termcolor::Ansi;
 
     use super::get_overlapping_groups;
-    use crate::diagnostics::sources::{Cached, Sources};
-    use crate::diagnostics::span::Span;
-    use crate::diagnostics::{Config, Diagnostic, Snippet};
+    use crate::sources::{Cached, Sources};
+    use crate::span::Span;
+    use crate::{Config, Diagnostic, Snippet};
 
     #[must_use]
     fn diagnostic_to_string<S: Sources>(diagnostic: Diagnostic<S>, sources: S) -> String {

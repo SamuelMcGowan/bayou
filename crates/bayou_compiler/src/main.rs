@@ -4,7 +4,6 @@ extern crate macro_rules_attribute;
 mod frontend;
 
 mod cli;
-mod diagnostics;
 mod ir;
 mod session;
 mod symbols;

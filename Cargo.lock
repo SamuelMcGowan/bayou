@@ -65,6 +65,10 @@ dependencies = [
 [[package]]
 name = "bayou_diagnostic"
 version = "0.1.0"
+dependencies = [
+ "termcolor",
+ "unicode-width",
+]
 
 [[package]]
 name = "cfg-if"
@@ -327,15 +331,14 @@ dependencies = [
 name = "tinyc"
 version = "0.1.0"
 dependencies = [
+ "bayou_diagnostic",
  "clap",
  "enumn",
  "insta",
  "lasso",
  "macro_rules_attribute",
  "serde",
- "termcolor",
  "thiserror",
- "unicode-width",
 ]
 
 [[package]]
