@@ -1,11 +1,11 @@
+mod render;
+pub mod sources;
+pub mod span;
+
 use termcolor::{Color, ColorSpec};
 
 use self::sources::Sources;
 use self::span::Span;
-
-mod render;
-mod sources;
-mod span;
 
 pub struct Diagnostic<S: Sources> {
     kind: DiagnosticKind,

@@ -1,6 +1,7 @@
 use std::str::Chars;
 
-use crate::ir::token::{Keyword, Token};
+use crate::diagnostics::span::Span;
+use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::session::{Diagnostic, IntoDiagnostic, Session};
 
 #[derive(thiserror::Error, Debug)]
@@ -66,7 +67,7 @@ impl<'sess> Lexer<'sess> {
 
             self.token_start = self.byte_pos();
 
-            let token = match self.chars.next()? {
+            let kind = match self.chars.next()? {
                 // comment
                 '/' if self.chars.eat('/') => {
                     while !matches!(self.chars.next(), Some('\n') | None) {}
@@ -75,22 +76,22 @@ impl<'sess> Lexer<'sess> {
 
                 ch if ch.is_ascii_whitespace() => continue,
 
-                '{' => Token::LBrace,
-                '}' => Token::RBrace,
-                '(' => Token::LParen,
-                ')' => Token::RParen,
-                ';' => Token::Semicolon,
+                '{' => TokenKind::LBrace,
+                '}' => TokenKind::RBrace,
+                '(' => TokenKind::LParen,
+                ')' => TokenKind::RParen,
+                ';' => TokenKind::Semicolon,
 
-                '+' => Token::Add,
-                '-' => Token::Sub,
-                '*' => Token::Mul,
-                '/' => Token::Div,
-                '%' => Token::Mod,
+                '+' => TokenKind::Add,
+                '-' => TokenKind::Sub,
+                '*' => TokenKind::Mul,
+                '/' => TokenKind::Div,
+                '%' => TokenKind::Mod,
 
-                '&' => Token::BitwiseAnd,
-                '|' => Token::BitwiseOr,
-                '^' => Token::BitwiseXor,
-                '~' => Token::BitwiseInvert,
+                '&' => TokenKind::BitwiseAnd,
+                '|' => TokenKind::BitwiseOr,
+                '^' => TokenKind::BitwiseXor,
+                '~' => TokenKind::BitwiseInvert,
 
                 '0' if self.chars.eat('x') => try_lex!(self.lex_integer(0, 16)),
                 '0' if self.chars.eat('o') => try_lex!(self.lex_integer(0, 8)),
@@ -106,11 +107,16 @@ impl<'sess> Lexer<'sess> {
                 }
             };
 
+            let token = Token {
+                kind,
+                span: Span::from(self.token_start..self.byte_pos()),
+            };
+
             return Some(token);
         }
     }
 
-    fn lex_integer(&mut self, start: u64, base: u32) -> LexerResult<Token> {
+    fn lex_integer(&mut self, start: u64, base: u32) -> LexerResult<TokenKind> {
         let mut n = start;
 
         while let Some(ch @ ('0'..='9' | '_')) = self.chars.peek() {
@@ -133,10 +139,10 @@ impl<'sess> Lexer<'sess> {
                 .ok_or(LexerError::IntegerOverflow)?;
         }
 
-        Ok(Token::Integer(n))
+        Ok(TokenKind::Integer(n))
     }
 
-    fn lex_alpha(&mut self) -> Token {
+    fn lex_alpha(&mut self) -> TokenKind {
         while matches!(self.chars.peek(), Some(ch) if is_ident(ch)) {
             self.chars.next();
         }
@@ -144,11 +150,11 @@ impl<'sess> Lexer<'sess> {
         let s = &self.all[self.token_start..self.byte_pos()];
 
         match s {
-            "int" => Token::Keyword(Keyword::Int),
-            "return" => Token::Keyword(Keyword::Return),
+            "int" => TokenKind::Keyword(Keyword::Int),
+            "return" => TokenKind::Keyword(Keyword::Return),
             _ => {
                 let interned = self.session.interner.borrow_mut().get_or_intern(s);
-                Token::Identifier(interned)
+                TokenKind::Identifier(interned)
             }
         }
     }

@@ -1,7 +1,14 @@
+use crate::diagnostics::span::Span;
 use crate::session::InternedStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Token {
+pub struct Token {
+    pub kind: TokenKind,
+    pub span: Span,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TokenKind {
     Keyword(Keyword),
     Identifier(InternedStr),
     Integer(u64),

@@ -1,7 +1,5 @@
 use std::ops::Range;
 
-use super::sources::Sources;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
     pub start: usize,

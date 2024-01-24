@@ -2,7 +2,7 @@ mod expr;
 
 use super::lexer::{Lexer, Peek};
 use crate::ir::ast::*;
-use crate::ir::token::{Keyword, Token};
+use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::session::{Diagnostic, InternedStr, IntoDiagnostic, Session};
 
 pub struct ParseError {
@@ -18,7 +18,7 @@ impl ParseError {
         }
     }
 
-    fn expected_kind(token: Token, found: Option<Token>) -> Self {
+    fn expected_kind(token: TokenKind, found: Option<Token>) -> Self {
         Self::expected(format!("token {token:?}"), found)
     }
 }
@@ -56,39 +56,42 @@ impl<'sess> Parser<'sess> {
     }
 
     fn parse_func_decl(&mut self) -> ParseResult<FuncDecl> {
-        self.expect(Token::Keyword(Keyword::Int))?;
+        self.expect(TokenKind::Keyword(Keyword::Int))?;
 
         let name = self.parse_ident()?;
 
-        self.expect(Token::LParen)?;
-        self.expect(Token::RParen)?;
+        self.expect(TokenKind::LParen)?;
+        self.expect(TokenKind::RParen)?;
 
-        self.expect(Token::LBrace)?;
+        self.expect(TokenKind::LBrace)?;
 
         let statement = self.parse_statement_or_recover();
 
-        self.expect(Token::RBrace)?;
+        self.expect(TokenKind::RBrace)?;
 
         Ok(FuncDecl { name, statement })
     }
 
     fn parse_statement_or_recover(&mut self) -> Stmt {
         self.parse_or_recover(Self::parse_statement, |parser| {
-            parser.recover_past(Token::Semicolon);
+            parser.recover_past(TokenKind::Semicolon);
             Stmt::ParseError
         })
     }
 
     fn parse_statement(&mut self) -> ParseResult<Stmt> {
-        self.expect(Token::Keyword(Keyword::Return))?;
+        self.expect(TokenKind::Keyword(Keyword::Return))?;
         let expr = self.parse_expr()?;
-        self.expect(Token::Semicolon)?;
+        self.expect(TokenKind::Semicolon)?;
         Ok(Stmt::Return(expr))
     }
 
     fn parse_ident(&mut self) -> ParseResult<InternedStr> {
         match self.lexer.next() {
-            Some(Token::Identifier(ident)) => Ok(ident),
+            Some(Token {
+                kind: TokenKind::Identifier(ident),
+                ..
+            }) => Ok(ident),
             other => Err(ParseError::expected("an integer", other)),
         }
     }
@@ -104,20 +107,20 @@ impl<'sess> Parser<'sess> {
         })
     }
 
-    fn expect(&mut self, kind: Token) -> ParseResult<Token> {
+    fn expect(&mut self, kind: TokenKind) -> ParseResult<Token> {
         match self.lexer.next() {
-            Some(t) if t == kind => Ok(t),
+            Some(t) if t.kind == kind => Ok(t),
             other => Err(ParseError::expected_kind(kind, other)),
         }
     }
 
-    fn recover_until(&mut self, kind: Token) {
+    fn recover_until(&mut self, kind: TokenKind) {
         loop {
             let Some(token) = self.lexer.peek() else {
                 return;
             };
 
-            if token == kind {
+            if token.kind == kind {
                 return;
             }
 
@@ -125,13 +128,13 @@ impl<'sess> Parser<'sess> {
         }
     }
 
-    fn recover_past(&mut self, kind: Token) {
+    fn recover_past(&mut self, kind: TokenKind) {
         loop {
             let Some(token) = self.lexer.next() else {
                 return;
             };
 
-            if token == kind {
+            if token.kind == kind {
                 return;
             }
         }

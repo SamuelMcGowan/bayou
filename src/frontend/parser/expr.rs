@@ -1,7 +1,7 @@
 use super::{BinOp, ParseError, ParseResult, Parser};
 use crate::frontend::lexer::Peek;
 use crate::ir::ast::*;
-use crate::ir::token::Token;
+use crate::ir::token::{Token, TokenKind};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Prec {
@@ -83,9 +83,12 @@ impl Parser<'_> {
 
     fn parse_lhs(&mut self) -> ParseResult<Expr> {
         match self.lexer.next() {
-            Some(Token::Integer(n)) => Ok(Expr::new(ExprKind::Constant(n))),
+            Some(Token {
+                kind: TokenKind::Integer(n),
+                ..
+            }) => Ok(Expr::new(ExprKind::Constant(n))),
 
-            Some(Token::Sub) => {
+            Some(t) if t.kind == TokenKind::Sub => {
                 let expr = self.parse_prec(Prec::Unary)?;
                 Ok(Expr::new(ExprKind::UnOp {
                     op: UnOp::Negate,
@@ -93,7 +96,7 @@ impl Parser<'_> {
                 }))
             }
 
-            Some(Token::BitwiseInvert) => {
+            Some(t) if t.kind == TokenKind::BitwiseInvert => {
                 let expr = self.parse_prec(Prec::Unary)?;
                 Ok(Expr::new(ExprKind::UnOp {
                     op: UnOp::BitwiseInvert,
@@ -101,13 +104,13 @@ impl Parser<'_> {
                 }))
             }
 
-            Some(Token::LParen) => {
+            Some(t) if t.kind == TokenKind::LParen => {
                 let expr = self.parse_or_recover(Self::parse_expr, |parser| {
-                    parser.recover_until(Token::RParen);
+                    parser.recover_until(TokenKind::RParen);
                     Expr::new(ExprKind::ParseError)
                 });
 
-                self.expect(Token::RParen)?;
+                self.expect(TokenKind::RParen)?;
 
                 Ok(expr)
             }
@@ -117,16 +120,16 @@ impl Parser<'_> {
     }
 
     fn peek_bin_op(&self, prec: Prec) -> Option<BinOp> {
-        let op = match self.lexer.peek()? {
-            Token::Add => BinOp::Add,
-            Token::Sub => BinOp::Sub,
-            Token::Mul => BinOp::Mul,
-            Token::Div => BinOp::Div,
-            Token::Mod => BinOp::Mod,
+        let op = match self.lexer.peek().map(|t| t.kind)? {
+            TokenKind::Add => BinOp::Add,
+            TokenKind::Sub => BinOp::Sub,
+            TokenKind::Mul => BinOp::Mul,
+            TokenKind::Div => BinOp::Div,
+            TokenKind::Mod => BinOp::Mod,
 
-            Token::BitwiseAnd => BinOp::BitwiseAnd,
-            Token::BitwiseOr => BinOp::BitwiseOr,
-            Token::BitwiseXor => BinOp::BitwiseXor,
+            TokenKind::BitwiseAnd => BinOp::BitwiseAnd,
+            TokenKind::BitwiseOr => BinOp::BitwiseOr,
+            TokenKind::BitwiseXor => BinOp::BitwiseXor,
 
             _ => return None,
         };
