@@ -1,4 +1,5 @@
-use std::{ops::Range, path::Path};
+use std::ops::Range;
+use std::path::Path;
 
 pub trait Sources {
     type SourceId: Copy + Eq + std::hash::Hash;
