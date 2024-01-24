@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::io;
 use std::ops::Range;
-use std::os::unix::ffi::OsStrExt;
 
-use termcolor::{ColorSpec, HyperlinkSpec, WriteColor};
+use termcolor::{ColorSpec, WriteColor};
 use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, Sources};
