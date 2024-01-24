@@ -228,8 +228,6 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         self.draw_multilines_simple(multiline_snippets)?;
         writeln!(self.stream)?;
 
-        let multiline_width = self.config.multiline_empty.len() + 1;
-
         while let [prevs @ .., snippet] = multiline_snippets {
             self.draw_gutter(None, line_num_width)?;
             self.draw_multilines_simple(prevs)?;
