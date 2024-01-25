@@ -24,17 +24,33 @@ impl Span {
     }
 }
 
-impl From<Range<usize>> for Span {
-    fn from(range: Range<usize>) -> Self {
-        Self {
-            start: range.start,
-            end: range.end,
-        }
+impl IntoIterator for Span {
+    type Item = usize;
+    type IntoIter = Range<usize>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.start..self.end
     }
 }
 
-impl From<Span> for Range<usize> {
-    fn from(span: Span) -> Self {
-        span.start..span.end
+pub trait AsSpan {
+    fn as_span(&self) -> Span;
+}
+
+impl AsSpan for Span {
+    fn as_span(&self) -> Span {
+        *self
+    }
+}
+
+impl AsSpan for Range<usize> {
+    fn as_span(&self) -> Span {
+        Span::new(self.start, self.end)
+    }
+}
+
+impl AsSpan for (usize, usize) {
+    fn as_span(&self) -> Span {
+        Span::new(self.0, self.1)
     }
 }

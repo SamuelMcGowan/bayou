@@ -110,7 +110,7 @@ impl<'sess> Lexer<'sess> {
 
             let token = Token {
                 kind,
-                span: Span::from(self.token_start..self.byte_pos()),
+                span: Span::new(self.token_start, self.byte_pos()),
             };
 
             return Some(token);

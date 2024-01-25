@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::io;
-use std::ops::Range;
 
 use termcolor::{ColorSpec, WriteColor};
 use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, Sources};
-use super::span::Span;
+// use super::span2::Span;
 use super::{Config, Diagnostic, DiagnosticKind, SnippetKind};
+use crate::span::Span;
 
 const TAB: &str = "    ";
 
@@ -105,7 +105,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         writeln!(self.stream)?;
         self.stream.reset()?;
 
-        for line in Range::from(lines) {
+        for line in lines {
             self.draw_gutter(Some(line), line_num_width)?;
             self.draw_multilines(&multiline_snippets, line, true)?;
 
@@ -280,7 +280,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
                 kind: snippet.kind,
 
                 bytes: snippet.span,
-                lines: Span::from(start_line..end_line),
+                lines: Span::new(start_line, end_line),
             });
         }
 
@@ -328,10 +328,10 @@ struct SnippetData<'a> {
     lines: Span,
 }
 
-fn get_overlapping_groups<T, F: Fn(&T) -> Span>(
-    mut ranges: Vec<T>,
-    get_range: F,
-) -> Vec<(Vec<T>, Span)> {
+fn get_overlapping_groups<T, F>(mut ranges: Vec<T>, get_range: F) -> Vec<(Vec<T>, Span)>
+where
+    F: Fn(&T) -> Span,
+{
     /*
     - sort ranges by starts
     - go through ranges either adding the next range to the current group, or
@@ -352,7 +352,7 @@ fn get_overlapping_groups<T, F: Fn(&T) -> Span>(
         if range.start > group_end && !group.is_empty() {
             groups.push((
                 std::mem::take(&mut group),
-                Span::from(group_start..group_end),
+                Span::new(group_start, group_end),
             ));
             group_start = range.start;
         }
@@ -362,7 +362,7 @@ fn get_overlapping_groups<T, F: Fn(&T) -> Span>(
     }
 
     if !group.is_empty() {
-        groups.push((group, Span::from(group_start..group_end)));
+        groups.push((group, Span::new(group_start, group_end)));
     }
 
     groups
@@ -401,11 +401,11 @@ mod tests {
     #[allow(clippy::single_range_in_vec_init)]
     fn overlapping_ranges() {
         let ranges = vec![
-            Span::from(0..1),
-            Span::from(0..10),
-            Span::from(1..2),
-            Span::from(5..7),
-            Span::from(11..12),
+            Span::new(0, 1),
+            Span::new(0, 10),
+            Span::new(1, 2),
+            Span::new(5, 7),
+            Span::new(11, 12),
         ];
         let overlapping_ranges = get_overlapping_groups(ranges, |&r| r);
 
@@ -414,14 +414,14 @@ mod tests {
             &[
                 (
                     vec![
-                        Span::from(0..1),
-                        Span::from(0..10),
-                        Span::from(1..2),
-                        Span::from(5..7)
+                        Span::new(0, 1),
+                        Span::new(0, 10),
+                        Span::new(1, 2),
+                        Span::new(5, 7)
                     ],
-                    Span::from(0..10)
+                    Span::new(0, 10)
                 ),
-                (vec![Span::from(11..12)], Span::from(11..12))
+                (vec![Span::new(11, 12)], Span::new(11, 12))
             ]
         );
     }

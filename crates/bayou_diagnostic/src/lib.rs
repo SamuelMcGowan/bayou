@@ -1,8 +1,8 @@
 mod render;
 pub mod sources;
 pub mod span;
-pub mod span2;
 
+use span::AsSpan;
 use termcolor::{Color, ColorSpec};
 
 use self::sources::Sources;
@@ -75,30 +75,22 @@ impl<S: Sources> Snippet<S> {
         kind: SnippetKind,
         label: impl Into<String>,
         source_id: S::SourceId,
-        span: impl Into<Span>,
+        span: impl AsSpan,
     ) -> Self {
         Self {
             label: label.into(),
             kind,
 
             source_id,
-            span: span.into(),
+            span: span.as_span(),
         }
     }
 
-    pub fn primary(
-        label: impl Into<String>,
-        source_id: S::SourceId,
-        span: impl Into<Span>,
-    ) -> Self {
+    pub fn primary(label: impl Into<String>, source_id: S::SourceId, span: impl AsSpan) -> Self {
         Self::new(SnippetKind::Primary, label, source_id, span)
     }
 
-    pub fn secondary(
-        label: impl Into<String>,
-        source_id: S::SourceId,
-        span: impl Into<Span>,
-    ) -> Self {
+    pub fn secondary(label: impl Into<String>, source_id: S::SourceId, span: impl AsSpan) -> Self {
         Self::new(SnippetKind::Secondary, label, source_id, span)
     }
 }
