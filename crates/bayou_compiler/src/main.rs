@@ -10,12 +10,9 @@ mod session;
 mod symbols;
 mod utils;
 
-use bayou_diagnostic::sources::{Cached, Source};
 use clap::Parser as _;
 use cli::{Cli, Command};
-use session::Session;
 
-use crate::diagnostic::DiagnosticOutput;
 use crate::frontend::run_frontend;
 
 #[derive(thiserror::Error, Debug)]
@@ -43,8 +40,7 @@ fn run() -> CompilerResult<()> {
             println!("building file {}", input.display());
             let source = std::fs::read_to_string(&input)?;
 
-            let session = Session::new(DiagnosticOutput::stderr());
-            let asm = compile(&session, input.to_string_lossy(), source)?;
+            let asm = compile(input.to_string_lossy(), source)?;
 
             if let Some(path) = output {
                 println!("writing assembly to {}", path.display());
@@ -58,21 +54,18 @@ fn run() -> CompilerResult<()> {
     }
 }
 
-fn compile(
-    session: &Session,
-    source_name: impl Into<String>,
-    source: impl Into<String>,
-) -> CompilerResult<String> {
-    let mut sources = session.sources.borrow_mut();
+fn compile(source_name: impl Into<String>, source: impl Into<String>) -> CompilerResult<String> {
+    let source = source.into();
+    // let mut sources = session.sources.borrow_mut();
 
-    let source_id = sources.len();
-    sources.push(Cached::new((source_name.into(), source.into())));
+    // let source_id = sources.len();
+    // sources.push(Cached::new((source_name.into(), source.into())));
 
-    let source = sources.get(source_id).unwrap().source_str().to_owned();
+    // let source = sources.get(source_id).unwrap().source_str().to_owned();
 
-    drop(sources);
+    // drop(sources);
 
-    let ast_result = run_frontend(session, &source);
+    let ast_result = run_frontend(&source);
     let ast = ast_result?;
 
     Ok(format!("{ast:#?}"))

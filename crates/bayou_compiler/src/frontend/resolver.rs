@@ -1,25 +1,33 @@
 use bayou_diagnostic::Diagnostic;
 
+use crate::diagnostic::Sources;
 use crate::ir::ast::{Item, Module};
 use crate::ir::vars::{Ownership, Place, PlaceRef};
-use crate::session::{InternedStr, Session};
-use crate::symbols::GlobalSymbol;
+use crate::session::{InternedStr, Interner};
+use crate::symbols::{GlobalSymbol, Symbols};
 
 pub struct Resolver<'sess> {
-    session: &'sess Session,
+    symbols: Symbols,
+    interner: &'sess Interner,
+    diagnostics: Vec<Diagnostic<Sources>>,
+
     locals: Locals,
 }
 
 impl<'sess> Resolver<'sess> {
-    pub fn new(session: &'sess Session) -> Self {
+    pub fn new(interner: &'sess Interner) -> Self {
         Self {
-            session,
+            symbols: Symbols::default(),
+            interner,
+            diagnostics: vec![],
+
             locals: Locals::default(),
         }
     }
 
-    pub fn run(mut self, module: &mut Module) {
+    pub fn run(mut self, module: &mut Module) -> Vec<Diagnostic<Sources>> {
         self.declare_globals(std::slice::from_mut(&mut module.item));
+        self.diagnostics
     }
 
     fn declare_globals(&mut self, items: &mut [Item]) {
@@ -32,14 +40,11 @@ impl<'sess> Resolver<'sess> {
     }
 
     fn declare_global(&mut self, name: InternedStr, symbol: GlobalSymbol) {
-        let mut symbols = self.session.symbols.borrow_mut();
+        if self.symbols.globals.insert(name, symbol).is_some() {
+            let name_str = self.interner.resolve(&name);
 
-        if symbols.globals.insert(name, symbol).is_some() {
-            let interner = self.session.interner.borrow();
-            let name_str = interner.resolve(&name);
-
-            self.session
-                .report(Diagnostic::error().with_message(format!("duplicate global `{name_str}`")));
+            self.diagnostics
+                .push(Diagnostic::error().with_message(format!("duplicate global `{name_str}`")));
         }
     }
 }

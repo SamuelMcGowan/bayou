@@ -8,21 +8,22 @@ mod resolver;
 use self::parser::Parser;
 use self::resolver::Resolver;
 use crate::ir::ast::Module;
-use crate::session::Session;
 use crate::{CompilerError, CompilerResult};
 
-pub fn run_frontend(session: &Session, source: &str) -> CompilerResult<Module> {
-    let parser = Parser::new(session, source);
+pub fn run_frontend(source: &str) -> CompilerResult<Module> {
+    let mut parser = Parser::new(source);
     let mut ast = parser.parse_module();
 
-    if session.had_errors() {
+    let (interner, parser_diagnostics) = parser.finish();
+
+    if !parser_diagnostics.is_empty() {
         return Err(CompilerError::HadErrors);
     }
 
-    let resolver = Resolver::new(session);
-    resolver.run(&mut ast);
+    let resolver = Resolver::new(&interner);
+    let resolver_diagnostics = resolver.run(&mut ast);
 
-    if session.had_errors() {
+    if !resolver_diagnostics.is_empty() {
         return Err(CompilerError::HadErrors);
     }
 

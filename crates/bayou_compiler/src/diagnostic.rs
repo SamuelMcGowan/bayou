@@ -2,7 +2,8 @@ use bayou_diagnostic::sources::Cached;
 use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Diagnostic};
 
-pub type Sources = Vec<Cached<(String, String)>>;
+pub type Sources = Vec<Source>;
+pub type Source = Cached<(String, String)>;
 
 #[derive(Debug)]
 pub enum DiagnosticOutput {

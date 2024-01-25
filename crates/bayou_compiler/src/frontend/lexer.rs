@@ -5,7 +5,7 @@ use bayou_diagnostic::{Diagnostic, Snippet};
 
 use crate::diagnostic::{IntoDiagnostic, Sources};
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::session::Session;
+use crate::session::Interner;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LexerError {
@@ -31,7 +31,8 @@ impl IntoDiagnostic for (LexerError, Span) {
 pub type LexerResult<T> = Result<T, LexerError>;
 
 pub struct Lexer<'sess> {
-    session: &'sess Session,
+    interner: Interner,
+    diagnostics: Vec<Diagnostic<Sources>>,
 
     all: &'sess str,
     chars: Chars<'sess>,
@@ -42,9 +43,11 @@ pub struct Lexer<'sess> {
 }
 
 impl<'sess> Lexer<'sess> {
-    pub fn new(session: &'sess Session, source: &'sess str) -> Self {
+    pub fn new(source: &'sess str) -> Self {
         let mut lexer = Self {
-            session,
+            // TODO: pass in interner and diagnostics
+            interner: Interner::new(),
+            diagnostics: vec![],
 
             all: source,
             chars: source.chars(),
@@ -55,6 +58,10 @@ impl<'sess> Lexer<'sess> {
         };
         lexer.current = lexer.lex_token();
         lexer
+    }
+
+    pub fn finish(self) -> (Interner, Vec<Diagnostic<Sources>>) {
+        (self.interner, self.diagnostics)
     }
 
     pub fn lex_token(&mut self) -> Option<Token> {
@@ -159,7 +166,7 @@ impl<'sess> Lexer<'sess> {
             "int" => TokenKind::Keyword(Keyword::Int),
             "return" => TokenKind::Keyword(Keyword::Return),
             _ => {
-                let interned = self.session.interner.borrow_mut().get_or_intern(s);
+                let interned = self.interner.get_or_intern(s);
                 TokenKind::Identifier(interned)
             }
         }
@@ -171,7 +178,7 @@ impl<'sess> Lexer<'sess> {
 
     fn report_error(&mut self, error: LexerError) {
         let span = Span::new(self.token_start, self.byte_pos());
-        self.session.report((error, span));
+        self.diagnostics.push((error, span).into_diagnostic());
     }
 }
 

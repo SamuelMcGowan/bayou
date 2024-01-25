@@ -1,10 +1,7 @@
 use crate::compile;
-use crate::diagnostic::DiagnosticOutput;
-use crate::session::Session;
 
 fn test_compiles(source: &str, should_compile: bool) {
-    let session = Session::new(DiagnosticOutput::owned());
-    let result = compile(&session, "test_source", source);
+    let result = compile("test_source", source);
 
     match (result, should_compile) {
         (Err(_), true) => panic!("failed to compile: {source:?}"),

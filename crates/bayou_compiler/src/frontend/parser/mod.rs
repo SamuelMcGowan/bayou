@@ -6,7 +6,7 @@ use super::lexer::{Lexer, Peek};
 use crate::diagnostic::{IntoDiagnostic, Sources};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::session::{InternedStr, Session};
+use crate::session::{InternedStr, Interner};
 
 pub struct ParseError {
     expected: String,
@@ -38,19 +38,27 @@ impl IntoDiagnostic for ParseError {
 pub type ParseResult<T> = Result<T, ParseError>;
 
 pub struct Parser<'sess> {
-    session: &'sess Session,
+    diagnostics: Vec<Diagnostic<Sources>>,
+
     lexer: Lexer<'sess>,
 }
 
 impl<'sess> Parser<'sess> {
-    pub fn new(session: &'sess Session, source: &'sess str) -> Self {
+    pub fn new(source: &'sess str) -> Self {
         Self {
-            session,
-            lexer: Lexer::new(session, source),
+            diagnostics: vec![],
+
+            lexer: Lexer::new(source),
         }
     }
 
-    pub fn parse_module(mut self) -> Module {
+    pub fn finish(self) -> (Interner, Vec<Diagnostic<Sources>>) {
+        let (interner, mut diagnostics) = self.lexer.finish();
+        diagnostics.extend(self.diagnostics);
+        (interner, diagnostics)
+    }
+
+    pub fn parse_module(&mut self) -> Module {
         let item = self.parse_or_recover(
             |parser| parser.parse_func_decl().map(Item::FuncDecl),
             |_| Item::ParseError,
@@ -105,7 +113,7 @@ impl<'sess> Parser<'sess> {
         recover: impl FnOnce(&mut Self) -> T,
     ) -> T {
         parse(self).unwrap_or_else(|err| {
-            self.session.report(err);
+            self.diagnostics.push(err.into_diagnostic());
             recover(self)
         })
     }
