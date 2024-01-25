@@ -31,10 +31,15 @@ impl DiagnosticOutput {
         let diagnostic = diagnostic.into_diagnostic();
         match self {
             DiagnosticOutput::Owned(diagnostics) => diagnostics.push(diagnostic),
-            DiagnosticOutput::StandardStream { stream, config, .. } => {
+            DiagnosticOutput::StandardStream {
+                stream,
+                config,
+                had_errors,
+            } => {
                 diagnostic
                     .write_to_stream(sources, config, stream)
                     .expect("failed to write diagnostic");
+                *had_errors = true;
             }
         }
     }
