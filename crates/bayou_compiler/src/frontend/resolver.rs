@@ -1,6 +1,8 @@
+use bayou_diagnostic::Diagnostic;
+
 use crate::ir::ast::{Item, Module};
 use crate::ir::vars::{Ownership, Place, PlaceRef};
-use crate::session::{Diagnostic, InternedStr, Session};
+use crate::session::{InternedStr, Session};
 use crate::symbols::GlobalSymbol;
 
 pub struct Resolver<'sess> {
@@ -36,10 +38,8 @@ impl<'sess> Resolver<'sess> {
             let interner = self.session.interner.borrow();
             let name_str = interner.resolve(&name);
 
-            self.session.diagnostics.report(Diagnostic::new(
-                format!("duplicate global `{name_str}`"),
-                "while resolving names",
-            ));
+            self.session
+                .report(Diagnostic::error().with_message(format!("duplicate global `{name_str}`")));
         }
     }
 }

@@ -375,7 +375,7 @@ fn str_width(s: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use std::path::Path;
+    use std::path::PathBuf;
 
     use termcolor::Ansi;
 
@@ -444,7 +444,11 @@ mod tests {
 
         let s = diagnostic_to_string(
             diagnostic,
-            vec![Cached::new(("main", Path::new("sample.tao"), SOURCE))],
+            vec![Cached::new((
+                "main".to_owned(),
+                PathBuf::from("sample.tao"),
+                SOURCE.to_owned(),
+            ))],
         );
 
         println!("{s}");

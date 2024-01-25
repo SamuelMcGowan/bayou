@@ -1,9 +1,11 @@
 use std::str::Chars;
 
 use bayou_diagnostic::span::Span;
+use bayou_diagnostic::Diagnostic;
 
+use crate::diagnostic::{IntoDiagnostic, Sources};
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::session::{Diagnostic, IntoDiagnostic, Session};
+use crate::session::Session;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LexerError {
@@ -18,8 +20,8 @@ pub enum LexerError {
 }
 
 impl IntoDiagnostic for LexerError {
-    fn into_diagnostic(self) -> Diagnostic {
-        Diagnostic::new(self.to_string(), "while parsing")
+    fn into_diagnostic(self) -> Diagnostic<Sources> {
+        Diagnostic::error().with_message(self.to_string())
     }
 }
 
@@ -165,7 +167,7 @@ impl<'sess> Lexer<'sess> {
     }
 
     fn report_error(&mut self, error: LexerError) {
-        self.session.diagnostics.report(error);
+        self.session.report(error);
     }
 }
 

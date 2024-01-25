@@ -1,9 +1,12 @@
 mod expr;
 
+use bayou_diagnostic::Diagnostic;
+
 use super::lexer::{Lexer, Peek};
+use crate::diagnostic::{IntoDiagnostic, Sources};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::session::{Diagnostic, InternedStr, IntoDiagnostic, Session};
+use crate::session::{InternedStr, Session};
 
 pub struct ParseError {
     expected: String,
@@ -24,11 +27,11 @@ impl ParseError {
 }
 
 impl IntoDiagnostic for ParseError {
-    fn into_diagnostic(self) -> Diagnostic {
-        Diagnostic::new(
-            format!("expected {}, but found {:?}", self.expected, self.found),
-            "while parsing",
-        )
+    fn into_diagnostic(self) -> Diagnostic<Sources> {
+        Diagnostic::error().with_message(format!(
+            "expected {}, but found {:?}",
+            self.expected, self.found
+        ))
     }
 }
 
@@ -102,7 +105,7 @@ impl<'sess> Parser<'sess> {
         recover: impl FnOnce(&mut Self) -> T,
     ) -> T {
         parse(self).unwrap_or_else(|err| {
-            self.session.diagnostics.report(err);
+            self.session.report(err);
             recover(self)
         })
     }

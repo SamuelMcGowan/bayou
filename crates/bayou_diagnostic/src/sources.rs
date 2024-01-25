@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 pub trait Sources {
     type SourceId: Copy + Eq + std::hash::Hash;
@@ -23,9 +23,9 @@ impl<S: Source> Sources for Vec<Cached<S>> {
     }
 }
 
-impl Source for (&str, &str) {
+impl Source for (String, String) {
     fn name_str(&self) -> &str {
-        self.0
+        &self.0
     }
 
     fn path(&self) -> Option<&Path> {
@@ -33,24 +33,25 @@ impl Source for (&str, &str) {
     }
 
     fn source_str(&self) -> &str {
-        self.1
+        &self.1
     }
 }
 
-impl Source for (&str, &Path, &str) {
+impl Source for (String, PathBuf, String) {
     fn name_str(&self) -> &str {
-        self.0
+        &self.0
     }
 
     fn path(&self) -> Option<&Path> {
-        Some(self.1)
+        Some(&self.1)
     }
 
     fn source_str(&self) -> &str {
-        self.2
+        &self.2
     }
 }
 
+#[derive(Debug)]
 pub struct Cached<S: Source> {
     source: S,
     line_breaks: Vec<usize>,
@@ -133,8 +134,8 @@ impl<S: Source> Source for Cached<S> {
 mod tests {
     use super::Cached;
 
-    fn cached_str(s: &str) -> Cached<(&str, &str)> {
-        Cached::new(("sample", s))
+    fn cached_str(s: impl Into<String>) -> Cached<(String, String)> {
+        Cached::new(("sample".to_owned(), s.into()))
     }
 
     #[test]

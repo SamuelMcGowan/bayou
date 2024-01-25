@@ -4,6 +4,7 @@ extern crate macro_rules_attribute;
 mod frontend;
 
 mod cli;
+mod diagnostic;
 mod ir;
 mod session;
 mod symbols;
@@ -13,6 +14,7 @@ use clap::Parser as _;
 use cli::{Cli, Command};
 use session::Session;
 
+use crate::diagnostic::DiagnosticOutput;
 use crate::frontend::run_frontend;
 
 #[derive(thiserror::Error, Debug)]
@@ -39,7 +41,9 @@ fn run() -> CompilerResult<()> {
         Command::Build { input, output } => {
             println!("building file {}", input.display());
             let source = std::fs::read_to_string(input)?;
-            let asm = compile(&source, true)?;
+
+            let session = Session::new(DiagnosticOutput::stderr());
+            let asm = compile(&source, &session)?;
 
             if let Some(path) = output {
                 println!("writing assembly to {}", path.display());
@@ -53,18 +57,9 @@ fn run() -> CompilerResult<()> {
     }
 }
 
-fn compile(source: &str, print_output: bool) -> CompilerResult<String> {
-    let session = Session::default();
-
-    let ast_result = run_frontend(&session, source);
-    if ast_result.is_err() && print_output {
-        session.diagnostics.flush_diagnostics();
-    }
+fn compile(source: &str, session: &Session) -> CompilerResult<String> {
+    let ast_result = run_frontend(session, source);
     let ast = ast_result?;
-
-    if print_output {
-        println!("{session:#?}");
-    }
 
     Ok(format!("{ast:#?}"))
 }

@@ -15,14 +15,14 @@ pub fn run_frontend(session: &Session, source: &str) -> CompilerResult<Module> {
     let parser = Parser::new(session, source);
     let mut ast = parser.parse_module();
 
-    if session.diagnostics.had_errors() {
+    if session.had_errors() {
         return Err(CompilerError::HadErrors);
     }
 
     let resolver = Resolver::new(session);
     resolver.run(&mut ast);
 
-    if session.diagnostics.had_errors() {
+    if session.had_errors() {
         return Err(CompilerError::HadErrors);
     }
 

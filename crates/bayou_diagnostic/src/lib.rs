@@ -2,7 +2,10 @@ mod render;
 pub mod sources;
 pub mod span;
 
+use std::fmt;
+
 use span::AsSpan;
+pub use termcolor;
 use termcolor::{Color, ColorSpec};
 
 use self::sources::Sources;
@@ -56,6 +59,20 @@ impl<S: Sources> Diagnostic<S> {
     }
 }
 
+impl<S: Sources> fmt::Debug for Diagnostic<S>
+where
+    S::SourceId: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Diagnostic")
+            .field("kind", &self.kind)
+            .field("message", &self.message)
+            .field("id", &self.id)
+            .field("snippets", &self.snippets)
+            .finish()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticKind {
     Warning,
@@ -95,12 +112,27 @@ impl<S: Sources> Snippet<S> {
     }
 }
 
+impl<S: Sources> fmt::Debug for Snippet<S>
+where
+    S::SourceId: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Snippet")
+            .field("label", &self.label)
+            .field("kind", &self.kind)
+            .field("source_id", &self.source_id)
+            .field("span", &self.span)
+            .finish()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SnippetKind {
     Primary,
     Secondary,
 }
 
+#[derive(Debug)]
 pub struct Config {
     pub error_color: ColorSpec,
     pub warning_color: ColorSpec,
