@@ -1,6 +1,6 @@
 use super::vars::PlaceRef;
 use super::{Node, NodeCopy};
-use crate::session::InternedStr;
+use crate::ir::InternedStr;
 
 #[derive(Node!)]
 pub struct Module {

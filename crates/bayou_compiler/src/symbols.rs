@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::session::InternedStr;
+use crate::ir::InternedStr;
 use crate::utils::keyvec::{declare_key_type, KeyVec};
 
 // Nothing stored here at the moment, but I suspect it'd be a pain

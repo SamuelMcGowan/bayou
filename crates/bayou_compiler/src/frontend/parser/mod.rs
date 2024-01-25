@@ -6,7 +6,7 @@ use super::lexer::{Lexer, Peek};
 use crate::diagnostic::{IntoDiagnostic, Sources};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::session::{InternedStr, Interner};
+use crate::ir::{InternedStr, Interner};
 
 pub struct ParseError {
     expected: String,

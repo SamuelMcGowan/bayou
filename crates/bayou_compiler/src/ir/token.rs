@@ -1,6 +1,6 @@
 use bayou_diagnostic::span::Span;
 
-use crate::session::InternedStr;
+use crate::ir::InternedStr;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {

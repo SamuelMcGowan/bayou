@@ -5,7 +5,7 @@ use bayou_diagnostic::{Diagnostic, Snippet};
 
 use crate::diagnostic::{IntoDiagnostic, Sources};
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::session::Interner;
+use crate::ir::Interner;
 
 #[derive(thiserror::Error, Debug)]
 pub enum LexerError {

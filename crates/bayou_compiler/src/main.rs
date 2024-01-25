@@ -6,7 +6,6 @@ mod frontend;
 mod cli;
 mod diagnostic;
 mod ir;
-mod session;
 mod symbols;
 mod utils;
 

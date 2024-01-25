@@ -3,7 +3,7 @@ use bayou_diagnostic::Diagnostic;
 use crate::diagnostic::Sources;
 use crate::ir::ast::{Item, Module};
 use crate::ir::vars::{Ownership, Place, PlaceRef};
-use crate::session::{InternedStr, Interner};
+use crate::ir::{InternedStr, Interner};
 use crate::symbols::{GlobalSymbol, Symbols};
 
 pub struct Resolver<'sess> {
