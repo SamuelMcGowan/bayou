@@ -10,6 +10,7 @@ mod session;
 mod symbols;
 mod utils;
 
+use bayou_diagnostic::sources::{Cached, Source};
 use clap::Parser as _;
 use cli::{Cli, Command};
 use session::Session;
@@ -40,10 +41,10 @@ fn run() -> CompilerResult<()> {
     match cli.command {
         Command::Build { input, output } => {
             println!("building file {}", input.display());
-            let source = std::fs::read_to_string(input)?;
+            let source = std::fs::read_to_string(&input)?;
 
             let session = Session::new(DiagnosticOutput::stderr());
-            let asm = compile(&source, &session)?;
+            let asm = compile(&session, input.to_string_lossy(), source)?;
 
             if let Some(path) = output {
                 println!("writing assembly to {}", path.display());
@@ -57,8 +58,21 @@ fn run() -> CompilerResult<()> {
     }
 }
 
-fn compile(source: &str, session: &Session) -> CompilerResult<String> {
-    let ast_result = run_frontend(session, source);
+fn compile(
+    session: &Session,
+    source_name: impl Into<String>,
+    source: impl Into<String>,
+) -> CompilerResult<String> {
+    let mut sources = session.sources.borrow_mut();
+
+    let source_id = sources.len();
+    sources.push(Cached::new((source_name.into(), source.into())));
+
+    let source = sources.get(source_id).unwrap().source_str().to_owned();
+
+    drop(sources);
+
+    let ast_result = run_frontend(session, &source);
     let ast = ast_result?;
 
     Ok(format!("{ast:#?}"))

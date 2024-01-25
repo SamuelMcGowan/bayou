@@ -223,6 +223,10 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         mut multiline_snippets: &[SnippetData],
         line_num_width: usize,
     ) -> io::Result<()> {
+        if multiline_snippets.is_empty() {
+            return Ok(());
+        }
+
         // blank line
         self.draw_gutter(None, line_num_width)?;
         self.draw_multilines_simple(multiline_snippets)?;

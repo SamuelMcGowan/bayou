@@ -1,7 +1,7 @@
 use std::str::Chars;
 
 use bayou_diagnostic::span::Span;
-use bayou_diagnostic::Diagnostic;
+use bayou_diagnostic::{Diagnostic, Snippet};
 
 use crate::diagnostic::{IntoDiagnostic, Sources};
 use crate::ir::token::{Keyword, Token, TokenKind};
@@ -19,9 +19,12 @@ pub enum LexerError {
     IntegerDigitWrongBase { base: u32, digit: char },
 }
 
-impl IntoDiagnostic for LexerError {
+impl IntoDiagnostic for (LexerError, Span) {
     fn into_diagnostic(self) -> Diagnostic<Sources> {
-        Diagnostic::error().with_message(self.to_string())
+        // FIXME: use actual source id
+        Diagnostic::error()
+            .with_message(self.0.to_string())
+            .with_snippet(Snippet::primary("this token", 0, self.1))
     }
 }
 
@@ -167,7 +170,8 @@ impl<'sess> Lexer<'sess> {
     }
 
     fn report_error(&mut self, error: LexerError) {
-        self.session.report(error);
+        let span = Span::new(self.token_start, self.byte_pos());
+        self.session.report((error, span));
     }
 }
 
