@@ -104,7 +104,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             .expect("position out of bounds");
 
         self.stream.set_color(&self.config.subtle)?;
-        write!(self.stream, "In {}", source.name_str())?;
+        write!(self.stream, "In {}:{line_num}:{col_num}", source.name_str())?;
 
         if let Some(path) = source.path() {
             write!(self.stream, " ({}:{line_num}:{col_num})", path.display())?;
