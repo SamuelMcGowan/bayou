@@ -134,6 +134,8 @@ pub enum SnippetKind {
 
 #[derive(Debug)]
 pub struct Config {
+    pub context_size: usize,
+
     pub error_color: ColorSpec,
     pub warning_color: ColorSpec,
 
@@ -171,6 +173,8 @@ impl Default for Config {
         emphasis.set_bold(true);
 
         Self {
+            context_size: 2,
+
             error_color,
             warning_color,
             emphasis,

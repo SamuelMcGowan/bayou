@@ -114,6 +114,10 @@ impl<S: Source> Cached<S> {
 
         Some(s)
     }
+
+    pub fn num_lines(&self) -> usize {
+        1 + self.line_breaks.len()
+    }
 }
 
 impl<S: Source> Source for Cached<S> {

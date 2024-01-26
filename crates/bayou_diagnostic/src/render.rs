@@ -48,7 +48,11 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
 
         for source_data in source_datas.into_values() {
             let groups = get_overlapping_groups(source_data.snippets, |s| s.lines);
-            for (snippets, lines) in groups {
+            for (snippets, mut lines) in groups {
+                lines.start = lines.start.saturating_sub(self.config.context_size);
+                lines.end =
+                    (lines.end + self.config.context_size).min(source_data.source.num_lines());
+
                 self.draw_group(source_data.source, &snippets, lines)?;
             }
         }
@@ -357,11 +361,14 @@ where
     for item in ranges {
         let range = get_range(&item);
 
-        if range.start > group_end && !group.is_empty() {
-            groups.push((
-                std::mem::take(&mut group),
-                Span::new(group_start, group_end),
-            ));
+        if range.start > group_end {
+            if !group.is_empty() {
+                groups.push((
+                    std::mem::take(&mut group),
+                    Span::new(group_start, group_end),
+                ));
+            }
+
             group_start = range.start;
         }
 
