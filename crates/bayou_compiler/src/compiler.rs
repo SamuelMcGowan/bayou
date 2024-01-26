@@ -17,10 +17,11 @@ impl Compiler {
     ) -> Diagnostics {
         let mut diagnostics = Diagnostics::default();
 
+        let source_id = self.sources.len();
         self.sources.push(Cached::new((name.into(), source.into())));
         let source = self.sources.last().unwrap();
 
-        let mut parser = Parser::new(source.source_str());
+        let mut parser = Parser::new(source.source_str(), source_id);
         let mut ast = parser.parse_module();
 
         let (interner, parser_diagnostics) = parser.finish();

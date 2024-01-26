@@ -22,6 +22,7 @@ pub enum LexerError {
 pub type LexerResult<T> = Result<T, LexerError>;
 
 pub struct Lexer<'sess> {
+    source_id: usize,
     interner: Interner,
     diagnostics: Diagnostics,
 
@@ -34,9 +35,9 @@ pub struct Lexer<'sess> {
 }
 
 impl<'sess> Lexer<'sess> {
-    pub fn new(source: &'sess str) -> Self {
+    pub fn new(source: &'sess str, source_id: usize) -> Self {
         let mut lexer = Self {
-            // TODO: pass in interner and diagnostics
+            source_id,
             interner: Interner::new(),
             diagnostics: Diagnostics::default(),
 
@@ -172,7 +173,7 @@ impl<'sess> Lexer<'sess> {
         self.diagnostics.report(
             Diagnostic::error()
                 .with_message(error.to_string())
-                .with_snippet(Snippet::primary("this token", 0, span)),
+                .with_snippet(Snippet::primary("this token", self.source_id, span)),
         );
     }
 }

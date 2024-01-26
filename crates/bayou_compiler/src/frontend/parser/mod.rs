@@ -35,11 +35,11 @@ pub struct Parser<'sess> {
 }
 
 impl<'sess> Parser<'sess> {
-    pub fn new(source: &'sess str) -> Self {
+    pub fn new(source: &'sess str, source_id: usize) -> Self {
         Self {
             diagnostics: Diagnostics::default(),
 
-            lexer: Lexer::new(source),
+            lexer: Lexer::new(source, source_id),
         }
     }
 
