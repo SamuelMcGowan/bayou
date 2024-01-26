@@ -3,7 +3,7 @@ mod expr;
 use bayou_diagnostic::Diagnostic;
 
 use super::lexer::{Lexer, Peek};
-use crate::diagnostic::{Diagnostics, IntoDiagnostic, Sources};
+use crate::diagnostic::Diagnostics;
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{InternedStr, Interner};
@@ -23,15 +23,6 @@ impl ParseError {
 
     fn expected_kind(token: TokenKind, found: Option<Token>) -> Self {
         Self::expected(format!("token {token:?}"), found)
-    }
-}
-
-impl IntoDiagnostic for ParseError {
-    fn into_diagnostic(self) -> Diagnostic<Sources> {
-        Diagnostic::error().with_message(format!(
-            "expected {}, but found {:?}",
-            self.expected, self.found
-        ))
     }
 }
 
@@ -113,7 +104,7 @@ impl<'sess> Parser<'sess> {
         recover: impl FnOnce(&mut Self) -> T,
     ) -> T {
         parse(self).unwrap_or_else(|err| {
-            self.diagnostics.report(err);
+            self.report(err);
             recover(self)
         })
     }
@@ -149,5 +140,13 @@ impl<'sess> Parser<'sess> {
                 return;
             }
         }
+    }
+
+    fn report(&mut self, error: ParseError) {
+        self.diagnostics
+            .report(Diagnostic::error().with_message(format!(
+                "expected {}, but found {:?}",
+                error.expected, error.found
+            )));
     }
 }

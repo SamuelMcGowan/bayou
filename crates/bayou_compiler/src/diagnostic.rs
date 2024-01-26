@@ -7,16 +7,6 @@ use bayou_diagnostic::{Config, Diagnostic, DiagnosticKind};
 pub type Sources = Vec<Source>;
 pub type Source = Cached<(String, String)>;
 
-pub trait IntoDiagnostic {
-    fn into_diagnostic(self) -> Diagnostic<Sources>;
-}
-
-impl IntoDiagnostic for Diagnostic<Sources> {
-    fn into_diagnostic(self) -> Diagnostic<Sources> {
-        self
-    }
-}
-
 #[derive(Default)]
 #[must_use = "diagnostics must be emitted"]
 pub struct Diagnostics {
@@ -25,8 +15,7 @@ pub struct Diagnostics {
 }
 
 impl Diagnostics {
-    pub fn report(&mut self, diagnostic: impl IntoDiagnostic) {
-        let diagnostic = diagnostic.into_diagnostic();
+    pub fn report(&mut self, diagnostic: Diagnostic<Sources>) {
         self.had_errors |= diagnostic.kind >= DiagnosticKind::Error;
         self.diagnostics.push(diagnostic);
     }
