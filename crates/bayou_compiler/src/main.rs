@@ -39,7 +39,7 @@ fn run() -> CompilerResult<()> {
 
     match cli.command {
         Command::Build { input, output } => {
-            println!("building file {}", input.display());
+            println!("building file {}...\n", input.display());
 
             let source = std::fs::read_to_string(&input)?;
 

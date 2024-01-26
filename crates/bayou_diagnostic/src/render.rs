@@ -42,6 +42,10 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
 
         let source_datas = self.snippets_by_source();
 
+        if source_datas.is_empty() {
+            writeln!(self.stream)?;
+        }
+
         for source_data in source_datas.into_values() {
             let groups = get_overlapping_groups(source_data.snippets, |s| s.lines);
             for (snippets, lines) in groups {

@@ -1,6 +1,6 @@
 mod expr;
 
-use bayou_diagnostic::Diagnostic;
+use bayou_diagnostic::{Diagnostic, Snippet};
 
 use super::lexer::{Lexer, Peek};
 use crate::diagnostics::Diagnostics;
@@ -29,6 +29,7 @@ impl ParseError {
 pub type ParseResult<T> = Result<T, ParseError>;
 
 pub struct Parser<'sess> {
+    source_id: usize,
     diagnostics: Diagnostics,
 
     lexer: Lexer<'sess>,
@@ -37,6 +38,7 @@ pub struct Parser<'sess> {
 impl<'sess> Parser<'sess> {
     pub fn new(source: &'sess str, source_id: usize) -> Self {
         Self {
+            source_id,
             diagnostics: Diagnostics::default(),
 
             lexer: Lexer::new(source, source_id),
@@ -143,10 +145,22 @@ impl<'sess> Parser<'sess> {
     }
 
     fn report(&mut self, error: ParseError) {
-        self.diagnostics
-            .report(Diagnostic::error().with_message(format!(
-                "expected {}, but found {:?}",
-                error.expected, error.found
-            )));
+        let diagnostic = match error.found {
+            Some(token) => Diagnostic::error()
+                .with_message(format!("expected {}", error.expected))
+                .with_snippet(Snippet::primary(
+                    format!("expected {} here", error.expected),
+                    self.source_id,
+                    token.span,
+                )),
+
+            // TODO: get EOF span.
+            None => Diagnostic::error().with_message(format!(
+                "expected {}, but reached end of source",
+                error.expected
+            )),
+        };
+
+        self.diagnostics.report(diagnostic);
     }
 }
