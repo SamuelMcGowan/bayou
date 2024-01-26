@@ -24,15 +24,16 @@ impl Compiler {
         let mut ast = parser.parse_module();
 
         let (interner, parser_diagnostics) = parser.finish();
-        diagnostics.join(parser_diagnostics);
 
+        diagnostics.join(parser_diagnostics);
         if diagnostics.had_errors() {
             return (None, diagnostics);
         }
 
         let resolver = Resolver::new(&interner);
-        diagnostics.join(resolver.run(&mut ast));
+        let (symbols, resolver_diagnostics) = resolver.run(&mut ast);
 
+        diagnostics.join(resolver_diagnostics);
         if diagnostics.had_errors() {
             return (None, diagnostics);
         }

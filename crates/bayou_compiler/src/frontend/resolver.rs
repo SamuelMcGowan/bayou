@@ -25,9 +25,9 @@ impl<'sess> Resolver<'sess> {
         }
     }
 
-    pub fn run(mut self, module: &mut Module) -> Diagnostics {
+    pub fn run(mut self, module: &mut Module) -> (Symbols, Diagnostics) {
         self.declare_globals(std::slice::from_mut(&mut module.item));
-        self.diagnostics
+        (self.symbols, self.diagnostics)
     }
 
     fn declare_globals(&mut self, items: &mut [Item]) {
