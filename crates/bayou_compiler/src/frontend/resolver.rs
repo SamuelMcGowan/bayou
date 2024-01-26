@@ -1,6 +1,6 @@
 use bayou_diagnostic::Diagnostic;
 
-use crate::diagnostic::Sources;
+use crate::diagnostic::Diagnostics;
 use crate::ir::ast::{Item, Module};
 use crate::ir::vars::{Ownership, Place, PlaceRef};
 use crate::ir::{InternedStr, Interner};
@@ -9,7 +9,7 @@ use crate::symbols::{GlobalSymbol, Symbols};
 pub struct Resolver<'sess> {
     symbols: Symbols,
     interner: &'sess Interner,
-    diagnostics: Vec<Diagnostic<Sources>>,
+    diagnostics: Diagnostics,
 
     locals: Locals,
 }
@@ -19,13 +19,13 @@ impl<'sess> Resolver<'sess> {
         Self {
             symbols: Symbols::default(),
             interner,
-            diagnostics: vec![],
+            diagnostics: Diagnostics::default(),
 
             locals: Locals::default(),
         }
     }
 
-    pub fn run(mut self, module: &mut Module) -> Vec<Diagnostic<Sources>> {
+    pub fn run(mut self, module: &mut Module) -> Diagnostics {
         self.declare_globals(std::slice::from_mut(&mut module.item));
         self.diagnostics
     }
@@ -44,7 +44,7 @@ impl<'sess> Resolver<'sess> {
             let name_str = self.interner.resolve(&name);
 
             self.diagnostics
-                .push(Diagnostic::error().with_message(format!("duplicate global `{name_str}`")));
+                .report(Diagnostic::error().with_message(format!("duplicate global `{name_str}`")));
         }
     }
 }

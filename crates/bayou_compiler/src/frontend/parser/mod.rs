@@ -3,7 +3,7 @@ mod expr;
 use bayou_diagnostic::Diagnostic;
 
 use super::lexer::{Lexer, Peek};
-use crate::diagnostic::{IntoDiagnostic, Sources};
+use crate::diagnostic::{Diagnostics, IntoDiagnostic, Sources};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{InternedStr, Interner};
@@ -38,7 +38,7 @@ impl IntoDiagnostic for ParseError {
 pub type ParseResult<T> = Result<T, ParseError>;
 
 pub struct Parser<'sess> {
-    diagnostics: Vec<Diagnostic<Sources>>,
+    diagnostics: Diagnostics,
 
     lexer: Lexer<'sess>,
 }
@@ -46,15 +46,15 @@ pub struct Parser<'sess> {
 impl<'sess> Parser<'sess> {
     pub fn new(source: &'sess str) -> Self {
         Self {
-            diagnostics: vec![],
+            diagnostics: Diagnostics::default(),
 
             lexer: Lexer::new(source),
         }
     }
 
-    pub fn finish(self) -> (Interner, Vec<Diagnostic<Sources>>) {
+    pub fn finish(self) -> (Interner, Diagnostics) {
         let (interner, mut diagnostics) = self.lexer.finish();
-        diagnostics.extend(self.diagnostics);
+        diagnostics.join(self.diagnostics);
         (interner, diagnostics)
     }
 
@@ -113,7 +113,7 @@ impl<'sess> Parser<'sess> {
         recover: impl FnOnce(&mut Self) -> T,
     ) -> T {
         parse(self).unwrap_or_else(|err| {
-            self.diagnostics.push(err.into_diagnostic());
+            self.diagnostics.report(err);
             recover(self)
         })
     }

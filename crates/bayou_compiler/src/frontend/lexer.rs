@@ -3,7 +3,7 @@ use std::str::Chars;
 use bayou_diagnostic::span::Span;
 use bayou_diagnostic::{Diagnostic, Snippet};
 
-use crate::diagnostic::{IntoDiagnostic, Sources};
+use crate::diagnostic::{Diagnostics, IntoDiagnostic, Sources};
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
 
@@ -32,7 +32,7 @@ pub type LexerResult<T> = Result<T, LexerError>;
 
 pub struct Lexer<'sess> {
     interner: Interner,
-    diagnostics: Vec<Diagnostic<Sources>>,
+    diagnostics: Diagnostics,
 
     all: &'sess str,
     chars: Chars<'sess>,
@@ -47,7 +47,7 @@ impl<'sess> Lexer<'sess> {
         let mut lexer = Self {
             // TODO: pass in interner and diagnostics
             interner: Interner::new(),
-            diagnostics: vec![],
+            diagnostics: Diagnostics::default(),
 
             all: source,
             chars: source.chars(),
@@ -60,7 +60,7 @@ impl<'sess> Lexer<'sess> {
         lexer
     }
 
-    pub fn finish(self) -> (Interner, Vec<Diagnostic<Sources>>) {
+    pub fn finish(self) -> (Interner, Diagnostics) {
         (self.interner, self.diagnostics)
     }
 
@@ -178,7 +178,7 @@ impl<'sess> Lexer<'sess> {
 
     fn report_error(&mut self, error: LexerError) {
         let span = Span::new(self.token_start, self.byte_pos());
-        self.diagnostics.push((error, span).into_diagnostic());
+        self.diagnostics.report((error, span));
     }
 }
 

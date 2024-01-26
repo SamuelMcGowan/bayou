@@ -12,12 +12,12 @@ use self::sources::Sources;
 use self::span::Span;
 
 pub struct Diagnostic<S: Sources> {
-    kind: DiagnosticKind,
+    pub kind: DiagnosticKind,
 
-    message: Option<String>,
-    id: Option<String>,
+    pub message: Option<String>,
+    pub id: Option<String>,
 
-    snippets: Vec<Snippet<S>>,
+    pub snippets: Vec<Snippet<S>>,
 }
 
 impl<S: Sources> Diagnostic<S> {
