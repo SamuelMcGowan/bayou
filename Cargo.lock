@@ -63,6 +63,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "bayou_compiler"
+version = "0.1.0"
+dependencies = [
+ "bayou_diagnostic",
+ "clap",
+ "enumn",
+ "insta",
+ "lasso",
+ "macro_rules_attribute",
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "bayou_diagnostic"
 version = "0.1.0"
 dependencies = [
@@ -325,20 +339,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "tinyc"
-version = "0.1.0"
-dependencies = [
- "bayou_diagnostic",
- "clap",
- "enumn",
- "insta",
- "lasso",
- "macro_rules_attribute",
- "serde",
- "thiserror",
 ]
 
 [[package]]
