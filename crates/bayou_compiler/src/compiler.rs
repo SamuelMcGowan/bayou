@@ -1,8 +1,11 @@
 use bayou_diagnostic::sources::{Cached, Source};
 
-use crate::diagnostics::Diagnostics;
+use crate::diagnostics::{Diagnostics, Sources};
 use crate::frontend::parser::Parser;
 use crate::frontend::resolver::Resolver;
+use crate::ir::ast::Module;
+use crate::ir::Interner;
+use crate::symbols::Symbols;
 
 #[derive(Default)]
 pub struct Compiler {
@@ -10,34 +13,53 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn compile(
+    pub fn parse_module(
         &mut self,
         name: impl Into<String>,
         source: impl Into<String>,
-    ) -> (Option<String>, Diagnostics) {
+    ) -> Diagnostics {
         let mut diagnostics = Diagnostics::default();
 
+        let source_id = self.sources.len();
         self.sources.push(Cached::new((name.into(), source.into())));
         let source = self.sources.last().unwrap();
 
         let mut parser = Parser::new(source.source_str());
-        let mut ast = parser.parse_module();
+        let ast = parser.parse_module();
 
         let (interner, parser_diagnostics) = parser.finish();
 
         diagnostics.join(parser_diagnostics);
         if diagnostics.had_errors() {
-            return (None, diagnostics);
+            return diagnostics;
         }
 
-        let resolver = Resolver::new(&interner);
-        let (symbols, resolver_diagnostics) = resolver.run(&mut ast);
+        let mut compilation = ModuleCompilation {
+            source_id,
+            ast,
+            interner,
+            symbols: Symbols::default(),
+        };
+
+        let resolver = Resolver::new(&compilation.interner);
+        let (symbols, resolver_diagnostics) = resolver.run(&mut compilation.ast);
 
         diagnostics.join(resolver_diagnostics);
         if diagnostics.had_errors() {
-            return (None, diagnostics);
+            return diagnostics;
         }
 
-        (Some("".into()), diagnostics)
+        diagnostics
     }
 }
+
+pub struct ModuleCompilation {
+    source_id: usize,
+
+    ast: Module,
+
+    interner: Interner,
+    symbols: Symbols,
+}
+
+// pub fn compile()

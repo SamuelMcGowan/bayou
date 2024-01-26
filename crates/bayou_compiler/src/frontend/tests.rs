@@ -2,11 +2,11 @@ use crate::compiler::Compiler;
 
 fn test_compiles(source: &str, should_compile: bool) {
     let mut compiler = Compiler::default();
-    let (result, _) = compiler.compile("test_source", source);
+    let diagnostics = compiler.parse_module("test_source", source);
 
-    match (result, should_compile) {
-        (None, true) => panic!("failed to compile: {source:?}"),
-        (Some(_), false) => panic!("unexpectedly compiled: {source:?}"),
+    match (diagnostics.had_errors(), should_compile) {
+        (false, true) => panic!("failed to compile: {source:?}"),
+        (true, false) => panic!("unexpectedly compiled: {source:?}"),
         _ => {}
     }
 }

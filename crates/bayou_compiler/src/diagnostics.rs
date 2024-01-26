@@ -29,11 +29,12 @@ impl Diagnostics {
         sources: &Sources,
         config: &Config,
         stream: &mut impl WriteColor,
-    ) -> io::Result<()> {
+    ) -> io::Result<bool> {
         for diagnostic in self.diagnostics.drain(..) {
             diagnostic.write_to_stream(sources, config, stream)?;
         }
-        Ok(())
+
+        Ok(self.had_errors)
     }
 
     pub fn join(&mut self, diagnostics: Diagnostics) {

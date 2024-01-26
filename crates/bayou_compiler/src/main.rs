@@ -44,26 +44,22 @@ fn run() -> CompilerResult<()> {
             let source = std::fs::read_to_string(&input)?;
 
             let mut compiler = Compiler::default();
-            let (compile_result, mut diagnostics) =
-                compiler.compile(input.to_string_lossy(), source);
+            let mut diagnostics = compiler.parse_module(input.to_string_lossy(), source);
 
-            diagnostics.flush(
+            if diagnostics.flush(
                 &compiler.sources,
                 &Config::default(),
                 &mut StandardStream::stderr(ColorChoice::Auto),
-            )?;
-
-            let asm = match compile_result {
-                Some(asm) => asm,
-                None => return Err(CompilerError::HadErrors),
-            };
-
-            if let Some(path) = output {
-                println!("writing assembly to {}", path.display());
-                std::fs::write(path, asm)?;
-            } else {
-                println!("ASSEMBLY OUTPUT:\n\n{asm}");
+            )? {
+                return Err(CompilerError::HadErrors);
             }
+
+            // if let Some(path) = output {
+            //     println!("writing assembly to {}", path.display());
+            //     std::fs::write(path, asm)?;
+            // } else {
+            //     println!("ASSEMBLY OUTPUT:\n\n{asm}");
+            // }
 
             Ok(())
         }
