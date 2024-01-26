@@ -53,9 +53,10 @@ fn run() -> CompilerResult<()> {
                 &mut StandardStream::stderr(ColorChoice::Auto),
             )?;
 
-            let asm = compile_result?;
-
-            // let asm = compile(input.to_string_lossy(), source)?;
+            let asm = match compile_result {
+                Some(asm) => asm,
+                None => return Err(CompilerError::HadErrors),
+            };
 
             if let Some(path) = output {
                 println!("writing assembly to {}", path.display());

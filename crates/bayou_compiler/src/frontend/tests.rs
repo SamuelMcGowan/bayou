@@ -5,8 +5,8 @@ fn test_compiles(source: &str, should_compile: bool) {
     let (result, _) = compiler.compile("test_source", source);
 
     match (result, should_compile) {
-        (Err(_), true) => panic!("failed to compile: {source:?}"),
-        (Ok(_), false) => panic!("unexpectedly compiled: {source:?}"),
+        (None, true) => panic!("failed to compile: {source:?}"),
+        (Some(_), false) => panic!("unexpectedly compiled: {source:?}"),
         _ => {}
     }
 }
