@@ -22,7 +22,7 @@ impl ParseError {
     }
 
     fn expected_kind(token: TokenKind, found: Option<Token>) -> Self {
-        Self::expected(format!("token {token:?}"), found)
+        Self::expected(token.token_name(), found)
     }
 }
 

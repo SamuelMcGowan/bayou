@@ -52,3 +52,27 @@ pub enum Keyword {
     Int,
     Return,
 }
+
+impl TokenKind {
+    pub fn token_name(&self) -> &'static str {
+        match self {
+            TokenKind::Keyword(_) => todo!(),
+            TokenKind::Identifier(_) => todo!(),
+            TokenKind::Integer(_) => "integer",
+            TokenKind::LBrace => "`{`",
+            TokenKind::RBrace => "`}`",
+            TokenKind::LParen => "`(`",
+            TokenKind::RParen => "`)`",
+            TokenKind::Semicolon => "`;`",
+            TokenKind::Add => "`+`",
+            TokenKind::Sub => "`-`",
+            TokenKind::Mul => "`*`",
+            TokenKind::Div => "`/`",
+            TokenKind::Mod => "`%`",
+            TokenKind::BitwiseAnd => "`&`",
+            TokenKind::BitwiseOr => "`|`",
+            TokenKind::BitwiseXor => "`^`",
+            TokenKind::BitwiseInvert => "`~`",
+        }
+    }
+}

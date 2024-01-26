@@ -177,7 +177,11 @@ impl<'sess> Lexer<'sess> {
         self.diagnostics.report(
             Diagnostic::error()
                 .with_message(error.to_string())
-                .with_snippet(Snippet::primary("this token", self.source_id, span)),
+                .with_snippet(Snippet::primary(
+                    "unexpected character",
+                    self.source_id,
+                    span,
+                )),
         );
     }
 }
