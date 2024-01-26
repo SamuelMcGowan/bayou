@@ -154,7 +154,6 @@ impl<'sess> Parser<'sess> {
                     token.span,
                 )),
 
-            // TODO: get EOF span.
             None => Diagnostic::error()
                 .with_message(format!(
                     "expected {}, but reached end of source",
