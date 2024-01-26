@@ -137,7 +137,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
 
                 write!(self.stream, "{:<offset$}", "")?;
 
-                for _ in 0..snippet.bytes.len() {
+                for _ in 0..snippet.bytes.len().max(1) {
                     write!(self.stream, "{}", self.config.underline)?;
                 }
 

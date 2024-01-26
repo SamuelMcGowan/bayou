@@ -52,6 +52,10 @@ impl<'sess> Lexer<'sess> {
         lexer
     }
 
+    pub fn eof_span(&self) -> Span {
+        Span::new(self.all.len(), self.all.len())
+    }
+
     pub fn finish(self) -> (Interner, Diagnostics) {
         (self.interner, self.diagnostics)
     }

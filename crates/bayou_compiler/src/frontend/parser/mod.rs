@@ -155,10 +155,16 @@ impl<'sess> Parser<'sess> {
                 )),
 
             // TODO: get EOF span.
-            None => Diagnostic::error().with_message(format!(
-                "expected {}, but reached end of source",
-                error.expected
-            )),
+            None => Diagnostic::error()
+                .with_message(format!(
+                    "expected {}, but reached end of source",
+                    error.expected
+                ))
+                .with_snippet(Snippet::primary(
+                    format!("expected {} here", error.expected),
+                    self.source_id,
+                    self.lexer.eof_span(),
+                )),
         };
 
         self.diagnostics.report(diagnostic);
