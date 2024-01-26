@@ -92,7 +92,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
             }
         }
 
-        let line_num_width = 1 + (lines.end.saturating_sub(1)).ilog10() as usize;
+        let line_num_width = 1 + (lines.end.saturating_sub(1).max(1)).ilog10() as usize;
 
         // all groups have at least one snippet
         let (line_num, col_num) = source
