@@ -3,7 +3,7 @@ use std::str::Chars;
 use bayou_diagnostic::span::Span;
 use bayou_diagnostic::{Diagnostic, Snippet};
 
-use crate::diagnostic::Diagnostics;
+use crate::diagnostics::Diagnostics;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
 

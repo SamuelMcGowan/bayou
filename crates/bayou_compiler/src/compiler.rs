@@ -1,6 +1,6 @@
 use bayou_diagnostic::sources::{Cached, Source};
 
-use crate::diagnostic::Diagnostics;
+use crate::diagnostics::Diagnostics;
 use crate::frontend::parser::Parser;
 use crate::frontend::resolver::Resolver;
 

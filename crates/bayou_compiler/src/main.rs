@@ -5,7 +5,7 @@ mod frontend;
 
 mod cli;
 mod compiler;
-mod diagnostic;
+mod diagnostics;
 mod ir;
 mod symbols;
 mod utils;

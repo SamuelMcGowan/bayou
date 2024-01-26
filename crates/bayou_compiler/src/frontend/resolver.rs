@@ -1,6 +1,6 @@
 use bayou_diagnostic::Diagnostic;
 
-use crate::diagnostic::Diagnostics;
+use crate::diagnostics::Diagnostics;
 use crate::ir::ast::{Item, Module};
 use crate::ir::vars::{Ownership, Place, PlaceRef};
 use crate::ir::{InternedStr, Interner};

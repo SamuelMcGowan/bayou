@@ -3,7 +3,7 @@ mod expr;
 use bayou_diagnostic::Diagnostic;
 
 use super::lexer::{Lexer, Peek};
-use crate::diagnostic::Diagnostics;
+use crate::diagnostics::Diagnostics;
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{InternedStr, Interner};
