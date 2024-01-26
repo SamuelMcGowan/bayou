@@ -12,6 +12,7 @@ impl<K: Key, V> KeyVec<K, V> {
         Self::default()
     }
 
+    #[must_use]
     pub fn insert(&mut self, value: V) -> K {
         let key = K::from_usize(self.inner.len());
         self.inner.push(value);

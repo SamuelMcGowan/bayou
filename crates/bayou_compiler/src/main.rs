@@ -4,15 +4,18 @@ extern crate macro_rules_attribute;
 mod frontend;
 
 mod cli;
+mod compiler;
 mod diagnostic;
 mod ir;
 mod symbols;
 mod utils;
 
+use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
+use bayou_diagnostic::Config;
 use clap::Parser as _;
 use cli::{Cli, Command};
 
-use crate::frontend::run_frontend;
+use crate::compiler::Compiler;
 
 #[derive(thiserror::Error, Debug)]
 enum CompilerError {
@@ -37,9 +40,22 @@ fn run() -> CompilerResult<()> {
     match cli.command {
         Command::Build { input, output } => {
             println!("building file {}", input.display());
+
             let source = std::fs::read_to_string(&input)?;
 
-            let asm = compile(input.to_string_lossy(), source)?;
+            let mut compiler = Compiler::default();
+            let (compile_result, mut diagnostics) =
+                compiler.compile(input.to_string_lossy(), source);
+
+            diagnostics.flush(
+                &compiler.sources,
+                &Config::default(),
+                &mut StandardStream::stderr(ColorChoice::Auto),
+            )?;
+
+            let asm = compile_result?;
+
+            // let asm = compile(input.to_string_lossy(), source)?;
 
             if let Some(path) = output {
                 println!("writing assembly to {}", path.display());
@@ -51,21 +67,4 @@ fn run() -> CompilerResult<()> {
             Ok(())
         }
     }
-}
-
-fn compile(source_name: impl Into<String>, source: impl Into<String>) -> CompilerResult<String> {
-    let source = source.into();
-    // let mut sources = session.sources.borrow_mut();
-
-    // let source_id = sources.len();
-    // sources.push(Cached::new((source_name.into(), source.into())));
-
-    // let source = sources.get(source_id).unwrap().source_str().to_owned();
-
-    // drop(sources);
-
-    let ast_result = run_frontend(&source);
-    let ast = ast_result?;
-
-    Ok(format!("{ast:#?}"))
 }

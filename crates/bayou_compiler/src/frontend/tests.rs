@@ -1,7 +1,8 @@
-use crate::compile;
+use crate::compiler::Compiler;
 
 fn test_compiles(source: &str, should_compile: bool) {
-    let result = compile("test_source", source);
+    let mut compiler = Compiler::default();
+    let (result, _) = compiler.compile("test_source", source);
 
     match (result, should_compile) {
         (Err(_), true) => panic!("failed to compile: {source:?}"),

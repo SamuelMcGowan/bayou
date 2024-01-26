@@ -1,8 +1,8 @@
+use std::io;
+
 use bayou_diagnostic::sources::Cached;
 use bayou_diagnostic::termcolor::WriteColor;
 use bayou_diagnostic::{Config, Diagnostic, DiagnosticKind};
-
-use crate::{CompilerError, CompilerResult};
 
 pub type Sources = Vec<Source>;
 pub type Source = Cached<(String, String)>;
@@ -35,21 +35,16 @@ impl Diagnostics {
         self.had_errors
     }
 
-    pub fn emit(
-        self,
+    pub fn flush(
+        &mut self,
         sources: &Sources,
         config: &Config,
         stream: &mut impl WriteColor,
-    ) -> CompilerResult<()> {
-        for diagnostic in self.diagnostics {
+    ) -> io::Result<()> {
+        for diagnostic in self.diagnostics.drain(..) {
             diagnostic.write_to_stream(sources, config, stream)?;
         }
-
-        if self.had_errors {
-            Err(CompilerError::HadErrors)
-        } else {
-            Ok(())
-        }
+        Ok(())
     }
 
     pub fn join(&mut self, diagnostics: Diagnostics) {
