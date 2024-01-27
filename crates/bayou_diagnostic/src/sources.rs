@@ -51,6 +51,7 @@ impl Source for (String, PathBuf, String) {
     }
 }
 
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[derive(Debug)]
 pub struct Cached<S: Source> {
     source: S,

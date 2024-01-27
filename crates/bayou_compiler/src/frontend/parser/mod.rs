@@ -6,7 +6,7 @@ use super::lexer::{Lexer, Peek};
 use crate::diagnostics::Diagnostics;
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::ir::{InternedStr, Interner};
+use crate::ir::Interner;
 
 pub struct ParseError {
     expected: String,
@@ -90,12 +90,12 @@ impl<'sess> Parser<'sess> {
         Ok(Stmt::Return(expr))
     }
 
-    fn parse_ident(&mut self) -> ParseResult<InternedStr> {
+    fn parse_ident(&mut self) -> ParseResult<Ident> {
         match self.lexer.next() {
             Some(Token {
                 kind: TokenKind::Identifier(ident),
-                ..
-            }) => Ok(ident),
+                span,
+            }) => Ok(Ident { ident, span }),
             other => Err(ParseError::expected("an integer", other)),
         }
     }

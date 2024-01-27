@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Span {
     pub start: usize,

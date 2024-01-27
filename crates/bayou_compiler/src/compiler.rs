@@ -31,7 +31,7 @@ impl Compiler {
             return diagnostics;
         }
 
-        let resolver = Resolver::new(&interner);
+        let resolver = Resolver::new(&interner, source_id);
         let (symbols, resolver_diagnostics) = resolver.run(&mut ast);
 
         diagnostics.join(resolver_diagnostics);

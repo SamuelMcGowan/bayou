@@ -1,12 +1,13 @@
-use bayou_diagnostic::Diagnostic;
+use bayou_diagnostic::{Diagnostic, Snippet};
 
 use crate::diagnostics::Diagnostics;
-use crate::ir::ast::{Item, Module};
+use crate::ir::ast::{Ident, Item, Module};
 use crate::ir::vars::{Ownership, Place, PlaceRef};
 use crate::ir::{InternedStr, Interner};
 use crate::symbols::{GlobalSymbol, Symbols};
 
 pub struct Resolver<'sess> {
+    source_id: usize,
     symbols: Symbols,
     interner: &'sess Interner,
     diagnostics: Diagnostics,
@@ -15,8 +16,9 @@ pub struct Resolver<'sess> {
 }
 
 impl<'sess> Resolver<'sess> {
-    pub fn new(interner: &'sess Interner) -> Self {
+    pub fn new(interner: &'sess Interner, source_id: usize) -> Self {
         Self {
+            source_id,
             symbols: Symbols::default(),
             interner,
             diagnostics: Diagnostics::default(),
@@ -39,12 +41,19 @@ impl<'sess> Resolver<'sess> {
         }
     }
 
-    fn declare_global(&mut self, name: InternedStr, symbol: GlobalSymbol) {
-        if self.symbols.globals.insert(name, symbol).is_some() {
-            let name_str = self.interner.resolve(&name);
+    fn declare_global(&mut self, ident: Ident, symbol: GlobalSymbol) {
+        if self.symbols.globals.insert(ident.ident, symbol).is_some() {
+            let name_str = self.interner.resolve(&ident.ident);
 
-            self.diagnostics
-                .report(Diagnostic::error().with_message(format!("duplicate global `{name_str}`")));
+            self.diagnostics.report(
+                Diagnostic::error()
+                    .with_message(format!("duplicate global `{name_str}`"))
+                    .with_snippet(Snippet::primary(
+                        "duplicate global",
+                        self.source_id,
+                        ident.span,
+                    )),
+            );
         }
     }
 }

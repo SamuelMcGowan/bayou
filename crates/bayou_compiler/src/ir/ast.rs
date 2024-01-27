@@ -1,3 +1,5 @@
+use bayou_diagnostic::span::Span;
+
 use super::vars::PlaceRef;
 use super::{Node, NodeCopy};
 use crate::ir::InternedStr;
@@ -15,7 +17,7 @@ pub enum Item {
 
 #[derive(Node!)]
 pub struct FuncDecl {
-    pub name: InternedStr,
+    pub name: Ident,
     pub statement: Stmt,
 }
 
@@ -79,4 +81,10 @@ pub enum BinOp {
 pub enum UnOp {
     Negate,
     BitwiseInvert,
+}
+
+#[derive(Node!, Copy)]
+pub struct Ident {
+    pub ident: InternedStr,
+    pub span: Span,
 }

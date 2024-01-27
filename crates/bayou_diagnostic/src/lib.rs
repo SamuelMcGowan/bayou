@@ -4,6 +4,7 @@ pub mod span;
 
 use std::fmt;
 
+use serde::ser::SerializeStruct;
 use span::AsSpan;
 pub use termcolor;
 use termcolor::{Color, ColorSpec};
@@ -73,6 +74,27 @@ where
     }
 }
 
+#[cfg(feature = "serialize")]
+impl<Srcs: Sources> serde::Serialize for Diagnostic<Srcs>
+where
+    Srcs::SourceId: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_struct("Diagnostic", 4)?;
+
+        s.serialize_field("kind", &self.kind)?;
+        s.serialize_field("message", &self.message)?;
+        s.serialize_field("id", &self.id)?;
+        s.serialize_field("snippets", &self.snippets)?;
+
+        s.end()
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticKind {
     Warning,
@@ -126,6 +148,27 @@ where
     }
 }
 
+#[cfg(feature = "serialize")]
+impl<Srcs: Sources> serde::Serialize for Snippet<Srcs>
+where
+    Srcs::SourceId: serde::Serialize,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_struct("Snippet", 4)?;
+
+        s.serialize_field("label", &self.label)?;
+        s.serialize_field("kind", &self.kind)?;
+        s.serialize_field("source_id", &self.source_id)?;
+        s.serialize_field("span", &self.span)?;
+
+        s.end()
+    }
+}
+
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SnippetKind {
     Primary,
