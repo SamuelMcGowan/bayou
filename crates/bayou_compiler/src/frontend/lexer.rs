@@ -1,14 +1,17 @@
 use std::str::Chars;
 
 use bayou_diagnostic::span::Span;
-use bayou_diagnostic::{Diagnostic, Snippet};
 
-use crate::diagnostics::Diagnostics;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
 
+pub struct LexerError {
+    pub kind: LexerErrorKind,
+    pub span: Span,
+}
+
 #[derive(thiserror::Error, Debug)]
-pub enum LexerError {
+pub enum LexerErrorKind {
     #[error("unexpected character {0:?}")]
     UnexpectedChar(char),
 
@@ -19,12 +22,11 @@ pub enum LexerError {
     IntegerDigitWrongBase { base: u32, digit: char },
 }
 
-pub type LexerResult<T> = Result<T, LexerError>;
+pub type LexerResult<T> = Result<T, LexerErrorKind>;
 
 pub struct Lexer<'sess> {
-    source_id: usize,
     interner: Interner,
-    diagnostics: Diagnostics,
+    errors: Vec<LexerError>,
 
     all: &'sess str,
     chars: Chars<'sess>,
@@ -35,11 +37,10 @@ pub struct Lexer<'sess> {
 }
 
 impl<'sess> Lexer<'sess> {
-    pub fn new(source: &'sess str, source_id: usize) -> Self {
+    pub fn new(source: &'sess str) -> Self {
         let mut lexer = Self {
-            source_id,
             interner: Interner::new(),
-            diagnostics: Diagnostics::default(),
+            errors: vec![],
 
             all: source,
             chars: source.chars(),
@@ -56,8 +57,8 @@ impl<'sess> Lexer<'sess> {
         Span::new(self.all.len(), self.all.len())
     }
 
-    pub fn finish(self) -> (Interner, Diagnostics) {
-        (self.interner, self.diagnostics)
+    pub fn finish(self) -> (Interner, Vec<LexerError>) {
+        (self.interner, self.errors)
     }
 
     pub fn lex_token(&mut self) -> Option<Token> {
@@ -111,7 +112,7 @@ impl<'sess> Lexer<'sess> {
                 ch if is_ident_start(ch) => self.lex_alpha(),
 
                 ch => {
-                    self.report_error(LexerError::UnexpectedChar(ch));
+                    self.report_error(LexerErrorKind::UnexpectedChar(ch));
                     continue;
                 }
             };
@@ -137,15 +138,15 @@ impl<'sess> Lexer<'sess> {
 
             let digit = ch
                 .to_digit(base)
-                .ok_or(LexerError::IntegerDigitWrongBase { base, digit: ch })?;
+                .ok_or(LexerErrorKind::IntegerDigitWrongBase { base, digit: ch })?;
 
             n = n
                 .checked_mul(base as u64)
-                .ok_or(LexerError::IntegerOverflow)?;
+                .ok_or(LexerErrorKind::IntegerOverflow)?;
 
             n = n
                 .checked_add(digit as u64)
-                .ok_or(LexerError::IntegerOverflow)?;
+                .ok_or(LexerErrorKind::IntegerOverflow)?;
         }
 
         Ok(TokenKind::Integer(n))
@@ -172,17 +173,9 @@ impl<'sess> Lexer<'sess> {
         self.all.len() - self.chars.as_str().len()
     }
 
-    fn report_error(&mut self, error: LexerError) {
+    fn report_error(&mut self, kind: LexerErrorKind) {
         let span = Span::new(self.token_start, self.byte_pos());
-        self.diagnostics.report(
-            Diagnostic::error()
-                .with_message(error.to_string())
-                .with_snippet(Snippet::primary(
-                    "unexpected character",
-                    self.source_id,
-                    span,
-                )),
-        );
+        self.errors.push(LexerError { kind, span });
     }
 }
 

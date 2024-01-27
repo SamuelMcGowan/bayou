@@ -17,28 +17,16 @@ impl Compiler {
         name: impl Into<String>,
         source: impl Into<String>,
     ) -> Diagnostics {
-        let mut diagnostics = Diagnostics::default();
-
         let source_id = self.sources.len();
         self.sources.push(Cached::new((name.into(), source.into())));
         let source = self.sources.last().unwrap();
 
-        let mut parser = Parser::new(source.source_str(), source_id);
-        let mut ast = parser.parse_module();
+        let parser = Parser::new(source.source_str(), source_id);
+        let (mut ast, mut context) = parser.parse();
 
-        let (interner, parser_diagnostics) = parser.finish();
-
-        diagnostics.join(parser_diagnostics);
-        if diagnostics.had_errors() {
-            return diagnostics;
+        if context.diagnostics.had_errors() {
+            return context.diagnostics;
         }
-
-        let mut context = ModuleContext {
-            source_id,
-            symbols: Symbols::default(),
-            interner,
-            diagnostics,
-        };
 
         let resolver = Resolver::new(&mut context);
         resolver.run(&mut ast);

@@ -3,10 +3,11 @@ mod expr;
 use bayou_diagnostic::{Diagnostic, Snippet};
 
 use super::lexer::{Lexer, Peek};
+use crate::compiler::ModuleContext;
 use crate::diagnostics::Diagnostics;
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::ir::Interner;
+use crate::symbols::Symbols;
 
 pub struct ParseError {
     expected: String,
@@ -41,17 +42,39 @@ impl<'sess> Parser<'sess> {
             source_id,
             diagnostics: Diagnostics::default(),
 
-            lexer: Lexer::new(source, source_id),
+            lexer: Lexer::new(source),
         }
     }
 
-    pub fn finish(self) -> (Interner, Diagnostics) {
-        let (interner, mut diagnostics) = self.lexer.finish();
-        diagnostics.join(self.diagnostics);
-        (interner, diagnostics)
+    pub fn parse(mut self) -> (Module, ModuleContext) {
+        let module = self.parse_module();
+        let context = self.finish();
+        (module, context)
     }
 
-    pub fn parse_module(&mut self) -> Module {
+    fn finish(self) -> ModuleContext {
+        let (interner, lexer_errors) = self.lexer.finish();
+
+        let mut diagnostics = Diagnostics::default();
+        for error in lexer_errors {
+            diagnostics.report(
+                Diagnostic::error()
+                    .with_message(error.kind.to_string())
+                    .with_snippet(Snippet::primary("this token", self.source_id, error.span)),
+            );
+        }
+
+        diagnostics.join(self.diagnostics);
+
+        ModuleContext {
+            source_id: self.source_id,
+            symbols: Symbols::default(),
+            interner,
+            diagnostics,
+        }
+    }
+
+    fn parse_module(&mut self) -> Module {
         let item = self.parse_or_recover(
             |parser| parser.parse_func_decl().map(Item::FuncDecl),
             |_| Item::ParseError,
