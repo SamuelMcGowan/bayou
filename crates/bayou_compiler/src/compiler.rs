@@ -4,6 +4,7 @@ use bayou_diagnostic::DiagnosticKind;
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
 use crate::frontend::parser::Parser;
 use crate::ir::Interner;
+use crate::symbols::Symbols;
 use crate::{CompilerError, CompilerResult};
 
 pub struct Compiler<D: DiagnosticEmitter> {
@@ -30,7 +31,14 @@ impl<D: DiagnosticEmitter> Compiler<D> {
 
         let parser = Parser::new(source.source_str());
         let (_ast, interner, parse_errors) = parser.parse();
-        self.report(parse_errors, source_id, &interner)?;
+
+        let module_context = ModuleContext {
+            source_id,
+            symbols: Symbols::default(),
+            interner,
+        };
+
+        self.report(parse_errors, &module_context)?;
 
         Ok(())
     }
@@ -38,8 +46,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
     fn report<I: IntoIterator>(
         &mut self,
         diagnostics: I,
-        source_id: usize,
-        interner: &Interner,
+        module_context: &ModuleContext,
     ) -> CompilerResult<()>
     where
         I::Item: IntoDiagnostic,
@@ -47,7 +54,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         let mut had_errors = false;
 
         for diagnostic in diagnostics {
-            let diagnostic = diagnostic.into_diagnostic(source_id, interner);
+            let diagnostic = diagnostic.into_diagnostic(module_context);
             had_errors |= diagnostic.kind >= DiagnosticKind::Error;
             self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
         }
@@ -60,9 +67,9 @@ impl<D: DiagnosticEmitter> Compiler<D> {
     }
 }
 
-// pub struct ModuleContext {
-//     pub source_id: usize,
+pub struct ModuleContext {
+    pub source_id: usize,
 
-//     pub symbols: Symbols,
-//     pub interner: Interner,
-// }
+    pub symbols: Symbols,
+    pub interner: Interner,
+}

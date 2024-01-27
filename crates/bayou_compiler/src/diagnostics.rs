@@ -2,8 +2,8 @@ use bayou_diagnostic::sources::Cached;
 use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Snippet};
 
+use crate::compiler::ModuleContext;
 use crate::frontend::parser::ParseError;
-use crate::ir::Interner;
 
 type Sources = Vec<Cached<(String, String)>>;
 
@@ -43,23 +43,27 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
 
 pub trait IntoDiagnostic {
     // TODO: take reference to source context
-    fn into_diagnostic(self, source_id: usize, interner: &Interner) -> Diagnostic;
+    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic;
 }
 
 impl IntoDiagnostic for ParseError {
-    fn into_diagnostic(self, source_id: usize, _interner: &Interner) -> Diagnostic {
+    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic {
         match self {
             ParseError::Expected { expected, span } => Diagnostic::error()
                 .with_message(format!("expected {expected}"))
                 .with_snippet(Snippet::primary(
                     format!("expected {expected} here"),
-                    source_id,
+                    module_context.source_id,
                     span,
                 )),
 
             ParseError::Lexer(error) => Diagnostic::error()
                 .with_message(error.kind.to_string())
-                .with_snippet(Snippet::primary("this token", source_id, error.span)),
+                .with_snippet(Snippet::primary(
+                    "this token",
+                    module_context.source_id,
+                    error.span,
+                )),
         }
     }
 }
