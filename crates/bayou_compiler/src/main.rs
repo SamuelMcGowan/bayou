@@ -10,12 +10,11 @@ mod ir;
 mod symbols;
 mod utils;
 
-use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
-use bayou_diagnostic::Config;
 use clap::Parser as _;
 use cli::{Cli, Command};
 
 use crate::compiler::Compiler;
+use crate::diagnostics::PrettyDiagnosticEmitter;
 
 #[derive(thiserror::Error, Debug)]
 enum CompilerError {
@@ -43,27 +42,8 @@ fn run() -> CompilerResult<()> {
 
             let source = std::fs::read_to_string(&input)?;
 
-            let mut compiler = Compiler::default();
-            let mut diagnostics = compiler.parse_module(input.to_string_lossy(), source);
-
-            // if diagnostics.flush(
-            //     &compiler.sources,
-            //     &Config::default(),
-            //     &mut StandardStream::stderr(ColorChoice::Auto),
-            // )? {
-            //     return Err(CompilerError::HadErrors);
-            // }
-
-            if !diagnostics.is_empty() {
-                return Err(CompilerError::HadErrors);
-            }
-
-            // if let Some(path) = output {
-            //     println!("writing assembly to {}", path.display());
-            //     std::fs::write(path, asm)?;
-            // } else {
-            //     println!("ASSEMBLY OUTPUT:\n\n{asm}");
-            // }
+            let mut compiler = Compiler::new(PrettyDiagnosticEmitter::default());
+            compiler.parse_module(input.to_string_lossy(), source)?;
 
             Ok(())
         }

@@ -1,44 +1,77 @@
-use std::io;
-
 use bayou_diagnostic::sources::Cached;
-use bayou_diagnostic::termcolor::WriteColor;
-use bayou_diagnostic::{Config, Diagnostic, DiagnosticKind};
+use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
+use bayou_diagnostic::{Config, Snippet};
 
-pub type Sources = Vec<Source>;
-pub type Source = Cached<(String, String)>;
+use crate::frontend::parser::ParseError;
+use crate::ir::Interner;
 
-#[derive(Default)]
-#[must_use = "diagnostics must be emitted"]
-pub struct Diagnostics {
-    diagnostics: Vec<Diagnostic<Sources>>,
-    had_errors: bool,
+type Sources = Vec<Cached<(String, String)>>;
+
+pub type Diagnostic = bayou_diagnostic::Diagnostic<Sources>;
+
+pub trait DiagnosticEmitter {
+    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, sources: &Sources);
 }
 
-impl Diagnostics {
-    pub fn report(&mut self, diagnostic: Diagnostic<Sources>) {
-        self.had_errors |= diagnostic.kind >= DiagnosticKind::Error;
-        self.diagnostics.push(diagnostic);
+impl DiagnosticEmitter for Vec<Diagnostic> {
+    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, _sources: &Sources) {
+        self.push(diagnostic);
     }
+}
 
-    pub fn had_errors(&self) -> bool {
-        self.had_errors
-    }
+pub struct PrettyDiagnosticEmitter {
+    pub stream: StandardStream,
+    pub config: Config,
+}
 
-    pub fn flush(
-        &mut self,
-        sources: &Sources,
-        config: &Config,
-        stream: &mut impl WriteColor,
-    ) -> io::Result<bool> {
-        for diagnostic in self.diagnostics.drain(..) {
-            diagnostic.write_to_stream(sources, config, stream)?;
+impl Default for PrettyDiagnosticEmitter {
+    fn default() -> Self {
+        Self {
+            stream: StandardStream::stderr(ColorChoice::Auto),
+            config: Default::default(),
         }
-
-        Ok(self.had_errors)
     }
+}
 
-    pub fn join(&mut self, diagnostics: Diagnostics) {
-        self.diagnostics.extend(diagnostics.diagnostics);
-        self.had_errors |= diagnostics.had_errors;
+impl DiagnosticEmitter for PrettyDiagnosticEmitter {
+    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, sources: &Sources) {
+        diagnostic
+            .write_to_stream(sources, &self.config, &mut self.stream)
+            .expect("failed to emit diagnostic");
+    }
+}
+
+pub trait IntoDiagnostic {
+    // TODO: take reference to source context
+    fn into_diagnostic(self, source_id: usize, interner: &Interner) -> Diagnostic;
+}
+
+impl IntoDiagnostic for ParseError {
+    fn into_diagnostic(self, source_id: usize, _interner: &Interner) -> Diagnostic {
+        match self {
+            ParseError::Expected { expected, found } => match found {
+                Some(token) => Diagnostic::error()
+                    .with_message(format!("expected {expected}"))
+                    .with_snippet(Snippet::primary(
+                        format!("expected {expected} here"),
+                        source_id,
+                        token.span,
+                    )),
+
+                None => Diagnostic::error()
+                    .with_message(format!("expected {expected}, but reached end of source",))
+                    // TODO: eof spans
+
+                    // .with_snippet(Snippet::primary(
+                    //     format!("expected {expected} here"),
+                    //     source_id,
+                    //     self.lexer.eof_span(),
+                    // )),
+            },
+
+            ParseError::Lexer(error) => Diagnostic::error()
+                .with_message(error.kind.to_string())
+                .with_snippet(Snippet::primary("this token", source_id, error.span)),
+        }
     }
 }

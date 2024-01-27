@@ -1,7 +1,6 @@
 mod expr;
 
 use super::lexer::{Lexer, LexerError, Peek};
-use crate::diagnostics::Diagnostics;
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
@@ -30,20 +29,14 @@ impl ParseError {
 pub type ParseResult<T> = Result<T, ParseError>;
 
 pub struct Parser<'sess> {
-    source_id: usize,
-    diagnostics: Diagnostics,
     errors: Vec<ParseError>,
-
     lexer: Lexer<'sess>,
 }
 
 impl<'sess> Parser<'sess> {
-    pub fn new(source: &'sess str, source_id: usize) -> Self {
+    pub fn new(source: &'sess str) -> Self {
         Self {
-            source_id,
-            diagnostics: Diagnostics::default(),
             errors: vec![],
-
             lexer: Lexer::new(source),
         }
     }

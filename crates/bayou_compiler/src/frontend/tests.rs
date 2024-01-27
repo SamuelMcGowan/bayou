@@ -1,10 +1,10 @@
 use crate::compiler::Compiler;
 
 fn test_compiles(source: &str, should_compile: bool) {
-    let mut compiler = Compiler::default();
-    let diagnostics = compiler.parse_module("test_source", source);
+    let mut compiler = Compiler::new(vec![]);
+    let compiled = compiler.parse_module("test_source", source).is_ok();
 
-    match (!diagnostics.is_empty(), should_compile) {
+    match (compiled, should_compile) {
         (false, true) => panic!("failed to compile: {source:?}"),
         (true, false) => panic!("unexpectedly compiled: {source:?}"),
         _ => {}
