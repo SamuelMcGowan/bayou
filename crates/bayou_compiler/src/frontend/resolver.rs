@@ -1,35 +1,26 @@
 use bayou_diagnostic::{Diagnostic, Snippet};
 
-use crate::diagnostics::Diagnostics;
+use crate::compiler::ModuleContext;
 use crate::ir::ast::{Ident, Item, Module};
 use crate::ir::vars::{Ownership, Place, PlaceRef};
-use crate::ir::{InternedStr, Interner};
-use crate::symbols::{GlobalSymbol, Symbols};
+use crate::ir::InternedStr;
+use crate::symbols::GlobalSymbol;
 
-pub struct Resolver<'sess> {
-    source_id: usize,
-    symbols: Symbols,
-    interner: &'sess Interner,
-    diagnostics: Diagnostics,
-
+pub struct Resolver<'cx> {
+    context: &'cx mut ModuleContext,
     locals: Locals,
 }
 
-impl<'sess> Resolver<'sess> {
-    pub fn new(interner: &'sess Interner, source_id: usize) -> Self {
+impl<'cx> Resolver<'cx> {
+    pub fn new(context: &'cx mut ModuleContext) -> Self {
         Self {
-            source_id,
-            symbols: Symbols::default(),
-            interner,
-            diagnostics: Diagnostics::default(),
-
+            context,
             locals: Locals::default(),
         }
     }
 
-    pub fn run(mut self, module: &mut Module) -> (Symbols, Diagnostics) {
+    pub fn run(mut self, module: &mut Module) {
         self.declare_globals(std::slice::from_mut(&mut module.item));
-        (self.symbols, self.diagnostics)
     }
 
     fn declare_globals(&mut self, items: &mut [Item]) {
@@ -42,15 +33,21 @@ impl<'sess> Resolver<'sess> {
     }
 
     fn declare_global(&mut self, ident: Ident, symbol: GlobalSymbol) {
-        if self.symbols.globals.insert(ident.ident, symbol).is_some() {
-            let name_str = self.interner.resolve(&ident.ident);
+        if self
+            .context
+            .symbols
+            .globals
+            .insert(ident.ident, symbol)
+            .is_some()
+        {
+            let name_str = self.context.interner.resolve(&ident.ident);
 
-            self.diagnostics.report(
+            self.context.diagnostics.report(
                 Diagnostic::error()
                     .with_message(format!("duplicate global `{name_str}`"))
                     .with_snippet(Snippet::primary(
                         "duplicate global",
-                        self.source_id,
+                        self.context.source_id,
                         ident.span,
                     )),
             );

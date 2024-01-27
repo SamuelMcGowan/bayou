@@ -3,6 +3,8 @@ use bayou_diagnostic::sources::{Cached, Source};
 use crate::diagnostics::Diagnostics;
 use crate::frontend::parser::Parser;
 use crate::frontend::resolver::Resolver;
+use crate::ir::Interner;
+use crate::symbols::Symbols;
 
 #[derive(Default)]
 pub struct Compiler {
@@ -31,14 +33,29 @@ impl Compiler {
             return diagnostics;
         }
 
-        let resolver = Resolver::new(&interner, source_id);
-        let (symbols, resolver_diagnostics) = resolver.run(&mut ast);
+        let mut context = ModuleContext {
+            source_id,
+            symbols: Symbols::default(),
+            interner,
+            diagnostics,
+        };
 
-        diagnostics.join(resolver_diagnostics);
-        if diagnostics.had_errors() {
-            return diagnostics;
+        let resolver = Resolver::new(&mut context);
+        resolver.run(&mut ast);
+
+        if context.diagnostics.had_errors() {
+            return context.diagnostics;
         }
 
-        diagnostics
+        context.diagnostics
     }
+}
+
+pub struct ModuleContext {
+    pub source_id: usize,
+
+    pub symbols: Symbols,
+    pub interner: Interner,
+
+    pub diagnostics: Diagnostics,
 }
