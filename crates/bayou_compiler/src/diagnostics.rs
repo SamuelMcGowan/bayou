@@ -49,25 +49,13 @@ pub trait IntoDiagnostic {
 impl IntoDiagnostic for ParseError {
     fn into_diagnostic(self, source_id: usize, _interner: &Interner) -> Diagnostic {
         match self {
-            ParseError::Expected { expected, found } => match found {
-                Some(token) => Diagnostic::error()
-                    .with_message(format!("expected {expected}"))
-                    .with_snippet(Snippet::primary(
-                        format!("expected {expected} here"),
-                        source_id,
-                        token.span,
-                    )),
-
-                None => Diagnostic::error()
-                    .with_message(format!("expected {expected}, but reached end of source",))
-                    // TODO: eof spans
-
-                    // .with_snippet(Snippet::primary(
-                    //     format!("expected {expected} here"),
-                    //     source_id,
-                    //     self.lexer.eof_span(),
-                    // )),
-            },
+            ParseError::Expected { expected, span } => Diagnostic::error()
+                .with_message(format!("expected {expected}"))
+                .with_snippet(Snippet::primary(
+                    format!("expected {expected} here"),
+                    source_id,
+                    span,
+                )),
 
             ParseError::Lexer(error) => Diagnostic::error()
                 .with_message(error.kind.to_string())

@@ -1,4 +1,4 @@
-use super::{BinOp, ParseError, ParseResult, Parser};
+use super::{BinOp, ParseResult, Parser};
 use crate::frontend::lexer::Peek;
 use crate::ir::ast::*;
 use crate::ir::token::{Token, TokenKind};
@@ -115,7 +115,7 @@ impl Parser<'_> {
                 Ok(expr)
             }
 
-            other => Err(ParseError::expected("an expression", other)),
+            other => Err(self.error_expected("an expression", other)),
         }
     }
 

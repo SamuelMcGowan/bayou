@@ -1,29 +1,16 @@
 mod expr;
 
+use bayou_diagnostic::span::Span;
+
 use super::lexer::{Lexer, LexerError, Peek};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
 
 pub enum ParseError {
-    Expected {
-        expected: String,
-        found: Option<Token>,
-    },
+    Expected { expected: String, span: Span },
+
     Lexer(LexerError),
-}
-
-impl ParseError {
-    fn expected(expected: impl Into<String>, found: Option<Token>) -> Self {
-        Self::Expected {
-            expected: expected.into(),
-            found,
-        }
-    }
-
-    fn expected_kind(token: TokenKind, found: Option<Token>) -> Self {
-        Self::expected(token.token_name(), found)
-    }
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;
@@ -45,10 +32,12 @@ impl<'sess> Parser<'sess> {
         let module = self.parse_module();
 
         let (interner, lexer_errors) = self.lexer.finish();
-        self.errors
-            .extend(lexer_errors.into_iter().map(ParseError::Lexer));
 
-        (module, interner, self.errors)
+        let mut errors = vec![];
+        errors.extend(lexer_errors.into_iter().map(ParseError::Lexer));
+        errors.extend(self.errors);
+
+        (module, interner, errors)
     }
 
     fn parse_module(&mut self) -> Module {
@@ -96,7 +85,7 @@ impl<'sess> Parser<'sess> {
                 kind: TokenKind::Identifier(ident),
                 span,
             }) => Ok(Ident { ident, span }),
-            other => Err(ParseError::expected("an integer", other)),
+            other => Err(self.error_expected("an identifier", other)),
         }
     }
 
@@ -114,7 +103,7 @@ impl<'sess> Parser<'sess> {
     fn expect(&mut self, kind: TokenKind) -> ParseResult<Token> {
         match self.lexer.next() {
             Some(t) if t.kind == kind => Ok(t),
-            other => Err(ParseError::expected_kind(kind, other)),
+            other => Err(self.error_expected_kind(kind, other)),
         }
     }
 
@@ -145,28 +134,23 @@ impl<'sess> Parser<'sess> {
     }
 
     fn report(&mut self, error: ParseError) {
-        // let diagnostic = match error.found {
-        //     Some(token) => Diagnostic::error()
-        //         .with_message(format!("expected {}", error.expected))
-        //         .with_snippet(Snippet::primary(
-        //             format!("expected {} here", error.expected),
-        //             self.source_id,
-        //             token.span,
-        //         )),
-
-        //     None => Diagnostic::error()
-        //         .with_message(format!(
-        //             "expected {}, but reached end of source",
-        //             error.expected
-        //         ))
-        //         .with_snippet(Snippet::primary(
-        //             format!("expected {} here", error.expected),
-        //             self.source_id,
-        //             self.lexer.eof_span(),
-        //         )),
-        // };
-
-        // self.diagnostics.report(diagnostic);
         self.errors.push(error);
+    }
+
+    fn error_expected_kind(&self, kind: TokenKind, found: Option<Token>) -> ParseError {
+        self.error_expected(kind.token_name(), found)
+    }
+
+    fn error_expected(&self, expected: impl Into<String>, found: Option<Token>) -> ParseError {
+        match found {
+            Some(token) => ParseError::Expected {
+                expected: expected.into(),
+                span: token.span,
+            },
+            None => ParseError::Expected {
+                expected: expected.into(),
+                span: self.lexer.eof_span(),
+            },
+        }
     }
 }
