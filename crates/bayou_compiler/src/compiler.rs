@@ -1,7 +1,7 @@
 use bayou_diagnostic::sources::{Cached, Source};
 
 use crate::diagnostics::Diagnostics;
-use crate::frontend::parser::Parser;
+use crate::frontend::parser::{ParseError, Parser};
 use crate::frontend::resolver::Resolver;
 use crate::ir::Interner;
 use crate::symbols::Symbols;
@@ -16,26 +16,28 @@ impl Compiler {
         &mut self,
         name: impl Into<String>,
         source: impl Into<String>,
-    ) -> Diagnostics {
+    ) -> Vec<ParseError> {
         let source_id = self.sources.len();
         self.sources.push(Cached::new((name.into(), source.into())));
         let source = self.sources.last().unwrap();
 
         let parser = Parser::new(source.source_str(), source_id);
-        let (mut ast, mut context) = parser.parse();
+        let (mut ast, interner, parse_errors) = parser.parse();
 
-        if context.diagnostics.had_errors() {
-            return context.diagnostics;
-        }
+        parse_errors
 
-        let resolver = Resolver::new(&mut context);
-        resolver.run(&mut ast);
+        // if !parse_errors.is_empty() {
+        //     return parse_errors;
+        // }
 
-        if context.diagnostics.had_errors() {
-            return context.diagnostics;
-        }
+        // let resolver = Resolver::new(&mut context);
+        // resolver.run(&mut ast);
 
-        context.diagnostics
+        // if context.diagnostics.had_errors() {
+        //     return context.diagnostics;
+        // }
+
+        // context.diagnostics
     }
 }
 

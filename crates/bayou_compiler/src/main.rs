@@ -46,11 +46,15 @@ fn run() -> CompilerResult<()> {
             let mut compiler = Compiler::default();
             let mut diagnostics = compiler.parse_module(input.to_string_lossy(), source);
 
-            if diagnostics.flush(
-                &compiler.sources,
-                &Config::default(),
-                &mut StandardStream::stderr(ColorChoice::Auto),
-            )? {
+            // if diagnostics.flush(
+            //     &compiler.sources,
+            //     &Config::default(),
+            //     &mut StandardStream::stderr(ColorChoice::Auto),
+            // )? {
+            //     return Err(CompilerError::HadErrors);
+            // }
+
+            if !diagnostics.is_empty() {
                 return Err(CompilerError::HadErrors);
             }
 

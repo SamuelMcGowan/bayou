@@ -1,22 +1,22 @@
 mod expr;
 
-use bayou_diagnostic::{Diagnostic, Snippet};
-
-use super::lexer::{Lexer, Peek};
-use crate::compiler::ModuleContext;
+use super::lexer::{Lexer, LexerError, Peek};
 use crate::diagnostics::Diagnostics;
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::symbols::Symbols;
+use crate::ir::Interner;
 
-pub struct ParseError {
-    expected: String,
-    found: Option<Token>,
+pub enum ParseError {
+    Expected {
+        expected: String,
+        found: Option<Token>,
+    },
+    Lexer(LexerError),
 }
 
 impl ParseError {
     fn expected(expected: impl Into<String>, found: Option<Token>) -> Self {
-        Self {
+        Self::Expected {
             expected: expected.into(),
             found,
         }
@@ -32,6 +32,7 @@ pub type ParseResult<T> = Result<T, ParseError>;
 pub struct Parser<'sess> {
     source_id: usize,
     diagnostics: Diagnostics,
+    errors: Vec<ParseError>,
 
     lexer: Lexer<'sess>,
 }
@@ -41,37 +42,20 @@ impl<'sess> Parser<'sess> {
         Self {
             source_id,
             diagnostics: Diagnostics::default(),
+            errors: vec![],
 
             lexer: Lexer::new(source),
         }
     }
 
-    pub fn parse(mut self) -> (Module, ModuleContext) {
+    pub fn parse(mut self) -> (Module, Interner, Vec<ParseError>) {
         let module = self.parse_module();
-        let context = self.finish();
-        (module, context)
-    }
 
-    fn finish(self) -> ModuleContext {
         let (interner, lexer_errors) = self.lexer.finish();
+        self.errors
+            .extend(lexer_errors.into_iter().map(ParseError::Lexer));
 
-        let mut diagnostics = Diagnostics::default();
-        for error in lexer_errors {
-            diagnostics.report(
-                Diagnostic::error()
-                    .with_message(error.kind.to_string())
-                    .with_snippet(Snippet::primary("this token", self.source_id, error.span)),
-            );
-        }
-
-        diagnostics.join(self.diagnostics);
-
-        ModuleContext {
-            source_id: self.source_id,
-            symbols: Symbols::default(),
-            interner,
-            diagnostics,
-        }
+        (module, interner, self.errors)
     }
 
     fn parse_module(&mut self) -> Module {
@@ -168,27 +152,28 @@ impl<'sess> Parser<'sess> {
     }
 
     fn report(&mut self, error: ParseError) {
-        let diagnostic = match error.found {
-            Some(token) => Diagnostic::error()
-                .with_message(format!("expected {}", error.expected))
-                .with_snippet(Snippet::primary(
-                    format!("expected {} here", error.expected),
-                    self.source_id,
-                    token.span,
-                )),
+        // let diagnostic = match error.found {
+        //     Some(token) => Diagnostic::error()
+        //         .with_message(format!("expected {}", error.expected))
+        //         .with_snippet(Snippet::primary(
+        //             format!("expected {} here", error.expected),
+        //             self.source_id,
+        //             token.span,
+        //         )),
 
-            None => Diagnostic::error()
-                .with_message(format!(
-                    "expected {}, but reached end of source",
-                    error.expected
-                ))
-                .with_snippet(Snippet::primary(
-                    format!("expected {} here", error.expected),
-                    self.source_id,
-                    self.lexer.eof_span(),
-                )),
-        };
+        //     None => Diagnostic::error()
+        //         .with_message(format!(
+        //             "expected {}, but reached end of source",
+        //             error.expected
+        //         ))
+        //         .with_snippet(Snippet::primary(
+        //             format!("expected {} here", error.expected),
+        //             self.source_id,
+        //             self.lexer.eof_span(),
+        //         )),
+        // };
 
-        self.diagnostics.report(diagnostic);
+        // self.diagnostics.report(diagnostic);
+        self.errors.push(error);
     }
 }

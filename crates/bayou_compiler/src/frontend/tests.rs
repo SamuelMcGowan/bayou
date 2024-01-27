@@ -4,7 +4,7 @@ fn test_compiles(source: &str, should_compile: bool) {
     let mut compiler = Compiler::default();
     let diagnostics = compiler.parse_module("test_source", source);
 
-    match (diagnostics.had_errors(), should_compile) {
+    match (!diagnostics.is_empty(), should_compile) {
         (false, true) => panic!("failed to compile: {source:?}"),
         (true, false) => panic!("unexpectedly compiled: {source:?}"),
         _ => {}
