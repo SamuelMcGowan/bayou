@@ -50,7 +50,7 @@ impl IntoDiagnostic for ParseError {
     fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic {
         match self {
             ParseError::Expected { expected, span } => Diagnostic::error()
-                .with_message(format!("expected {expected}"))
+                .with_message("syntax error")
                 .with_snippet(Snippet::primary(
                     format!("expected {expected} here"),
                     module_context.source_id,
@@ -58,9 +58,9 @@ impl IntoDiagnostic for ParseError {
                 )),
 
             ParseError::Lexer(error) => Diagnostic::error()
-                .with_message(error.kind.to_string())
+                .with_message("syntax error")
                 .with_snippet(Snippet::primary(
-                    "this token",
+                    error.kind.to_string(),
                     module_context.source_id,
                     error.span,
                 )),

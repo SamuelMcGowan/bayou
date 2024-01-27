@@ -212,7 +212,7 @@ impl Default for Config {
         subtle.set_dimmed(true);
 
         let mut emphasis = ColorSpec::new();
-        emphasis.set_fg(Some(Color::Blue));
+        // emphasis.set_fg(Some(Color::Blue));
         emphasis.set_bold(true);
 
         Self {

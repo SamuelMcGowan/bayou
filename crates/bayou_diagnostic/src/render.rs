@@ -70,11 +70,13 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
         let kind_str = self.get_kind_str();
         write!(self.stream, "{kind_str}:")?;
 
-        self.stream.reset()?;
+        self.stream.set_color(&self.config.emphasis)?;
 
         if let Some(message) = &self.diagnostic.message {
             writeln!(self.stream, " {message}")?;
         }
+
+        self.stream.reset()?;
 
         Ok(())
     }
