@@ -1,21 +1,22 @@
-use bayou_diagnostic::sources::{Cached, Source};
+use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_diagnostic::DiagnosticKind;
 
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
 use crate::ir::Interner;
 use crate::parser::Parser;
+use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
 use crate::{CompilerError, CompilerResult};
 
 pub struct Compiler<D: DiagnosticEmitter> {
-    pub sources: Vec<Cached<(String, String)>>,
+    pub sources: SourceMap,
     pub diagnostics: D,
 }
 
 impl<D: DiagnosticEmitter> Compiler<D> {
     pub fn new(diagnostics: D) -> Self {
         Self {
-            sources: vec![],
+            sources: SourceMap::default(),
             diagnostics,
         }
     }
@@ -25,9 +26,8 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         name: impl Into<String>,
         source: impl Into<String>,
     ) -> CompilerResult<()> {
-        let source_id = self.sources.len();
-        self.sources.push(Cached::new((name.into(), source.into())));
-        let source = self.sources.last().unwrap();
+        let source_id = self.sources.insert(Source::new(name, source));
+        let source = self.sources.get_source(source_id).unwrap();
 
         let parser = Parser::new(source.source_str());
         let (_ast, interner, parse_errors) = parser.parse();
@@ -68,7 +68,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
 }
 
 pub struct ModuleContext {
-    pub source_id: usize,
+    pub source_id: SourceId,
 
     pub symbols: Symbols,
     pub interner: Interner,

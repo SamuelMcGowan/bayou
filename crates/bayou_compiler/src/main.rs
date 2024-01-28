@@ -7,6 +7,7 @@ mod cli;
 mod compiler;
 mod diagnostics;
 mod ir;
+mod sourcemap;
 mod symbols;
 mod utils;
 

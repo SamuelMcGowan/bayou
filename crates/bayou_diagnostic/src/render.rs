@@ -4,14 +4,14 @@ use std::io;
 use termcolor::{ColorSpec, WriteColor};
 use unicode_width::UnicodeWidthStr;
 
-use super::sources::{Cached, Source, Sources};
+use super::sources::{Cached, Source, SourceMap};
 // use super::span2::Span;
 use super::{Config, Diagnostic, DiagnosticKind, SnippetKind};
 use crate::span::Span;
 
 const TAB: &str = "    ";
 
-impl<S: Sources> Diagnostic<S> {
+impl<S: SourceMap> Diagnostic<S> {
     pub fn write_to_stream(
         &self,
         sources: &S,
@@ -28,7 +28,7 @@ impl<S: Sources> Diagnostic<S> {
     }
 }
 
-struct DiagnosticWriter<'stream, 'a, W: WriteColor, S: Sources> {
+struct DiagnosticWriter<'stream, 'a, W: WriteColor, S: SourceMap> {
     diagnostic: &'a Diagnostic<S>,
     sources: &'a S,
 
@@ -36,7 +36,7 @@ struct DiagnosticWriter<'stream, 'a, W: WriteColor, S: Sources> {
     config: &'a Config,
 }
 
-impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
+impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
     fn draw_all(mut self) -> io::Result<()> {
         self.draw_header()?;
 
@@ -328,7 +328,7 @@ impl<'a, W: WriteColor, S: Sources> DiagnosticWriter<'_, 'a, W, S> {
     }
 }
 
-struct SourceData<'a, S: Sources> {
+struct SourceData<'a, S: SourceMap> {
     source: &'a Cached<S::Source>,
     snippets: Vec<SnippetData<'a>>,
 }
@@ -397,12 +397,12 @@ mod tests {
     use termcolor::Ansi;
 
     use super::get_overlapping_groups;
-    use crate::sources::{Cached, Sources};
+    use crate::sources::{Cached, SourceMap};
     use crate::span::Span;
     use crate::{Config, Diagnostic, Snippet};
 
     #[must_use]
-    fn diagnostic_to_string<S: Sources>(diagnostic: Diagnostic<S>, sources: S) -> String {
+    fn diagnostic_to_string<S: SourceMap>(diagnostic: Diagnostic<S>, sources: S) -> String {
         let config = Config::default();
         let mut stream = Ansi::new(vec![]);
 

@@ -1,20 +1,18 @@
-use bayou_diagnostic::sources::Cached;
 use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Snippet};
 
 use crate::compiler::ModuleContext;
 use crate::parser::ParseError;
+use crate::sourcemap::SourceMap;
 
-type Sources = Vec<Cached<(String, String)>>;
-
-pub type Diagnostic = bayou_diagnostic::Diagnostic<Sources>;
+pub type Diagnostic = bayou_diagnostic::Diagnostic<SourceMap>;
 
 pub trait DiagnosticEmitter {
-    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, sources: &Sources);
+    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, sources: &SourceMap);
 }
 
 impl DiagnosticEmitter for Vec<Diagnostic> {
-    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, _sources: &Sources) {
+    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, _sources: &SourceMap) {
         self.push(diagnostic);
     }
 }
@@ -34,7 +32,7 @@ impl Default for PrettyDiagnosticEmitter {
 }
 
 impl DiagnosticEmitter for PrettyDiagnosticEmitter {
-    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, sources: &Sources) {
+    fn emit_diagnostic(&mut self, diagnostic: Diagnostic, sources: &SourceMap) {
         diagnostic
             .write_to_stream(sources, &self.config, &mut self.stream)
             .expect("failed to emit diagnostic");

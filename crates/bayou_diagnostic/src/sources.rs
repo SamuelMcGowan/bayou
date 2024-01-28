@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-pub trait Sources {
+pub trait SourceMap {
     type SourceId: Copy + Eq + std::hash::Hash;
     type Source: Source;
 
@@ -14,7 +14,7 @@ pub trait Source {
     fn source_str(&self) -> &str;
 }
 
-impl<S: Source> Sources for Vec<Cached<S>> {
+impl<S: Source> SourceMap for Vec<Cached<S>> {
     type SourceId = usize;
     type Source = S;
 
@@ -52,7 +52,7 @@ impl Source for (String, PathBuf, String) {
 }
 
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Cached<S: Source> {
     source: S,
     line_breaks: Vec<usize>,

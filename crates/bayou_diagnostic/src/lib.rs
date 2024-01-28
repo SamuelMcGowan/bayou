@@ -9,10 +9,10 @@ use span::AsSpan;
 pub use termcolor;
 use termcolor::{Color, ColorSpec};
 
-use self::sources::Sources;
+use self::sources::SourceMap;
 use self::span::Span;
 
-pub struct Diagnostic<S: Sources> {
+pub struct Diagnostic<S: SourceMap> {
     pub kind: DiagnosticKind,
 
     pub message: Option<String>,
@@ -21,7 +21,7 @@ pub struct Diagnostic<S: Sources> {
     pub snippets: Vec<Snippet<S>>,
 }
 
-impl<S: Sources> Diagnostic<S> {
+impl<S: SourceMap> Diagnostic<S> {
     pub fn new(kind: DiagnosticKind) -> Self {
         Self {
             kind,
@@ -60,7 +60,7 @@ impl<S: Sources> Diagnostic<S> {
     }
 }
 
-impl<S: Sources> fmt::Debug for Diagnostic<S>
+impl<S: SourceMap> fmt::Debug for Diagnostic<S>
 where
     S::SourceId: fmt::Debug,
 {
@@ -75,7 +75,7 @@ where
 }
 
 #[cfg(feature = "serialize")]
-impl<Srcs: Sources> serde::Serialize for Diagnostic<Srcs>
+impl<Srcs: SourceMap> serde::Serialize for Diagnostic<Srcs>
 where
     Srcs::SourceId: serde::Serialize,
 {
@@ -101,7 +101,7 @@ pub enum DiagnosticKind {
     Error,
 }
 
-pub struct Snippet<S: Sources> {
+pub struct Snippet<S: SourceMap> {
     label: String,
     kind: SnippetKind,
 
@@ -109,7 +109,7 @@ pub struct Snippet<S: Sources> {
     span: Span,
 }
 
-impl<S: Sources> Snippet<S> {
+impl<S: SourceMap> Snippet<S> {
     pub fn new(
         kind: SnippetKind,
         label: impl Into<String>,
@@ -134,7 +134,7 @@ impl<S: Sources> Snippet<S> {
     }
 }
 
-impl<S: Sources> fmt::Debug for Snippet<S>
+impl<S: SourceMap> fmt::Debug for Snippet<S>
 where
     S::SourceId: fmt::Debug,
 {
@@ -149,7 +149,7 @@ where
 }
 
 #[cfg(feature = "serialize")]
-impl<Srcs: Sources> serde::Serialize for Snippet<Srcs>
+impl<Srcs: SourceMap> serde::Serialize for Snippet<Srcs>
 where
     Srcs::SourceId: serde::Serialize,
 {
