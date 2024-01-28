@@ -3,7 +3,7 @@ use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Snippet};
 
 use crate::compiler::ModuleContext;
-use crate::frontend::parser::ParseError;
+use crate::parser::ParseError;
 
 type Sources = Vec<Cached<(String, String)>>;
 

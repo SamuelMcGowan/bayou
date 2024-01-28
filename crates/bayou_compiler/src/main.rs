@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate macro_rules_attribute;
 
-mod frontend;
+mod parser;
 
 mod cli;
 mod compiler;

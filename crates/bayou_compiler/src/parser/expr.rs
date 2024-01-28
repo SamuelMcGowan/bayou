@@ -1,5 +1,5 @@
+use super::lexer::Peek;
 use super::{BinOp, ParseResult, Parser};
-use crate::frontend::lexer::Peek;
 use crate::ir::ast::*;
 use crate::ir::token::{Token, TokenKind};
 

@@ -2,8 +2,8 @@ use bayou_diagnostic::sources::{Cached, Source};
 use bayou_diagnostic::DiagnosticKind;
 
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
-use crate::frontend::parser::Parser;
 use crate::ir::Interner;
+use crate::parser::Parser;
 use crate::symbols::Symbols;
 use crate::{CompilerError, CompilerResult};
 

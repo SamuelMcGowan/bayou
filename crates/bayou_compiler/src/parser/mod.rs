@@ -1,15 +1,18 @@
+#[cfg(test)]
+mod tests;
+
 mod expr;
+mod lexer;
 
 use bayou_diagnostic::span::Span;
 
-use super::lexer::{Lexer, LexerError, Peek};
+use self::lexer::{Lexer, LexerError, Peek};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
 
 pub enum ParseError {
     Expected { expected: String, span: Span },
-
     Lexer(LexerError),
 }
 
