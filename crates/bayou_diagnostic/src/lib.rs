@@ -2,9 +2,8 @@ mod render;
 pub mod sources;
 pub mod span;
 
-use std::fmt;
-
-use serde::ser::SerializeStruct;
+use derive_where::derive_where;
+use serde::Serialize;
 use span::AsSpan;
 pub use termcolor;
 use termcolor::{Color, ColorSpec};
@@ -12,12 +11,15 @@ use termcolor::{Color, ColorSpec};
 use self::sources::SourceMap;
 use self::span::Span;
 
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[derive_where(Debug; S::SourceId)]
 pub struct Diagnostic<S: SourceMap> {
     pub kind: DiagnosticKind,
 
     pub message: Option<String>,
     pub id: Option<String>,
 
+    #[serde(bound(serialize = "S::SourceId: Serialize"))]
     pub snippets: Vec<Snippet<S>>,
 }
 
@@ -60,40 +62,6 @@ impl<S: SourceMap> Diagnostic<S> {
     }
 }
 
-impl<S: SourceMap> fmt::Debug for Diagnostic<S>
-where
-    S::SourceId: fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Diagnostic")
-            .field("kind", &self.kind)
-            .field("message", &self.message)
-            .field("id", &self.id)
-            .field("snippets", &self.snippets)
-            .finish()
-    }
-}
-
-#[cfg(feature = "serialize")]
-impl<Srcs: SourceMap> serde::Serialize for Diagnostic<Srcs>
-where
-    Srcs::SourceId: serde::Serialize,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut s = serializer.serialize_struct("Diagnostic", 4)?;
-
-        s.serialize_field("kind", &self.kind)?;
-        s.serialize_field("message", &self.message)?;
-        s.serialize_field("id", &self.id)?;
-        s.serialize_field("snippets", &self.snippets)?;
-
-        s.end()
-    }
-}
-
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticKind {
@@ -101,10 +69,13 @@ pub enum DiagnosticKind {
     Error,
 }
 
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[derive_where(Debug; S::SourceId)]
 pub struct Snippet<S: SourceMap> {
     label: String,
     kind: SnippetKind,
 
+    #[serde(bound(serialize = "S::SourceId: Serialize"))]
     source_id: S::SourceId,
     span: Span,
 }
@@ -131,40 +102,6 @@ impl<S: SourceMap> Snippet<S> {
 
     pub fn secondary(label: impl Into<String>, source_id: S::SourceId, span: impl AsSpan) -> Self {
         Self::new(SnippetKind::Secondary, label, source_id, span)
-    }
-}
-
-impl<S: SourceMap> fmt::Debug for Snippet<S>
-where
-    S::SourceId: fmt::Debug,
-{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Snippet")
-            .field("label", &self.label)
-            .field("kind", &self.kind)
-            .field("source_id", &self.source_id)
-            .field("span", &self.span)
-            .finish()
-    }
-}
-
-#[cfg(feature = "serialize")]
-impl<Srcs: SourceMap> serde::Serialize for Snippet<Srcs>
-where
-    Srcs::SourceId: serde::Serialize,
-{
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut s = serializer.serialize_struct("Snippet", 4)?;
-
-        s.serialize_field("label", &self.label)?;
-        s.serialize_field("kind", &self.kind)?;
-        s.serialize_field("source_id", &self.source_id)?;
-        s.serialize_field("span", &self.span)?;
-
-        s.end()
     }
 }
 
