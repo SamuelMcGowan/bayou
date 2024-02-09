@@ -82,13 +82,18 @@ impl Parser<'_> {
     }
 
     fn parse_lhs(&mut self) -> ParseResult<Expr> {
-        match self.lexer.next() {
+        match self.lexer.peek() {
             Some(Token {
                 kind: TokenKind::Integer(n),
                 ..
-            }) => Ok(Expr::new(ExprKind::Constant(n))),
+            }) => {
+                self.lexer.next();
+                Ok(Expr::new(ExprKind::Constant(n)))
+            }
 
             Some(t) if t.kind == TokenKind::Sub => {
+                self.lexer.next();
+
                 let expr = self.parse_prec(Prec::Unary)?;
                 Ok(Expr::new(ExprKind::UnOp {
                     op: UnOp::Negate,
@@ -97,6 +102,8 @@ impl Parser<'_> {
             }
 
             Some(t) if t.kind == TokenKind::BitwiseInvert => {
+                self.lexer.next();
+
                 let expr = self.parse_prec(Prec::Unary)?;
                 Ok(Expr::new(ExprKind::UnOp {
                     op: UnOp::BitwiseInvert,
@@ -105,8 +112,10 @@ impl Parser<'_> {
             }
 
             Some(t) if t.kind == TokenKind::LParen => {
+                self.lexer.next();
+
                 let expr = self.parse_or_recover(Self::parse_expr, |parser| {
-                    parser.recover_until(TokenKind::RParen);
+                    parser.seek(TokenKind::RParen);
                     Expr::new(ExprKind::ParseError)
                 });
 

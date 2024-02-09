@@ -70,7 +70,7 @@ impl<'sess> Parser<'sess> {
 
     fn parse_statement_or_recover(&mut self) -> Stmt {
         self.parse_or_recover(Self::parse_statement, |parser| {
-            parser.recover_past(TokenKind::Semicolon);
+            parser.seek_and_consume(TokenKind::Semicolon);
             Stmt::ParseError
         })
     }
@@ -104,34 +104,77 @@ impl<'sess> Parser<'sess> {
     }
 
     fn expect(&mut self, kind: TokenKind) -> ParseResult<Token> {
-        match self.lexer.next() {
-            Some(t) if t.kind == kind => Ok(t),
+        match self.lexer.peek() {
+            Some(t) if t.kind == kind => {
+                self.lexer.next();
+                Ok(t)
+            }
+
             other => Err(self.error_expected_kind(kind, other)),
         }
     }
 
-    fn recover_until(&mut self, kind: TokenKind) {
-        loop {
-            let Some(token) = self.lexer.peek() else {
-                return;
-            };
-
-            if token.kind == kind {
-                return;
-            }
-
+    fn seek_and_consume(&mut self, kind: TokenKind) {
+        if self.seek(kind) {
             self.lexer.next();
         }
     }
 
-    fn recover_past(&mut self, kind: TokenKind) {
-        loop {
-            let Some(token) = self.lexer.next() else {
-                return;
-            };
+    fn seek(&mut self, kind: TokenKind) -> bool {
+        // could just use `paren_depth_stack` but this is clearer
+        let mut brace_depth = 0;
 
-            if token.kind == kind {
-                return;
+        let mut paren_depth = 0;
+        let mut paren_depth_stack = vec![];
+
+        loop {
+            match self.lexer.peek() {
+                Some(token) if token.kind == kind => {
+                    return true;
+                }
+
+                Some(token) if token.kind == TokenKind::LBrace => {
+                    self.lexer.next();
+
+                    brace_depth += 1;
+
+                    paren_depth_stack.push(paren_depth);
+                    paren_depth = 0;
+                }
+
+                Some(token) if token.kind == TokenKind::RBrace => {
+                    if brace_depth == 0 {
+                        return false;
+                    } else {
+                        self.lexer.next();
+
+                        brace_depth -= 1;
+
+                        paren_depth = paren_depth_stack.pop().unwrap_or(0);
+                    }
+                }
+
+                Some(token) if token.kind == TokenKind::LParen => {
+                    self.lexer.next();
+                    paren_depth += 1;
+                }
+
+                Some(token) if token.kind == TokenKind::RParen => {
+                    if paren_depth == 0 {
+                        return false;
+                    } else {
+                        self.lexer.next();
+                        paren_depth -= 1;
+                    }
+                }
+
+                Some(_) => {
+                    self.lexer.next();
+                }
+
+                None => {
+                    return false;
+                }
             }
         }
     }
