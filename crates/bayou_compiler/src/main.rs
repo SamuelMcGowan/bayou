@@ -38,13 +38,22 @@ fn run() -> CompilerResult<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Command::Build { input, output } => {
-            println!("building file {}...\n", input.display());
+        Command::Build {
+            input,
+            source,
+            output,
+        } => {
+            let (name, source) = if source {
+                ("<unnamed>".to_owned(), input)
+            } else {
+                let source = std::fs::read_to_string(&input)?;
+                (input, source)
+            };
 
-            let source = std::fs::read_to_string(&input)?;
+            println!("building file {name}...\n");
 
             let mut compiler = Compiler::new(PrettyDiagnosticEmitter::default());
-            compiler.parse_module(input.to_string_lossy(), source)?;
+            compiler.parse_module(name, source)?;
 
             Ok(())
         }

@@ -14,7 +14,12 @@ pub enum Command {
     /// Build a program.
     Build {
         /// The input file.
-        input: PathBuf,
+        input: String,
+
+        /// Whether the given input should be used directly as the source instead
+        /// of as the source file path.
+        #[clap(long, short, action)]
+        source: bool,
 
         /// The output file. If not specified, prints assembly to stdout.
         #[arg(short, long)]
