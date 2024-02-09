@@ -4,6 +4,7 @@ extern crate macro_rules_attribute;
 mod parser;
 
 mod cli;
+mod codegen;
 mod compiler;
 mod diagnostics;
 mod ir;
@@ -13,6 +14,8 @@ mod utils;
 
 use clap::Parser as _;
 use cli::{Cli, Command};
+use codegen::CodegenError;
+use target_lexicon::Triple;
 
 use crate::compiler::Compiler;
 use crate::diagnostics::PrettyDiagnosticEmitter;
@@ -21,6 +24,12 @@ use crate::diagnostics::PrettyDiagnosticEmitter;
 enum CompilerError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
+
+    #[error("error during codegen: {0}")]
+    Codegen(#[from] CodegenError),
+
+    #[error("error emitting object: {0}")]
+    Object(#[from] cranelift_object::object::write::Error),
 
     #[error("errors while compiling")]
     HadErrors,
@@ -52,8 +61,22 @@ fn run() -> CompilerResult<()> {
 
             println!("building file {name}...\n");
 
-            let mut compiler = Compiler::new(PrettyDiagnosticEmitter::default());
-            compiler.parse_module(name, source)?;
+            let triple = Triple::host();
+            let mut compiler = Compiler::new(PrettyDiagnosticEmitter::default(), triple);
+
+            // TODO: store modules in module tree. Maybe two trees, one for ast and
+            // one for contexts? Would allow borrowing other module contexts
+            // while traversing asts.
+            let (module, module_cx) = compiler.parse_module(&name, source)?;
+            let object = compiler.compile(&name, &module, &module_cx)?;
+
+            let output_path = output.unwrap_or_else(|| {
+                // TODO: make better filename
+                name.to_owned() + ".o"
+            });
+
+            let object_data = object.emit()?;
+            std::fs::write(output_path, object_data)?;
 
             Ok(())
         }

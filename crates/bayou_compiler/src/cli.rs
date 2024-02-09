@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -23,6 +21,6 @@ pub enum Command {
 
         /// The output file. If not specified, prints assembly to stdout.
         #[arg(short, long)]
-        output: Option<PathBuf>,
+        output: Option<String>,
     },
 }

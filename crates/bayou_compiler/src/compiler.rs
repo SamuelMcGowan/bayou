@@ -1,7 +1,11 @@
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_diagnostic::DiagnosticKind;
+use cranelift_object::ObjectProduct;
+use target_lexicon::Triple;
 
+use crate::codegen::Codegen;
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
+use crate::ir::ast::Module;
 use crate::ir::Interner;
 use crate::parser::Parser;
 use crate::sourcemap::{Source, SourceId, SourceMap};
@@ -10,13 +14,15 @@ use crate::{CompilerError, CompilerResult};
 
 pub struct Compiler<D: DiagnosticEmitter> {
     pub sources: SourceMap,
+    pub triple: Triple,
     pub diagnostics: D,
 }
 
 impl<D: DiagnosticEmitter> Compiler<D> {
-    pub fn new(diagnostics: D) -> Self {
+    pub fn new(diagnostics: D, triple: Triple) -> Self {
         Self {
             sources: SourceMap::default(),
+            triple,
             diagnostics,
         }
     }
@@ -25,12 +31,12 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         &mut self,
         name: impl Into<String>,
         source: impl Into<String>,
-    ) -> CompilerResult<()> {
+    ) -> CompilerResult<(Module, ModuleContext)> {
         let source_id = self.sources.insert(Source::new(name, source));
         let source = self.sources.get_source(source_id).unwrap();
 
         let parser = Parser::new(source.source_str());
-        let (_ast, interner, parse_errors) = parser.parse();
+        let (ast, interner, parse_errors) = parser.parse();
 
         let module_context = ModuleContext {
             source_id,
@@ -40,7 +46,18 @@ impl<D: DiagnosticEmitter> Compiler<D> {
 
         self.report(parse_errors, &module_context)?;
 
-        Ok(())
+        Ok((ast, module_context))
+    }
+
+    pub fn compile(
+        &mut self,
+        name: &str,
+        module: &Module,
+        cx: &ModuleContext,
+    ) -> CompilerResult<ObjectProduct> {
+        let codegen = Codegen::new(self.triple.clone(), name, cx)?;
+        let object = codegen.run(module)?;
+        Ok(object)
     }
 
     fn report<I: IntoIterator>(
