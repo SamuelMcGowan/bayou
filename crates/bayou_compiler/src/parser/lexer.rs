@@ -127,9 +127,9 @@ impl<'sess> Lexer<'sess> {
     }
 
     fn lex_integer(&mut self, start: u64, base: u32) -> LexerResult<TokenKind> {
-        let mut n = start;
+        let mut n = Some(start);
 
-        while let Some(ch @ ('0'..='9' | '_')) = self.chars.peek() {
+        while let Some(ch @ ('0'..='9' | 'a'..='f' | 'A'..='F' | '_')) = self.chars.peek() {
             self.chars.next();
 
             if ch == '_' {
@@ -140,16 +140,12 @@ impl<'sess> Lexer<'sess> {
                 .to_digit(base)
                 .ok_or(LexerErrorKind::IntegerDigitWrongBase { base, digit: ch })?;
 
-            n = n
-                .checked_mul(base as u64)
-                .ok_or(LexerErrorKind::IntegerOverflow)?;
-
-            n = n
-                .checked_add(digit as u64)
-                .ok_or(LexerErrorKind::IntegerOverflow)?;
+            n = n.and_then(|n| n.checked_mul(base as u64));
+            n = n.and_then(|n| n.checked_add(digit as u64));
         }
 
-        Ok(TokenKind::Integer(n))
+        n.map(TokenKind::Integer)
+            .ok_or(LexerErrorKind::IntegerOverflow)
     }
 
     fn lex_alpha(&mut self) -> TokenKind {
