@@ -13,8 +13,6 @@ serde = { version = "1.0.195", features = ["derive"] }
 macro_rules_attribute = "0.2.0"
 cranelift = "0.104.1"
 target-lexicon = "0.12.13"
-# cranelift-jit = "0.104.1"
-# cranelift-native = "0.104.1"
 cranelift-module = "0.104.1"
 cranelift-object = "0.104.1"
 temp-dir = "0.1.12"
