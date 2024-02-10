@@ -1,6 +1,8 @@
 use cranelift::codegen::ir::types::I64;
+use cranelift::codegen::isa::CallConv;
+use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
-use cranelift_module::Module as _;
+use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
@@ -17,6 +19,9 @@ pub enum CodegenError {
 
     #[error("bad target {0}: {1}")]
     BadTarget(Triple, cranelift::codegen::isa::LookupError),
+
+    #[error("`main` function was missing")]
+    NoMainFunction,
 }
 
 pub type CodegenResult<T> = Result<T, CodegenError>;
@@ -52,20 +57,75 @@ impl Codegen {
         })
     }
 
-    pub fn compile_module(&mut self, module: &Module, _cx: &ModuleContext) -> CodegenResult<()> {
+    pub fn compile_module(&mut self, module: &Module, cx: &ModuleContext) -> CodegenResult<()> {
         match &module.item {
-            Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl)?,
+            Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, cx)?,
             Item::ParseError => unreachable!(),
         }
 
         Ok(())
     }
 
-    pub fn finish(self) -> ObjectProduct {
-        self.module.finish()
+    pub fn finish(mut self) -> CodegenResult<ObjectProduct> {
+        self.gen_entry_func()?;
+        Ok(self.module.finish())
     }
 
-    fn gen_func_decl(&mut self, func_decl: &FuncDecl) -> CodegenResult<()> {
+    fn gen_entry_func(&mut self) -> CodegenResult<()> {
+        // self.module.clear_context(&mut self.ctx);
+
+        // // signature
+        // let ptr_ty = self.module.target_config().pointer_type();
+        // self.ctx.func.signature.params = vec![AbiParam::new(ptr_ty), AbiParam::new(ptr_ty)];
+        // self.ctx.func.signature.returns = vec![AbiParam::new(ptr_ty)];
+
+        // // declare
+        // let start_id =
+        //     self.module
+        //         .declare_function("_start", Linkage::Export, &self.ctx.func.signature)?;
+
+        // let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_ctx);
+
+        // let entry_block = builder.create_block();
+        // builder.append_block_params_for_function_params(entry_block);
+        // builder.switch_to_block(entry_block);
+        // builder.seal_block(entry_block); // no predecessors
+
+        // // let main_id = self
+        // //     .module
+        // //     .get_name("main")
+        // //     .and_then(|id| match id {
+        // //         cranelift_module::FuncOrDataId::Func(id) => Some(id),
+        // //         _ => None,
+        // //     })
+        // //     .ok_or_else(|| CodegenError::NoMainFunction)?;
+
+        // let mut main_sig = self.module.make_signature();
+        // main_sig.returns.push(AbiParam::new(I64));
+
+        // let callee = self
+        //     .module
+        //     .declare_function("main", Linkage::Import, &main_sig)?;
+        // let local_callee = self.module.declare_func_in_func(callee, builder.func);
+
+        // let call = builder.ins().call(local_callee, &[]);
+        // let result = builder.inst_results(call)[0];
+
+        // // builder.ins().ca
+
+        // // builder.ins().trap(TrapCode::User(0));
+
+        // // // FIXME: support other pointer types by casting
+        // // // builder.ins().
+        // // builder.ins().return_(&[result]);
+
+        // verify_function(builder.func, self.module.isa()).unwrap();
+        // self.module.define_function(start_id, &mut self.ctx)?;
+
+        Ok(())
+    }
+
+    fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleContext) -> CodegenResult<()> {
         self.module.clear_context(&mut self.ctx);
 
         // no parameters, one return value
@@ -74,10 +134,9 @@ impl Codegen {
         let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_ctx);
 
         let entry_block = builder.create_block();
-
         builder.append_block_params_for_function_params(entry_block);
         builder.switch_to_block(entry_block);
-        builder.seal_block(entry_block); // block can't be jumped to
+        builder.seal_block(entry_block); // no predecessors
 
         // function codegen
         let mut func_codegen = FuncCodegen {
@@ -87,10 +146,13 @@ impl Codegen {
         func_codegen.gen_stmt(&func_decl.statement);
         func_codegen.builder.finalize();
 
-        // declare and define in module (name not exported for now)
+        verify_function(&self.ctx.func, self.module.isa()).unwrap();
+
+        // declare and define in module (not final)
+        let name = cx.interner.resolve(&func_decl.name.ident);
         let id = self
             .module
-            .declare_anonymous_function(&self.ctx.func.signature)?;
+            .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;
         self.module.define_function(id, &mut self.ctx)?;
 
         Ok(())

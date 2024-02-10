@@ -71,7 +71,9 @@ impl<D: DiagnosticEmitter> Compiler<D> {
             codegen.compile_module(module, cx)?;
         }
 
-        Ok(codegen.finish())
+        let object = codegen.finish()?;
+
+        Ok(object)
     }
 
     fn report<I: IntoIterator>(
