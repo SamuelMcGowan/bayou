@@ -103,7 +103,7 @@ fn run() -> CompilerResult<()> {
                 std::fs::write(&object_path, object_data)?;
 
                 println!("linking");
-                target::run_linker(linker, &[object_path.as_path()], &output)?;
+                linker.run(&[object_path.as_path()], &output)?;
             }
 
             Ok(())

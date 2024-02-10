@@ -17,21 +17,21 @@ impl Linker {
             _ => Err(UnsupportedTarget::NoLinkerFound(triple.clone())),
         }
     }
-}
 
-pub fn run_linker(linker: Linker, obj_files: &[&Path], output: &str) -> CompilerResult<()> {
-    match linker {
-        Linker::Gcc => {
-            let mut cmd = Command::new("gcc");
-            cmd.args(obj_files);
-            cmd.arg("-o");
-            cmd.arg(output);
+    pub fn run(&self, obj_files: &[&Path], output: &str) -> CompilerResult<()> {
+        match self {
+            Linker::Gcc => {
+                let mut cmd = Command::new("gcc");
+                cmd.args(obj_files);
+                cmd.arg("-o");
+                cmd.arg(output);
 
-            let output = cmd.output()?;
-            if output.status.success() {
-                Ok(())
-            } else {
-                Err(CompilerError::Linker(output.stderr))
+                let output = cmd.output()?;
+                if output.status.success() {
+                    Ok(())
+                } else {
+                    Err(CompilerError::Linker(output.stderr))
+                }
             }
         }
     }
