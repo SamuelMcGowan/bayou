@@ -3,7 +3,7 @@ use target_lexicon::Triple;
 use crate::compiler::Compiler;
 
 fn test_compiles(source: &str, should_compile: bool) {
-    let mut compiler = Compiler::new(vec![], Triple::host());
+    let mut compiler = Compiler::new("tests", vec![], Triple::host());
     let compiled = compiler.add_module("test_source", source).is_ok();
 
     match (compiled, should_compile) {

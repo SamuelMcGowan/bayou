@@ -16,6 +16,7 @@ use crate::{CompilerError, CompilerResult};
 declare_key_type! { pub struct ModuleId; }
 
 pub struct Compiler<D: DiagnosticEmitter> {
+    name: String,
     sources: SourceMap,
     diagnostics: D,
 
@@ -26,8 +27,9 @@ pub struct Compiler<D: DiagnosticEmitter> {
 }
 
 impl<D: DiagnosticEmitter> Compiler<D> {
-    pub fn new(diagnostics: D, triple: Triple) -> Self {
+    pub fn new(name: impl Into<String>, diagnostics: D, triple: Triple) -> Self {
         Self {
+            name: name.into(),
             sources: SourceMap::default(),
             diagnostics,
 
@@ -64,8 +66,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
     }
 
     pub fn compile(&mut self) -> CompilerResult<ObjectProduct> {
-        // FIXME: choose proper name
-        let mut codegen = Codegen::new(self.triple.clone(), "replaceme")?;
+        let mut codegen = Codegen::new(self.triple.clone(), &self.name)?;
 
         for (module, cx) in self.modules.iter().zip(self.module_cxts.iter()) {
             codegen.compile_module(module, cx)?;

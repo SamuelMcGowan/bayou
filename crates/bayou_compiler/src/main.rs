@@ -85,8 +85,11 @@ fn run() -> CompilerResult<()> {
             let object = {
                 println!("compiling project `{name}`");
 
-                let mut compiler =
-                    Compiler::new(PrettyDiagnosticEmitter::default(), triple.clone());
+                let mut compiler = Compiler::new(
+                    name.clone(),
+                    PrettyDiagnosticEmitter::default(),
+                    triple.clone(),
+                );
 
                 let _module_id = compiler.add_module(&name, source)?;
                 compiler.compile()?
