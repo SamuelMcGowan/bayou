@@ -7,20 +7,8 @@ use target_lexicon::Triple;
 
 use crate::compiler::ModuleContext;
 use crate::ir::ast::*;
-
-#[derive(thiserror::Error, Debug)]
-pub enum CodegenError {
-    #[error(transparent)]
-    Module(#[from] cranelift_module::ModuleError),
-
-    #[error(transparent)]
-    Codegen(#[from] cranelift::codegen::CodegenError),
-
-    #[error("bad target {0}: {1}")]
-    BadTarget(Triple, cranelift::codegen::isa::LookupError),
-}
-
-pub type CodegenResult<T> = Result<T, CodegenError>;
+use crate::target::UnsupportedTarget;
+use crate::{CompilerError, CompilerResult};
 
 pub struct Codegen {
     ctx: codegen::Context,
@@ -29,7 +17,7 @@ pub struct Codegen {
 }
 
 impl Codegen {
-    pub fn new(triple: Triple, name: &str) -> CodegenResult<Self> {
+    pub fn new(triple: Triple, name: &str) -> CompilerResult<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("is_pic", "true").unwrap();
         flag_builder.set("opt_level", "speed").unwrap();
@@ -38,7 +26,11 @@ impl Codegen {
 
         let isa = match isa::lookup(triple.clone()) {
             Ok(isa_builder) => isa_builder.finish(flags)?,
-            Err(err) => return Err(CodegenError::BadTarget(triple, err)),
+            Err(_) => {
+                return Err(CompilerError::UnsupportedTarget(
+                    UnsupportedTarget::ArchUnsupported(triple.architecture),
+                ));
+            }
         };
 
         let module_builder =
@@ -53,7 +45,7 @@ impl Codegen {
         })
     }
 
-    pub fn compile_module(&mut self, module: &Module, cx: &ModuleContext) -> CodegenResult<()> {
+    pub fn compile_module(&mut self, module: &Module, cx: &ModuleContext) -> CompilerResult<()> {
         match &module.item {
             Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, cx)?,
             Item::ParseError => unreachable!(),
@@ -62,11 +54,11 @@ impl Codegen {
         Ok(())
     }
 
-    pub fn finish(self) -> CodegenResult<ObjectProduct> {
+    pub fn finish(self) -> CompilerResult<ObjectProduct> {
         Ok(self.module.finish())
     }
 
-    fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleContext) -> CodegenResult<()> {
+    fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleContext) -> CompilerResult<()> {
         self.module.clear_context(&mut self.ctx);
 
         // no parameters, one return value

@@ -10,26 +10,40 @@ mod diagnostics;
 mod ir;
 mod sourcemap;
 mod symbols;
+mod target;
 mod utils;
+
+use std::str::FromStr;
 
 use clap::Parser as _;
 use cli::{Cli, Command};
-use codegen::CodegenError;
+use target::UnsupportedTarget;
 use target_lexicon::Triple;
+use temp_dir::TempDir;
 
 use crate::compiler::Compiler;
 use crate::diagnostics::PrettyDiagnosticEmitter;
+use crate::target::Linker;
 
 #[derive(thiserror::Error, Debug)]
 enum CompilerError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("error during codegen: {0}")]
-    Codegen(#[from] CodegenError),
+    #[error(transparent)]
+    UnsupportedTarget(#[from] UnsupportedTarget),
+
+    #[error(transparent)]
+    Module(#[from] cranelift_module::ModuleError),
+
+    #[error(transparent)]
+    Codegen(#[from] cranelift::codegen::CodegenError),
 
     #[error("error emitting object: {0}")]
     Object(#[from] cranelift_object::object::write::Error),
+
+    #[error("linker error: {}", String::from_utf8_lossy(.0))]
+    Linker(Vec<u8>),
 
     #[error("errors while compiling")]
     HadErrors,
@@ -51,29 +65,46 @@ fn run() -> CompilerResult<()> {
             input,
             source,
             output,
+            target,
         } => {
             let (name, source) = if source {
-                ("<unnamed>".to_owned(), input)
+                ("unnamed".to_owned(), input)
             } else {
                 let source = std::fs::read_to_string(&input)?;
                 (input, source)
             };
+            let output = output.unwrap_or_else(|| name.clone());
 
-            println!("building file {name}...\n");
+            let triple = match target {
+                Some(s) => Triple::from_str(&s).map_err(UnsupportedTarget::ParseError)?,
+                None => Triple::host(),
+            };
+            let linker = Linker::from_triple(&triple)?;
 
-            let triple = Triple::host();
-            let mut compiler = Compiler::new(PrettyDiagnosticEmitter::default(), triple);
+            // compilation
+            let object = {
+                println!("compiling project `{name}`");
 
-            let _module_id = compiler.add_module(&name, source)?;
-            let object = compiler.compile()?;
+                let mut compiler =
+                    Compiler::new(PrettyDiagnosticEmitter::default(), triple.clone());
 
-            let output_path = output.unwrap_or_else(|| {
-                // TODO: make better filename
-                name.to_owned() + ".o"
-            });
+                let _module_id = compiler.add_module(&name, source)?;
+                compiler.compile()?
+            };
 
-            let object_data = object.emit()?;
-            std::fs::write(output_path, object_data)?;
+            // emit and link objects
+            {
+                let tmp_dir = TempDir::with_prefix("bayou_")?;
+
+                let object_path = tmp_dir.path().join(&name).with_extension("o");
+
+                println!("writing object");
+                let object_data = object.emit()?;
+                std::fs::write(&object_path, object_data)?;
+
+                println!("linking");
+                target::run_linker(linker, &[object_path.as_path()], &output)?;
+            }
 
             Ok(())
         }

@@ -22,5 +22,9 @@ pub enum Command {
         /// The output file. If not specified, prints assembly to stdout.
         #[arg(short, long)]
         output: Option<String>,
+
+        /// The target triple.
+        #[arg(short, long)]
+        target: Option<String>,
     },
 }
