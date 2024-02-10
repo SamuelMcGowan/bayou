@@ -16,8 +16,8 @@ use crate::{CompilerError, CompilerResult};
 declare_key_type! { pub struct ModuleId; }
 
 pub struct Compiler<D: DiagnosticEmitter> {
-    pub sources: SourceMap,
-    pub diagnostics: D,
+    sources: SourceMap,
+    diagnostics: D,
 
     modules: KeyVec<ModuleId, Module>,
     module_cxts: KeyVec<ModuleId, ModuleContext>,
