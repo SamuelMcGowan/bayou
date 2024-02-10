@@ -106,7 +106,7 @@ macro_rules! declare_key_type {
 (
     $v:vis struct $i:ident;
 ) => {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
     $v struct $i(pub usize);
 
     impl $crate::utils::keyvec::Key for $i {

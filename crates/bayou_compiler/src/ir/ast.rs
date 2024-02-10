@@ -3,6 +3,7 @@ use bayou_diagnostic::span::Span;
 use super::vars::PlaceRef;
 use super::{Node, NodeCopy};
 use crate::ir::InternedStr;
+use crate::symbols::LocalId;
 
 #[derive(Node!)]
 pub struct Module {
@@ -18,12 +19,19 @@ pub enum Item {
 #[derive(Node!)]
 pub struct FuncDecl {
     pub name: Ident,
-    pub statement: Stmt,
+    pub statements: Vec<Stmt>,
 }
 
 #[derive(Node!)]
 pub enum Stmt {
+    Assign {
+        ident: Ident,
+        resolved: Option<LocalId>,
+        expr: Expr,
+    },
+
     Return(Expr),
+
     ParseError,
 }
 
@@ -42,6 +50,8 @@ impl Expr {
 #[derive(Node!)]
 pub enum ExprKind {
     Constant(i64),
+
+    Var(Ident, Option<LocalId>),
 
     UnOp {
         op: UnOp,

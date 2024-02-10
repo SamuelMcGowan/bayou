@@ -61,11 +61,19 @@ impl<'sess> Parser<'sess> {
 
         self.expect(TokenKind::LBrace)?;
 
-        let statement = self.parse_statement_or_recover();
+        let mut statements = vec![];
+        while self
+            .lexer
+            .peek()
+            .is_some_and(|t| t.kind != TokenKind::RBrace)
+        {
+            let statement = self.parse_statement_or_recover();
+            statements.push(statement);
+        }
 
         self.expect(TokenKind::RBrace)?;
 
-        Ok(FuncDecl { name, statement })
+        Ok(FuncDecl { name, statements })
     }
 
     fn parse_statement_or_recover(&mut self) -> Stmt {
@@ -75,11 +83,29 @@ impl<'sess> Parser<'sess> {
         })
     }
 
+    // should always advance at least one token (unless at end)
     fn parse_statement(&mut self) -> ParseResult<Stmt> {
-        self.expect(TokenKind::Keyword(Keyword::Return))?;
-        let expr = self.parse_expr()?;
-        self.expect(TokenKind::Semicolon)?;
-        Ok(Stmt::Return(expr))
+        match self.lexer.next() {
+            Some(token) if token.kind == TokenKind::Keyword(Keyword::Return) => {
+                let expr = self.parse_expr()?;
+                self.expect(TokenKind::Semicolon)?;
+                Ok(Stmt::Return(expr))
+            }
+
+            Some(token) if token.kind == TokenKind::Keyword(Keyword::Let) => {
+                let ident = self.parse_ident()?;
+                self.expect(TokenKind::Assign)?;
+                let expr = self.parse_expr()?;
+                self.expect(TokenKind::Semicolon)?;
+                Ok(Stmt::Assign {
+                    ident,
+                    resolved: None,
+                    expr,
+                })
+            }
+
+            other => Err(self.error_expected("a statement", other)),
+        }
     }
 
     fn parse_ident(&mut self) -> ParseResult<Ident> {

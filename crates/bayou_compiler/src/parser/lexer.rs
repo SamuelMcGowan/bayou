@@ -98,6 +98,8 @@ impl<'sess> Lexer<'sess> {
                 '/' => TokenKind::Div,
                 '%' => TokenKind::Mod,
 
+                '=' => TokenKind::Assign,
+
                 '&' => TokenKind::BitwiseAnd,
                 '|' => TokenKind::BitwiseOr,
                 '^' => TokenKind::BitwiseXor,
@@ -158,6 +160,7 @@ impl<'sess> Lexer<'sess> {
         match s {
             "int" => TokenKind::Keyword(Keyword::Int),
             "return" => TokenKind::Keyword(Keyword::Return),
+            "let" => TokenKind::Keyword(Keyword::Let),
             _ => {
                 let interned = self.interner.get_or_intern(s);
                 TokenKind::Identifier(interned)

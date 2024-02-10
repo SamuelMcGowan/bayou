@@ -91,6 +91,14 @@ impl Parser<'_> {
                 Ok(Expr::new(ExprKind::Constant(n)))
             }
 
+            Some(Token {
+                kind: TokenKind::Identifier(ident),
+                span,
+            }) => {
+                self.lexer.next();
+                Ok(Expr::new(ExprKind::Var(Ident { ident, span }, None)))
+            }
+
             Some(t) if t.kind == TokenKind::Sub => {
                 self.lexer.next();
 

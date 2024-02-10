@@ -26,6 +26,7 @@ pub enum TokenKind {
     Div,
     Mod,
 
+    Assign,
     // TODO: uncomment when assignment is added
     // AddEq,
     // SubEq,
@@ -51,6 +52,7 @@ pub enum TokenKind {
 pub enum Keyword {
     Int,
     Return,
+    Let,
 }
 
 impl TokenKind {
@@ -59,6 +61,7 @@ impl TokenKind {
             TokenKind::Keyword(kw) => match kw {
                 Keyword::Int => "keyword `int`",
                 Keyword::Return => "keyword `return`",
+                Keyword::Let => "keyword `let`",
             },
             TokenKind::Identifier(_) => "identifier",
             TokenKind::Integer(_) => "integer",
@@ -72,6 +75,7 @@ impl TokenKind {
             TokenKind::Mul => "`*`",
             TokenKind::Div => "`/`",
             TokenKind::Mod => "`%`",
+            TokenKind::Assign => "`=`",
             TokenKind::BitwiseAnd => "`&`",
             TokenKind::BitwiseOr => "`|`",
             TokenKind::BitwiseXor => "`^`",

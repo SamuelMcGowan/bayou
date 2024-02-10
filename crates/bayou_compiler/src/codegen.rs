@@ -75,8 +75,13 @@ impl Codegen {
         let mut func_codegen = FuncCodegen {
             builder,
             module: &mut self.module,
+            cx,
         };
-        func_codegen.gen_stmt(&func_decl.statement);
+
+        for stmt in &func_decl.statements {
+            func_codegen.gen_stmt(stmt);
+        }
+
         func_codegen.builder.finalize();
 
         verify_function(&self.ctx.func, self.module.isa()).unwrap();
@@ -95,15 +100,35 @@ impl Codegen {
 struct FuncCodegen<'a> {
     builder: FunctionBuilder<'a>,
     module: &'a mut ObjectModule,
+    cx: &'a ModuleContext,
 }
 
 impl FuncCodegen<'_> {
     fn gen_stmt(&mut self, stmt: &Stmt) {
         match stmt {
+            Stmt::Assign {
+                ident: _,
+                resolved,
+                expr,
+            } => {
+                let local_id = resolved.unwrap();
+                let var = Variable::new(local_id.0);
+
+                let val = self.gen_expr(expr);
+
+                self.builder.declare_var(var, I64);
+                self.builder.def_var(var, val);
+            }
+
             Stmt::Return(expr) => {
                 let value = self.gen_expr(expr);
                 self.builder.ins().return_(&[value]);
+
+                let after_return = self.builder.create_block();
+                self.builder.switch_to_block(after_return);
+                self.builder.seal_block(after_return); // nothing jumps here, dead code
             }
+
             Stmt::ParseError => unreachable!(),
         }
     }
@@ -111,6 +136,12 @@ impl FuncCodegen<'_> {
     fn gen_expr(&mut self, expr: &Expr) -> Value {
         match &expr.kind {
             ExprKind::Constant(n) => self.builder.ins().iconst(I64, *n),
+
+            ExprKind::Var(_, resolved) => {
+                let local_id = resolved.unwrap();
+                let var = Variable::new(local_id.0);
+                self.builder.use_var(var)
+            }
 
             ExprKind::UnOp { op, expr } => {
                 let expr = self.gen_expr(expr);
