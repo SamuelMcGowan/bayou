@@ -116,10 +116,7 @@ impl FuncCodegen<'_> {
 
     fn gen_expr(&mut self, expr: &Expr) -> Value {
         match &expr.kind {
-            ExprKind::Constant(n) => {
-                // FIXME: `n` should already be an i64
-                self.builder.ins().iconst(I64, i64::try_from(*n).unwrap())
-            }
+            ExprKind::Constant(n) => self.builder.ins().iconst(I64, *n),
 
             ExprKind::UnOp { op, expr } => {
                 let expr = self.gen_expr(expr);

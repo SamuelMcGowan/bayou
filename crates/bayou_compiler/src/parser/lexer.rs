@@ -107,7 +107,7 @@ impl<'sess> Lexer<'sess> {
                 '0' if self.chars.eat('o') => try_lex!(self.lex_integer(0, 8)),
                 '0' if self.chars.eat('b') => try_lex!(self.lex_integer(0, 2)),
 
-                ch @ '0'..='9' => try_lex!(self.lex_integer(ch as u64 - 48, 10)),
+                ch @ '0'..='9' => try_lex!(self.lex_integer(ch as i64 - 48, 10)),
 
                 ch if is_ident_start(ch) => self.lex_alpha(),
 
@@ -126,7 +126,7 @@ impl<'sess> Lexer<'sess> {
         }
     }
 
-    fn lex_integer(&mut self, start: u64, base: u32) -> LexerResult<TokenKind> {
+    fn lex_integer(&mut self, start: i64, base: u32) -> LexerResult<TokenKind> {
         let mut n = Some(start);
 
         while let Some(ch @ ('0'..='9' | 'a'..='f' | 'A'..='F' | '_')) = self.chars.peek() {
@@ -140,8 +140,8 @@ impl<'sess> Lexer<'sess> {
                 .to_digit(base)
                 .ok_or(LexerErrorKind::IntegerDigitWrongBase { base, digit: ch })?;
 
-            n = n.and_then(|n| n.checked_mul(base as u64));
-            n = n.and_then(|n| n.checked_add(digit as u64));
+            n = n.and_then(|n| n.checked_mul(base as i64));
+            n = n.and_then(|n| n.checked_add(digit as i64));
         }
 
         n.map(TokenKind::Integer)

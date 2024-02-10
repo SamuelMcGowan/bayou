@@ -12,7 +12,7 @@ pub struct Token {
 pub enum TokenKind {
     Keyword(Keyword),
     Identifier(InternedStr),
-    Integer(u64),
+    Integer(i64),
 
     LBrace,
     RBrace,
