@@ -10,28 +10,39 @@ use crate::ir::Interner;
 use crate::parser::Parser;
 use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
+use crate::utils::keyvec::{declare_key_type, KeyVec};
 use crate::{CompilerError, CompilerResult};
+
+declare_key_type! { pub struct ModuleId; }
 
 pub struct Compiler<D: DiagnosticEmitter> {
     pub sources: SourceMap,
-    pub triple: Triple,
     pub diagnostics: D,
+
+    modules: KeyVec<ModuleId, Module>,
+    module_cxts: KeyVec<ModuleId, ModuleContext>,
+
+    triple: Triple,
 }
 
 impl<D: DiagnosticEmitter> Compiler<D> {
     pub fn new(diagnostics: D, triple: Triple) -> Self {
         Self {
             sources: SourceMap::default(),
-            triple,
             diagnostics,
+
+            modules: KeyVec::new(),
+            module_cxts: KeyVec::new(),
+
+            triple,
         }
     }
 
-    pub fn parse_module(
+    pub fn add_module(
         &mut self,
         name: impl Into<String>,
         source: impl Into<String>,
-    ) -> CompilerResult<(Module, ModuleContext)> {
+    ) -> CompilerResult<ModuleId> {
         let source_id = self.sources.insert(Source::new(name, source));
         let source = self.sources.get_source(source_id).unwrap();
 
@@ -46,19 +57,21 @@ impl<D: DiagnosticEmitter> Compiler<D> {
 
         self.report(parse_errors, &module_context)?;
 
-        Ok((ast, module_context))
+        let id = self.modules.insert(ast);
+        let _ = self.module_cxts.insert(module_context);
+
+        Ok(id)
     }
 
-    pub fn compile(
-        &mut self,
-        name: &str,
-        module: &Module,
-        cx: &ModuleContext,
-    ) -> CompilerResult<ObjectProduct> {
-        let mut codegen = Codegen::new(self.triple.clone(), name)?;
-        codegen.compile_module(module, cx)?;
-        let object = codegen.finish();
-        Ok(object)
+    pub fn compile(&mut self) -> CompilerResult<ObjectProduct> {
+        // FIXME: choose proper name
+        let mut codegen = Codegen::new(self.triple.clone(), "replaceme")?;
+
+        for (module, cx) in self.modules.iter().zip(self.module_cxts.iter()) {
+            codegen.compile_module(module, cx)?;
+        }
+
+        Ok(codegen.finish())
     }
 
     fn report<I: IntoIterator>(

@@ -4,7 +4,7 @@ use crate::compiler::Compiler;
 
 fn test_compiles(source: &str, should_compile: bool) {
     let mut compiler = Compiler::new(vec![], Triple::host());
-    let compiled = compiler.parse_module("test_source", source).is_ok();
+    let compiled = compiler.add_module("test_source", source).is_ok();
 
     match (compiled, should_compile) {
         (false, true) => panic!("failed to compile: {source:?}"),
