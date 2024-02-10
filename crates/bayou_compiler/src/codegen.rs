@@ -1,5 +1,4 @@
 use cranelift::codegen::ir::types::I64;
-use cranelift::codegen::isa::CallConv;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
@@ -19,9 +18,6 @@ pub enum CodegenError {
 
     #[error("bad target {0}: {1}")]
     BadTarget(Triple, cranelift::codegen::isa::LookupError),
-
-    #[error("`main` function was missing")]
-    NoMainFunction,
 }
 
 pub type CodegenResult<T> = Result<T, CodegenError>;
@@ -66,63 +62,8 @@ impl Codegen {
         Ok(())
     }
 
-    pub fn finish(mut self) -> CodegenResult<ObjectProduct> {
-        self.gen_entry_func()?;
+    pub fn finish(self) -> CodegenResult<ObjectProduct> {
         Ok(self.module.finish())
-    }
-
-    fn gen_entry_func(&mut self) -> CodegenResult<()> {
-        // self.module.clear_context(&mut self.ctx);
-
-        // // signature
-        // let ptr_ty = self.module.target_config().pointer_type();
-        // self.ctx.func.signature.params = vec![AbiParam::new(ptr_ty), AbiParam::new(ptr_ty)];
-        // self.ctx.func.signature.returns = vec![AbiParam::new(ptr_ty)];
-
-        // // declare
-        // let start_id =
-        //     self.module
-        //         .declare_function("_start", Linkage::Export, &self.ctx.func.signature)?;
-
-        // let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_ctx);
-
-        // let entry_block = builder.create_block();
-        // builder.append_block_params_for_function_params(entry_block);
-        // builder.switch_to_block(entry_block);
-        // builder.seal_block(entry_block); // no predecessors
-
-        // // let main_id = self
-        // //     .module
-        // //     .get_name("main")
-        // //     .and_then(|id| match id {
-        // //         cranelift_module::FuncOrDataId::Func(id) => Some(id),
-        // //         _ => None,
-        // //     })
-        // //     .ok_or_else(|| CodegenError::NoMainFunction)?;
-
-        // let mut main_sig = self.module.make_signature();
-        // main_sig.returns.push(AbiParam::new(I64));
-
-        // let callee = self
-        //     .module
-        //     .declare_function("main", Linkage::Import, &main_sig)?;
-        // let local_callee = self.module.declare_func_in_func(callee, builder.func);
-
-        // let call = builder.ins().call(local_callee, &[]);
-        // let result = builder.inst_results(call)[0];
-
-        // // builder.ins().ca
-
-        // // builder.ins().trap(TrapCode::User(0));
-
-        // // // FIXME: support other pointer types by casting
-        // // // builder.ins().
-        // // builder.ins().return_(&[result]);
-
-        // verify_function(builder.func, self.module.isa()).unwrap();
-        // self.module.define_function(start_id, &mut self.ctx)?;
-
-        Ok(())
     }
 
     fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleContext) -> CodegenResult<()> {
