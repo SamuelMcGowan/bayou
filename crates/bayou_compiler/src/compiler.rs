@@ -55,8 +55,9 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         module: &Module,
         cx: &ModuleContext,
     ) -> CompilerResult<ObjectProduct> {
-        let codegen = Codegen::new(self.triple.clone(), name, cx)?;
-        let object = codegen.run(module)?;
+        let mut codegen = Codegen::new(self.triple.clone(), name)?;
+        codegen.compile_module(module, cx)?;
+        let object = codegen.finish();
         Ok(object)
     }
 

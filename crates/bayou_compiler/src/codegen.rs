@@ -1,6 +1,6 @@
 use cranelift::codegen::ir::types::I64;
 use cranelift::prelude::*;
-use cranelift_module::{Linkage, Module as _};
+use cranelift_module::Module as _;
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
@@ -21,16 +21,14 @@ pub enum CodegenError {
 
 pub type CodegenResult<T> = Result<T, CodegenError>;
 
-pub struct Codegen<'a> {
+pub struct Codegen {
     ctx: codegen::Context,
     builder_ctx: FunctionBuilderContext,
     module: ObjectModule,
-
-    module_cx: &'a ModuleContext,
 }
 
-impl<'a> Codegen<'a> {
-    pub fn new(triple: Triple, name: &str, module_cx: &'a ModuleContext) -> CodegenResult<Self> {
+impl Codegen {
+    pub fn new(triple: Triple, name: &str) -> CodegenResult<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("is_pic", "true").unwrap();
         flag_builder.set("opt_level", "speed").unwrap();
@@ -51,18 +49,20 @@ impl<'a> Codegen<'a> {
             ctx: module.make_context(),
             builder_ctx: FunctionBuilderContext::new(),
             module,
-
-            module_cx,
         })
     }
 
-    pub fn run(mut self, module: &Module) -> CodegenResult<ObjectProduct> {
+    pub fn compile_module(&mut self, module: &Module, _cx: &ModuleContext) -> CodegenResult<()> {
         match &module.item {
             Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl)?,
             Item::ParseError => unreachable!(),
         }
 
-        Ok(self.module.finish())
+        Ok(())
+    }
+
+    pub fn finish(self) -> ObjectProduct {
+        self.module.finish()
     }
 
     fn gen_func_decl(&mut self, func_decl: &FuncDecl) -> CodegenResult<()> {
@@ -87,11 +87,10 @@ impl<'a> Codegen<'a> {
         func_codegen.gen_stmt(&func_decl.statement);
         func_codegen.builder.finalize();
 
-        // declare and define in module
-        let name = self.module_cx.interner.resolve(&func_decl.name.ident);
+        // declare and define in module (name not exported for now)
         let id = self
             .module
-            .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;
+            .declare_anonymous_function(&self.ctx.func.signature)?;
         self.module.define_function(id, &mut self.ctx)?;
 
         Ok(())
