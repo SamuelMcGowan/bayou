@@ -46,9 +46,11 @@ impl Codegen {
     }
 
     pub fn compile_module(&mut self, module: &Module, cx: &ModuleContext) -> CompilerResult<()> {
-        match &module.item {
-            Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, cx)?,
-            Item::ParseError => unreachable!(),
+        for item in &module.items {
+            match item {
+                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, cx)?,
+                Item::ParseError => unreachable!(),
+            }
         }
 
         Ok(())

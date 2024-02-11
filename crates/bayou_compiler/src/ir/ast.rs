@@ -7,7 +7,7 @@ use crate::symbols::LocalId;
 
 #[derive(Node!)]
 pub struct Module {
-    pub item: Item,
+    pub items: Vec<Item>,
 }
 
 #[derive(Node!)]

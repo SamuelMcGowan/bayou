@@ -44,11 +44,15 @@ impl<'sess> Parser<'sess> {
     }
 
     fn parse_module(&mut self) -> Module {
-        let item = self.parse_or_recover(
-            |parser| parser.parse_func_decl().map(Item::FuncDecl),
-            |_| Item::ParseError,
-        );
-        Module { item }
+        let mut items = vec![];
+        while !self.lexer.at_end() {
+            let item = self.parse_or_recover(
+                |parser| parser.parse_func_decl().map(Item::FuncDecl),
+                |_| Item::ParseError,
+            );
+            items.push(item);
+        }
+        Module { items }
     }
 
     fn parse_func_decl(&mut self) -> ParseResult<FuncDecl> {
