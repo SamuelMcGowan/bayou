@@ -1,17 +1,17 @@
 #[macro_use]
 extern crate macro_rules_attribute;
 
-mod parser;
-
-mod cli;
 mod codegen;
 mod compiler;
-mod diagnostics;
 mod ir;
+mod parser;
 mod resolver;
-mod sourcemap;
 mod symbols;
 mod target;
+
+mod cli;
+mod diagnostics;
+mod sourcemap;
 mod utils;
 
 use std::path::Path;
