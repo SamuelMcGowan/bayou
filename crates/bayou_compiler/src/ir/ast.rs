@@ -1,6 +1,5 @@
 use bayou_diagnostic::span::Span;
 
-use super::vars::PlaceRef;
 use super::{Node, NodeCopy};
 use crate::ir::InternedStr;
 use crate::symbols::LocalId;
@@ -36,19 +35,7 @@ pub enum Stmt {
 }
 
 #[derive(Node!)]
-pub struct Expr {
-    pub kind: ExprKind,
-    pub place: Option<PlaceRef>,
-}
-
-impl Expr {
-    pub fn new(kind: ExprKind) -> Self {
-        Self { kind, place: None }
-    }
-}
-
-#[derive(Node!)]
-pub enum ExprKind {
+pub enum Expr {
     Constant(i64),
 
     Var(Ident, Option<LocalId>),

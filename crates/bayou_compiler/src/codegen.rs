@@ -136,16 +136,16 @@ impl FuncCodegen<'_> {
     }
 
     fn gen_expr(&mut self, expr: &Expr) -> Value {
-        match &expr.kind {
-            ExprKind::Constant(n) => self.builder.ins().iconst(I64, *n),
+        match &expr {
+            Expr::Constant(n) => self.builder.ins().iconst(I64, *n),
 
-            ExprKind::Var(_, resolved) => {
+            Expr::Var(_, resolved) => {
                 let local_id = resolved.unwrap();
                 let var = Variable::new(local_id.0);
                 self.builder.use_var(var)
             }
 
-            ExprKind::UnOp { op, expr } => {
+            Expr::UnOp { op, expr } => {
                 let expr = self.gen_expr(expr);
 
                 match op {
@@ -154,7 +154,7 @@ impl FuncCodegen<'_> {
                 }
             }
 
-            ExprKind::BinOp { op, lhs, rhs } => {
+            Expr::BinOp { op, lhs, rhs } => {
                 let lhs = self.gen_expr(lhs);
                 let rhs = self.gen_expr(rhs);
 
@@ -171,7 +171,7 @@ impl FuncCodegen<'_> {
                 }
             }
 
-            ExprKind::ParseError => unreachable!(),
+            Expr::ParseError => unreachable!(),
         }
     }
 }

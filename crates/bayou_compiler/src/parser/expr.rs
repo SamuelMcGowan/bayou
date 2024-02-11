@@ -71,11 +71,11 @@ impl Parser<'_> {
 
             let rhs = self.parse_prec(op.prec())?;
 
-            expr = Expr::new(ExprKind::BinOp {
+            expr = Expr::BinOp {
                 op,
                 lhs: Box::new(expr),
                 rhs: Box::new(rhs),
-            });
+            };
         }
 
         Ok(expr)
@@ -88,7 +88,7 @@ impl Parser<'_> {
                 ..
             }) => {
                 self.lexer.next();
-                Ok(Expr::new(ExprKind::Constant(n)))
+                Ok(Expr::Constant(n))
             }
 
             Some(Token {
@@ -96,27 +96,27 @@ impl Parser<'_> {
                 span,
             }) => {
                 self.lexer.next();
-                Ok(Expr::new(ExprKind::Var(Ident { ident, span }, None)))
+                Ok(Expr::Var(Ident { ident, span }, None))
             }
 
             Some(t) if t.kind == TokenKind::Sub => {
                 self.lexer.next();
 
                 let expr = self.parse_prec(Prec::Unary)?;
-                Ok(Expr::new(ExprKind::UnOp {
+                Ok(Expr::UnOp {
                     op: UnOp::Negate,
                     expr: Box::new(expr),
-                }))
+                })
             }
 
             Some(t) if t.kind == TokenKind::BitwiseInvert => {
                 self.lexer.next();
 
                 let expr = self.parse_prec(Prec::Unary)?;
-                Ok(Expr::new(ExprKind::UnOp {
+                Ok(Expr::UnOp {
                     op: UnOp::BitwiseInvert,
                     expr: Box::new(expr),
-                }))
+                })
             }
 
             Some(t) if t.kind == TokenKind::LParen => {
@@ -124,7 +124,7 @@ impl Parser<'_> {
 
                 let expr = self.parse_or_recover(Self::parse_expr, |parser| {
                     parser.seek(TokenKind::RParen);
-                    Expr::new(ExprKind::ParseError)
+                    Expr::ParseError
                 });
 
                 self.expect(TokenKind::RParen)?;
