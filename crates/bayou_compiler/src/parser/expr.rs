@@ -1,7 +1,8 @@
 use super::lexer::Peek;
-use super::{BinOp, ParseResult, Parser};
+use super::{ParseResult, Parser};
 use crate::ir::ast::*;
 use crate::ir::token::{Token, TokenKind};
+use crate::ir::{BinOp, Ident, UnOp};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Prec {

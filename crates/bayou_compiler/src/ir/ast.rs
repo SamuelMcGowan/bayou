@@ -1,7 +1,4 @@
-use bayou_diagnostic::span::Span;
-
-use super::{Node, NodeCopy};
-use crate::ir::InternedStr;
+use super::{BinOp, Ident, Node, UnOp};
 use crate::symbols::LocalId;
 
 #[derive(Node!)]
@@ -52,36 +49,4 @@ pub enum Expr {
     },
 
     ParseError,
-}
-
-#[derive(NodeCopy!)]
-pub enum BinOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-
-    BitwiseAnd,
-    BitwiseOr,
-    BitwiseXor,
-    // Eq,
-    // NotEq,
-
-    // Gt,
-    // Lt,
-    // GtEq,
-    // LtEq,
-}
-
-#[derive(NodeCopy!)]
-pub enum UnOp {
-    Negate,
-    BitwiseInvert,
-}
-
-#[derive(Node!, Copy)]
-pub struct Ident {
-    pub ident: InternedStr,
-    pub span: Span,
 }

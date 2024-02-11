@@ -9,7 +9,7 @@ use bayou_diagnostic::span::Span;
 use self::lexer::{Lexer, LexerError, Peek};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::ir::Interner;
+use crate::ir::{Ident, Interner};
 
 pub enum ParseError {
     Expected { expected: String, span: Span },

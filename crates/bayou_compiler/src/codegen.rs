@@ -7,6 +7,7 @@ use target_lexicon::Triple;
 
 use crate::compiler::ModuleContext;
 use crate::ir::ast::*;
+use crate::ir::{BinOp, UnOp};
 use crate::target::UnsupportedTarget;
 use crate::{CompilerError, CompilerResult};
 

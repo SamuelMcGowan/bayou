@@ -1,6 +1,4 @@
-use super::ast::Ident;
-pub use super::ast::{BinOp, UnOp}; // TODO: move ops to their own module.
-use super::Node;
+use super::{BinOp, Ident, Node, NodeCopy, UnOp};
 use crate::symbols::LocalId;
 
 pub struct FuncDecl {
@@ -35,7 +33,7 @@ pub enum ExprKind {
     },
 }
 
-#[derive(Node!, Copy, Hash)]
+#[derive(NodeCopy!)]
 pub enum Constant {
     I64(i64),
 }
@@ -48,7 +46,7 @@ impl Constant {
     }
 }
 
-#[derive(Node!, Copy, Hash)]
+#[derive(NodeCopy!)]
 pub enum Type {
     I64,
 }
