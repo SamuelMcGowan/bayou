@@ -6,7 +6,7 @@ use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
 use crate::compiler::ModuleContext;
-use crate::ir::ast::*;
+use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 use crate::target::UnsupportedTarget;
 use crate::{CompilerError, CompilerResult};
@@ -50,7 +50,6 @@ impl Codegen {
         for item in &module.items {
             match item {
                 Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, cx)?,
-                Item::ParseError => unreachable!(),
             }
         }
 
@@ -109,19 +108,13 @@ struct FuncCodegen<'a> {
 impl FuncCodegen<'_> {
     fn gen_stmt(&mut self, stmt: &Stmt) {
         match stmt {
-            Stmt::Assign {
-                ident: _,
-                // resolved,
-                expr,
-            } => {
-                // let local_id = resolved.unwrap();
-                // let var = Variable::new(local_id.0);
+            Stmt::Assign { local, expr } => {
+                let var = Variable::new(local.0);
 
-                // let val = self.gen_expr(expr);
+                let val = self.gen_expr(expr);
 
-                // self.builder.declare_var(var, I64);
-                // self.builder.def_var(var, val);
-                unimplemented!()
+                self.builder.declare_var(var, I64);
+                self.builder.def_var(var, val);
             }
 
             Stmt::Return(expr) => {
@@ -132,23 +125,21 @@ impl FuncCodegen<'_> {
                 self.builder.switch_to_block(after_return);
                 self.builder.seal_block(after_return); // nothing jumps here, dead code
             }
-
-            Stmt::ParseError => unreachable!(),
         }
     }
 
     fn gen_expr(&mut self, expr: &Expr) -> Value {
-        match &expr {
-            Expr::Constant(n) => self.builder.ins().iconst(I64, *n),
+        match &expr.kind {
+            ExprKind::Constant(constant) => match constant {
+                Constant::I64(n) => self.builder.ins().iconst(I64, *n),
+            },
 
-            Expr::Var(_) => {
-                // let local_id = resolved.unwrap();
-                // let var = Variable::new(local_id.0);
-                // self.builder.use_var(var)
-                unimplemented!()
+            ExprKind::Var(local) => {
+                let var = Variable::new(local.0);
+                self.builder.use_var(var)
             }
 
-            Expr::UnOp { op, expr } => {
+            ExprKind::UnOp { op, expr } => {
                 let expr = self.gen_expr(expr);
 
                 match op {
@@ -157,7 +148,7 @@ impl FuncCodegen<'_> {
                 }
             }
 
-            Expr::BinOp { op, lhs, rhs } => {
+            ExprKind::BinOp { op, lhs, rhs } => {
                 let lhs = self.gen_expr(lhs);
                 let rhs = self.gen_expr(rhs);
 
@@ -173,8 +164,6 @@ impl FuncCodegen<'_> {
                     BinOp::BitwiseXor => ins.bxor(lhs, rhs),
                 }
             }
-
-            Expr::ParseError => unreachable!(),
         }
     }
 }

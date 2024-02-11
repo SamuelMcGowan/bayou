@@ -3,6 +3,7 @@ use bayou_diagnostic::{Config, Snippet};
 
 use crate::compiler::ModuleContext;
 use crate::parser::ParseError;
+use crate::resolver::ResolverError;
 use crate::sourcemap::SourceMap;
 
 pub type Diagnostic = bayou_diagnostic::Diagnostic<SourceMap>;
@@ -62,6 +63,39 @@ impl IntoDiagnostic for ParseError {
                     module_context.source_id,
                     error.span,
                 )),
+        }
+    }
+}
+
+impl IntoDiagnostic for ResolverError {
+    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic {
+        match self {
+            ResolverError::DuplicateGlobal { first, second } => {
+                let name_str = module_context.interner.resolve(&first.ident);
+                Diagnostic::error()
+                    .with_message(format!("duplicate global `{name_str}`"))
+                    .with_snippet(Snippet::secondary(
+                        "first definition",
+                        module_context.source_id,
+                        first.span,
+                    ))
+                    .with_snippet(Snippet::primary(
+                        "second definition",
+                        module_context.source_id,
+                        second.span,
+                    ))
+            }
+
+            ResolverError::LocalUndefined(ident) => {
+                let name_str = module_context.interner.resolve(&ident.ident);
+                Diagnostic::error()
+                    .with_message(format!("undefined variable `{name_str}`"))
+                    .with_snippet(Snippet::primary(
+                        "undefined variable here",
+                        module_context.source_id,
+                        ident.span,
+                    ))
+            }
         }
     }
 }

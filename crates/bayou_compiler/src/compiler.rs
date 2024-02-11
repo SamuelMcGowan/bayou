@@ -5,9 +5,10 @@ use target_lexicon::Triple;
 
 use crate::codegen::Codegen;
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
-use crate::ir::ast::Module;
+use crate::ir::ir::Module;
 use crate::ir::Interner;
 use crate::parser::Parser;
+use crate::resolver::Resolver;
 use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
 use crate::utils::keyvec::{declare_key_type, KeyVec};
@@ -51,7 +52,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         let parser = Parser::new(source.source_str());
         let (ast, interner, parse_errors) = parser.parse();
 
-        let module_context = ModuleContext {
+        let mut module_context = ModuleContext {
             source_id,
             symbols: Symbols::default(),
             interner,
@@ -59,10 +60,19 @@ impl<D: DiagnosticEmitter> Compiler<D> {
 
         self.report(parse_errors, &module_context)?;
 
-        let id = self.modules.insert(ast);
-        let _ = self.module_cxts.insert(module_context);
+        let resolver = Resolver::new(&mut module_context);
 
-        Ok(id)
+        match resolver.run(ast) {
+            Ok(ir) => {
+                let id = self.modules.insert(ir);
+                let _ = self.module_cxts.insert(module_context);
+                Ok(id)
+            }
+            Err(errors) => {
+                let _ = self.report(errors, &module_context);
+                Err(CompilerError::HadErrors)
+            }
+        }
     }
 
     pub fn compile(&mut self) -> CompilerResult<ObjectProduct> {

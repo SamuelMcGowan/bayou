@@ -4,6 +4,7 @@ use crate::ir::{ast, ir, Ident, InternedStr};
 use crate::symbols::{GlobalSymbol, LocalId, LocalSymbol};
 
 pub enum ResolverError {
+    LocalUndefined(Ident),
     DuplicateGlobal { first: Ident, second: Ident },
 }
 
@@ -27,8 +28,9 @@ impl<'cx> Resolver<'cx> {
     pub fn run(mut self, module: ast::Module) -> Result<ir::Module, Vec<ResolverError>> {
         self.declare_globals(&module.items);
 
+        let module = self.resolve(module);
         if self.errors.is_empty() {
-            Ok(self.resolve(module))
+            Ok(module)
         } else {
             Err(self.errors)
         }
@@ -121,7 +123,7 @@ impl<'cx> Resolver<'cx> {
             ast::Expr::Constant(n) => ir::ExprKind::Constant(ir::Constant::I64(n)),
 
             ast::Expr::Var(ident) => {
-                let id = self.lookup_local(ident.ident)?;
+                let id = self.lookup_local(ident)?;
                 ir::ExprKind::Var(id)
             }
 
@@ -183,11 +185,18 @@ impl<'cx> Resolver<'cx> {
         id
     }
 
-    fn lookup_local(&self, ident: InternedStr) -> Option<LocalId> {
-        self.local_stack
+    fn lookup_local(&mut self, ident: Ident) -> Option<LocalId> {
+        let id = self
+            .local_stack
             .iter()
             .rev()
-            .find_map(|entry| (entry.ident == ident).then_some(entry.id))
+            .find_map(|entry| (entry.ident == ident.ident).then_some(entry.id));
+
+        if id.is_none() {
+            self.errors.push(ResolverError::LocalUndefined(ident));
+        }
+
+        id
     }
 }
 
