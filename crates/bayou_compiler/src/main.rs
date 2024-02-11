@@ -5,6 +5,7 @@ mod codegen;
 mod compiler;
 mod ir;
 mod parser;
+mod passes;
 mod resolver;
 mod symbols;
 mod target;

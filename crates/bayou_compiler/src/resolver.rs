@@ -152,7 +152,7 @@ impl<'cx> Resolver<'cx> {
 
         Some(ir::Expr {
             kind: expr_kind,
-            ty: Type::I64,
+            ty: None,
         })
     }
 

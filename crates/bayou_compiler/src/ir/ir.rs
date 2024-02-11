@@ -26,7 +26,7 @@ pub enum Stmt {
 #[derive(Node!)]
 pub struct Expr {
     pub kind: ExprKind,
-    pub ty: Type,
+    pub ty: Option<Type>,
 }
 
 #[derive(Node!)]
@@ -60,4 +60,6 @@ impl Constant {
 #[derive(NodeCopy!)]
 pub enum Type {
     I64,
+    Void,
+    Never,
 }
