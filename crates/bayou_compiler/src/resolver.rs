@@ -147,6 +147,8 @@ impl<'cx> Resolver<'cx> {
                 }
             }
 
+            ast::Expr::Void => ir::ExprKind::Void,
+
             ast::Expr::ParseError => unreachable!(),
         };
 

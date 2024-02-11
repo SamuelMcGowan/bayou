@@ -3,6 +3,7 @@ use bayou_diagnostic::{Config, Snippet};
 
 use crate::compiler::ModuleContext;
 use crate::parser::ParseError;
+use crate::passes::type_check::TypeError;
 use crate::resolver::ResolverError;
 use crate::sourcemap::SourceMap;
 
@@ -96,6 +97,18 @@ impl IntoDiagnostic for ResolverError {
                         ident.span,
                     ))
             }
+        }
+    }
+}
+
+impl IntoDiagnostic for TypeError {
+    fn into_diagnostic(self, _module_context: &ModuleContext) -> Diagnostic {
+        match self {
+            TypeError::TypeMismatch { expected, found } => Diagnostic::error()
+                .with_message(format!("expected type {expected:?}, found type {found:?}")),
+            TypeError::MissingReturn(ty) => Diagnostic::error().with_message(format!(
+                "missing return statement in function that returns type {ty:?}"
+            )),
         }
     }
 }

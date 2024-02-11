@@ -8,6 +8,7 @@ use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
 use crate::ir::ir::Module;
 use crate::ir::Interner;
 use crate::parser::Parser;
+use crate::passes::type_check::TypeChecker;
 use crate::resolver::Resolver;
 use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
@@ -61,18 +62,22 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         self.report(parse_errors, &module_context)?;
 
         let resolver = Resolver::new(&mut module_context);
-
-        match resolver.run(ast) {
-            Ok(ir) => {
-                let id = self.modules.insert(ir);
-                let _ = self.module_cxts.insert(module_context);
-                Ok(id)
-            }
+        let mut ir = match resolver.run(ast) {
+            Ok(ir) => ir,
             Err(errors) => {
                 let _ = self.report(errors, &module_context);
-                Err(CompilerError::HadErrors)
+                return Err(CompilerError::HadErrors);
             }
-        }
+        };
+
+        let type_checker = TypeChecker::new(&mut module_context);
+        let type_errors = type_checker.run(&mut ir);
+        self.report(type_errors, &module_context)?;
+
+        let module_id = self.modules.insert(ir);
+        let _ = self.module_cxts.insert(module_context);
+
+        Ok(module_id)
     }
 
     pub fn compile(&mut self) -> CompilerResult<ObjectProduct> {

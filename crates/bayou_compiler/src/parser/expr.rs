@@ -1,7 +1,7 @@
 use super::lexer::Peek;
 use super::{ParseResult, Parser};
 use crate::ir::ast::*;
-use crate::ir::token::{Token, TokenKind};
+use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{BinOp, Ident, UnOp};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -98,6 +98,11 @@ impl Parser<'_> {
             }) => {
                 self.lexer.next();
                 Ok(Expr::Var(Ident { ident, span }))
+            }
+
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::Void) => {
+                self.lexer.next();
+                Ok(Expr::Void)
             }
 
             Some(t) if t.kind == TokenKind::Sub => {

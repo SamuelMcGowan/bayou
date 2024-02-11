@@ -1,5 +1,4 @@
 use super::{BinOp, Ident, Node, UnOp};
-use crate::symbols::LocalId;
 
 #[derive(Node!)]
 pub struct Module {
@@ -43,6 +42,8 @@ pub enum Expr {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+
+    Void,
 
     ParseError,
 }

@@ -91,8 +91,14 @@ impl<'sess> Parser<'sess> {
     fn parse_statement(&mut self) -> ParseResult<Stmt> {
         match self.lexer.next() {
             Some(token) if token.kind == TokenKind::Keyword(Keyword::Return) => {
-                let expr = self.parse_expr()?;
-                self.expect(TokenKind::Semicolon)?;
+                let expr = if self.eat_kind(TokenKind::Semicolon) {
+                    Expr::Void
+                } else {
+                    let expr = self.parse_expr()?;
+                    self.expect(TokenKind::Semicolon)?;
+                    expr
+                };
+
                 Ok(Stmt::Return(expr))
             }
 
@@ -137,6 +143,16 @@ impl<'sess> Parser<'sess> {
             }
 
             other => Err(self.error_expected_kind(kind, other)),
+        }
+    }
+
+    fn eat_kind(&mut self, kind: TokenKind) -> bool {
+        match self.lexer.peek() {
+            Some(t) if t.kind == kind => {
+                self.lexer.next();
+                true
+            }
+            _ => false,
         }
     }
 

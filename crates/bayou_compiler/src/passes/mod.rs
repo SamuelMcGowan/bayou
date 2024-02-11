@@ -1,4 +1,4 @@
-mod type_check;
+pub mod type_check;
 
 // use std::ops::ControlFlow;
 

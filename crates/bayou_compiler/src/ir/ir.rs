@@ -42,6 +42,7 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    Void,
 }
 
 #[derive(NodeCopy!)]

@@ -113,13 +113,21 @@ impl FuncCodegen<'_> {
 
                 let val = self.gen_expr(expr);
 
-                self.builder.declare_var(var, I64);
-                self.builder.def_var(var, val);
+                // void types are not declared
+                if let Some(val) = val {
+                    self.builder.declare_var(var, I64);
+                    self.builder.def_var(var, val);
+                }
             }
 
             Stmt::Return(expr) => {
                 let value = self.gen_expr(expr);
-                self.builder.ins().return_(&[value]);
+
+                if let Some(value) = value {
+                    self.builder.ins().return_(&[value]);
+                } else {
+                    self.builder.ins().return_(&[]);
+                }
 
                 let after_return = self.builder.create_block();
                 self.builder.switch_to_block(after_return);
@@ -128,19 +136,26 @@ impl FuncCodegen<'_> {
         }
     }
 
-    fn gen_expr(&mut self, expr: &Expr) -> Value {
-        match &expr.kind {
+    fn gen_expr(&mut self, expr: &Expr) -> Option<Value> {
+        let value = match &expr.kind {
             ExprKind::Constant(constant) => match constant {
                 Constant::I64(n) => self.builder.ins().iconst(I64, *n),
             },
 
             ExprKind::Var(local) => {
-                let var = Variable::new(local.0);
-                self.builder.use_var(var)
+                let local_ty = self.cx.symbols.locals[*local].ty;
+
+                // Void typed variables don't emit expressions.
+                if local_ty == crate::ir::ir::Type::Void {
+                    let var = Variable::new(local.0);
+                    self.builder.use_var(var)
+                } else {
+                    return None;
+                }
             }
 
             ExprKind::UnOp { op, expr } => {
-                let expr = self.gen_expr(expr);
+                let expr = self.gen_expr(expr).unwrap();
 
                 match op {
                     UnOp::Negate => self.builder.ins().ineg(expr),
@@ -149,8 +164,8 @@ impl FuncCodegen<'_> {
             }
 
             ExprKind::BinOp { op, lhs, rhs } => {
-                let lhs = self.gen_expr(lhs);
-                let rhs = self.gen_expr(rhs);
+                let lhs = self.gen_expr(lhs).unwrap();
+                let rhs = self.gen_expr(rhs).unwrap();
 
                 let ins = self.builder.ins();
                 match op {
@@ -164,6 +179,10 @@ impl FuncCodegen<'_> {
                     BinOp::BitwiseXor => ins.bxor(lhs, rhs),
                 }
             }
-        }
+
+            ExprKind::Void => return None,
+        };
+
+        Some(value)
     }
 }

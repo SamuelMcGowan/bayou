@@ -111,6 +111,8 @@ impl<'a> TypeChecker<'a> {
 
                 Some(out)
             }
+
+            ExprKind::Void => Some(Type::Void),
         };
     }
 
