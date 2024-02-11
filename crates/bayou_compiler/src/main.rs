@@ -14,6 +14,7 @@ mod symbols;
 mod target;
 mod utils;
 
+use std::path::Path;
 use std::str::FromStr;
 
 use clap::Parser as _;
@@ -21,6 +22,7 @@ use cli::{Cli, Command};
 use target::UnsupportedTarget;
 use target_lexicon::Triple;
 use temp_dir::TempDir;
+use temp_file::TempFileBuilder;
 
 use crate::compiler::Compiler;
 use crate::diagnostics::PrettyDiagnosticEmitter;
@@ -68,13 +70,19 @@ fn run() -> CompilerResult<()> {
             output,
             target,
         } => {
-            let (name, source) = if source {
-                ("unnamed".to_owned(), input)
+            let (name, name_stem, source) = if source {
+                ("unnamed".to_owned(), "unnamed".to_owned(), input)
             } else {
                 let source = std::fs::read_to_string(&input)?;
-                (input, source)
+                let name_normalised = Path::new(&input)
+                    .file_stem()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned();
+                (input, name_normalised, source)
             };
-            let output = output.unwrap_or_else(|| name.clone());
+            let output = output.unwrap_or_else(|| name_stem.clone());
 
             let triple = match target {
                 Some(s) => Triple::from_str(&s).map_err(UnsupportedTarget::ParseError)?,
@@ -100,14 +108,18 @@ fn run() -> CompilerResult<()> {
             {
                 let tmp_dir = TempDir::with_prefix("bayou_")?;
 
-                let object_path = tmp_dir.path().join(&name).with_extension("o");
+                let tmp_file = TempFileBuilder::new()
+                    .in_dir(tmp_dir.path())
+                    .prefix(name_stem)
+                    .suffix(".o")
+                    .build()?;
 
                 println!("writing object");
                 let object_data = object.emit()?;
-                std::fs::write(&object_path, object_data)?;
+                std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");
-                linker.run(&[object_path.as_path()], &output)?;
+                linker.run(&[tmp_file.path()], &output)?;
             }
 
             Ok(())

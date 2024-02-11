@@ -89,6 +89,7 @@ dependencies = [
  "serde",
  "target-lexicon",
  "temp-dir",
+ "temp-file",
  "thiserror",
 ]
 
@@ -573,6 +574,12 @@ name = "temp-dir"
 version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd16aa9ffe15fe021c6ee3766772132c6e98dfa395a167e16864f61a9cfb71d6"
+
+[[package]]
+name = "temp-file"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f210bda61d003f311d95611d1b68361df8fe8e732c3609f945441bde881321d"
 
 [[package]]
 name = "termcolor"

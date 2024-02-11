@@ -15,6 +15,7 @@ macro_rules_attribute = "0.2.0"
 serde = { version = "1.0.195", features = ["derive"] }
 target-lexicon = "0.12.13"
 temp-dir = "0.1.12"
+temp-file = "0.1.8"
 thiserror = "1.0.56"
 
 [dev-dependencies]
