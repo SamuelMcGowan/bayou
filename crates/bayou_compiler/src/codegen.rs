@@ -111,16 +111,17 @@ impl FuncCodegen<'_> {
         match stmt {
             Stmt::Assign {
                 ident: _,
-                resolved,
+                // resolved,
                 expr,
             } => {
-                let local_id = resolved.unwrap();
-                let var = Variable::new(local_id.0);
+                // let local_id = resolved.unwrap();
+                // let var = Variable::new(local_id.0);
 
-                let val = self.gen_expr(expr);
+                // let val = self.gen_expr(expr);
 
-                self.builder.declare_var(var, I64);
-                self.builder.def_var(var, val);
+                // self.builder.declare_var(var, I64);
+                // self.builder.def_var(var, val);
+                unimplemented!()
             }
 
             Stmt::Return(expr) => {
@@ -140,10 +141,11 @@ impl FuncCodegen<'_> {
         match &expr {
             Expr::Constant(n) => self.builder.ins().iconst(I64, *n),
 
-            Expr::Var(_, resolved) => {
-                let local_id = resolved.unwrap();
-                let var = Variable::new(local_id.0);
-                self.builder.use_var(var)
+            Expr::Var(_) => {
+                // let local_id = resolved.unwrap();
+                // let var = Variable::new(local_id.0);
+                // self.builder.use_var(var)
+                unimplemented!()
             }
 
             Expr::UnOp { op, expr } => {

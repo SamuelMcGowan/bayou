@@ -20,11 +20,7 @@ pub struct FuncDecl {
 
 #[derive(Node!)]
 pub enum Stmt {
-    Assign {
-        ident: Ident,
-        resolved: Option<LocalId>,
-        expr: Expr,
-    },
+    Assign { ident: Ident, expr: Expr },
 
     Return(Expr),
 
@@ -35,7 +31,7 @@ pub enum Stmt {
 pub enum Expr {
     Constant(i64),
 
-    Var(Ident, Option<LocalId>),
+    Var(Ident),
 
     UnOp {
         op: UnOp,

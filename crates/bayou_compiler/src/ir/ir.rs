@@ -1,6 +1,17 @@
 use super::{BinOp, Ident, Node, NodeCopy, UnOp};
 use crate::symbols::LocalId;
 
+#[derive(Node!)]
+pub struct Module {
+    pub items: Vec<Item>,
+}
+
+#[derive(Node!)]
+pub enum Item {
+    FuncDecl(FuncDecl),
+}
+
+#[derive(Node!)]
 pub struct FuncDecl {
     pub name: Ident,
     pub statements: Vec<Stmt>,

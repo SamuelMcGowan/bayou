@@ -101,11 +101,7 @@ impl<'sess> Parser<'sess> {
                 self.expect(TokenKind::Assign)?;
                 let expr = self.parse_expr()?;
                 self.expect(TokenKind::Semicolon)?;
-                Ok(Stmt::Assign {
-                    ident,
-                    resolved: None,
-                    expr,
-                })
+                Ok(Stmt::Assign { ident, expr })
             }
 
             other => Err(self.error_expected("a statement", other)),

@@ -8,7 +8,7 @@ mod codegen;
 mod compiler;
 mod diagnostics;
 mod ir;
-mod passes;
+mod resolver;
 mod sourcemap;
 mod symbols;
 mod target;

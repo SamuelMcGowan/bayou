@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use crate::ir::InternedStr;
+use crate::ir::ir::Type;
+use crate::ir::{Ident, InternedStr};
 use crate::utils::keyvec::{declare_key_type, KeyVec};
 
-// Nothing stored here at the moment, but I suspect it'd be a pain
-// adding a symbol table later, so I'm wiring it up now.
 #[derive(Default, Debug, Clone)]
 pub struct Symbols {
     pub globals: HashMap<InternedStr, GlobalSymbol>,
@@ -14,7 +13,12 @@ pub struct Symbols {
 declare_key_type! { pub struct LocalId; }
 
 #[derive(Debug, Clone)]
-pub struct LocalSymbol {}
+pub struct LocalSymbol {
+    pub ident: Ident,
+    pub ty: Type,
+}
 
 #[derive(Debug, Clone)]
-pub struct GlobalSymbol {}
+pub struct GlobalSymbol {
+    pub ident: Ident,
+}

@@ -97,7 +97,7 @@ impl Parser<'_> {
                 span,
             }) => {
                 self.lexer.next();
-                Ok(Expr::Var(Ident { ident, span }, None))
+                Ok(Expr::Var(Ident { ident, span }))
             }
 
             Some(t) if t.kind == TokenKind::Sub => {
