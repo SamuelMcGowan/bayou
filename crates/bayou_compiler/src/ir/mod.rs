@@ -1,4 +1,6 @@
 pub mod ast;
+#[allow(clippy::module_inception)]
+pub mod ir;
 pub mod token;
 pub mod vars;
 
