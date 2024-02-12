@@ -51,6 +51,12 @@ pub struct Spanned<T> {
     pub span: Span,
 }
 
+impl<T> Spanned<T> {
+    pub fn new(node: T, span: Span) -> Self {
+        Self { node, span }
+    }
+}
+
 impl<T, E> Spanned<Result<T, E>> {
     pub fn transpose(self) -> Result<Spanned<T>, E> {
         self.node.map(|node| Spanned {

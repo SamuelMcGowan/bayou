@@ -94,8 +94,8 @@ impl<'sess> Parser<'sess> {
                 let expr = if self.eat_kind(TokenKind::Semicolon) {
                     Expr::new(
                         ExprKind::Void,
-                        // start of semicolon
-                        Span::empty(self.lexer.prev_span().start),
+                        // `return` span
+                        token.span,
                     )
                 } else {
                     let expr = self.parse_expr()?;
@@ -149,8 +149,7 @@ impl<'sess> Parser<'sess> {
         let span_end = self.lexer.prev_span();
 
         let span = Span::new(span_start.start, span_end.end.max(span_start.start));
-
-        Spanned { node, span }
+        Spanned::new(node, span)
     }
 
     fn expect(&mut self, kind: TokenKind) -> ParseResult<Token> {

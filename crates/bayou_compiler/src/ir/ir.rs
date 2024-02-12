@@ -1,3 +1,5 @@
+use bayou_diagnostic::span::Span;
+
 use super::{BinOp, Ident, Node, NodeCopy, UnOp};
 use crate::symbols::LocalId;
 
@@ -26,6 +28,7 @@ pub enum Stmt {
 #[derive(Node!)]
 pub struct Expr {
     pub kind: ExprKind,
+    pub span: Span,
     pub ty: Option<Type>,
 }
 

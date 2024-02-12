@@ -1,11 +1,23 @@
+use bayou_diagnostic::span::Span;
+
 use crate::compiler::ModuleContext;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 
 // TODO: make `Spanned` type
 pub enum TypeError {
-    TypeMismatch { expected: Type, found: Type },
-    MissingReturn(Type),
+    TypeMismatch {
+        expected: Type,
+        expected_span: Option<Span>,
+
+        found: Type,
+        found_span: Span,
+    },
+
+    MissingReturn {
+        ty: Type,
+        span: Span,
+    },
 }
 
 pub struct TypeChecker<'a> {
@@ -41,16 +53,22 @@ impl<'a> TypeChecker<'a> {
                 Stmt::Assign { local, expr } => {
                     self.check_expr(expr);
 
-                    let local_ty = self.context.symbols.locals[*local].ty;
+                    let local = &self.context.symbols.locals[*local];
                     if let Some(ty) = expr.ty {
-                        self.check_types_match(local_ty, ty);
+                        self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
                     }
                 }
 
                 Stmt::Return(expr) => {
                     self.check_expr(expr);
                     if let Some(ty) = expr.ty {
-                        self.check_types_match(expected_ret, ty);
+                        self.check_types_match(
+                            expected_ret,
+                            // FIXME: use return type span
+                            Some(func_decl.name.span),
+                            ty,
+                            expr.span,
+                        );
                     }
                 }
             }
@@ -61,7 +79,11 @@ impl<'a> TypeChecker<'a> {
         if expected_ret != Type::Void
             && !matches!(func_decl.statements.last(), Some(stmt) if stmt.always_returns())
         {
-            self.errors.push(TypeError::MissingReturn(expected_ret));
+            // FIXME: use function return type span
+            self.errors.push(TypeError::MissingReturn {
+                ty: expected_ret,
+                span: func_decl.name.span,
+            });
         }
     }
 
@@ -76,11 +98,12 @@ impl<'a> TypeChecker<'a> {
 
                 match op {
                     UnOp::Negate => expr.ty.map(|ty| {
-                        self.check_types_match(Type::I64, ty);
+                        self.check_types_match(Type::I64, None, ty, expr.span);
                         Type::I64
                     }),
+
                     UnOp::BitwiseInvert => expr.ty.map(|ty| {
-                        self.check_types_match(Type::I64, ty);
+                        self.check_types_match(Type::I64, None, ty, expr.span);
                         Type::I64
                     }),
                 }
@@ -102,11 +125,11 @@ impl<'a> TypeChecker<'a> {
                 };
 
                 if let Some(ty) = lhs.ty {
-                    self.check_types_match(exp_lhs, ty);
+                    self.check_types_match(exp_lhs, None, ty, lhs.span);
                 }
 
                 if let Some(ty) = rhs.ty {
-                    self.check_types_match(exp_rhs, ty);
+                    self.check_types_match(exp_rhs, None, ty, rhs.span);
                 }
 
                 Some(out)
@@ -116,7 +139,13 @@ impl<'a> TypeChecker<'a> {
         };
     }
 
-    fn check_types_match(&mut self, expected: Type, found: Type) {
+    fn check_types_match(
+        &mut self,
+        expected: Type,
+        expected_span: Option<Span>,
+        found: Type,
+        found_span: Span,
+    ) {
         let types_match = match (expected, found) {
             (_, Type::Never) => true,
             (Type::Never, _) => false,
@@ -124,8 +153,13 @@ impl<'a> TypeChecker<'a> {
         };
 
         if !types_match {
-            self.errors
-                .push(TypeError::TypeMismatch { expected, found });
+            self.errors.push(TypeError::TypeMismatch {
+                expected,
+                expected_span,
+
+                found,
+                found_span,
+            });
         }
     }
 }

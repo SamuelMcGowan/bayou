@@ -154,6 +154,7 @@ impl<'cx> Resolver<'cx> {
 
         Some(ir::Expr {
             kind: expr_kind,
+            span: expr.span,
             ty: None,
         })
     }
@@ -173,11 +174,12 @@ impl<'cx> Resolver<'cx> {
 
     #[must_use]
     fn declare_local(&mut self, ident: Ident, ty: Type) -> LocalId {
-        let id = self
-            .context
-            .symbols
-            .locals
-            .insert(LocalSymbol { ident, ty });
+        let id = self.context.symbols.locals.insert(LocalSymbol {
+            ident,
+            ty,
+            // FIXME: use variable type span
+            ty_span: ident.span,
+        });
 
         self.local_stack.push(LocalEntry {
             ident: ident.ident,

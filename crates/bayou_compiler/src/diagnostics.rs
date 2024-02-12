@@ -102,13 +102,42 @@ impl IntoDiagnostic for ResolverError {
 }
 
 impl IntoDiagnostic for TypeError {
-    fn into_diagnostic(self, _module_context: &ModuleContext) -> Diagnostic {
+    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic {
         match self {
-            TypeError::TypeMismatch { expected, found } => Diagnostic::error()
-                .with_message(format!("expected type {expected:?}, found type {found:?}")),
-            TypeError::MissingReturn(ty) => Diagnostic::error().with_message(format!(
-                "missing return statement in function that returns type {ty:?}"
-            )),
+            TypeError::TypeMismatch {
+                expected,
+                expected_span,
+                found,
+                found_span,
+            } => {
+                let mut diagnostic = Diagnostic::error()
+                    .with_message(format!("expected type {expected:?}, found type {found:?}"))
+                    .with_snippet(Snippet::primary(
+                        "unexpected type",
+                        module_context.source_id,
+                        found_span,
+                    ));
+
+                if let Some(expected_span) = expected_span {
+                    diagnostic = diagnostic.with_snippet(Snippet::secondary(
+                        "expected due to this type",
+                        module_context.source_id,
+                        expected_span,
+                    ));
+                }
+
+                diagnostic
+            }
+
+            TypeError::MissingReturn { ty, span } => Diagnostic::error()
+                .with_message(format!(
+                    "missing return statement in function that returns type {ty:?}"
+                ))
+                .with_snippet(Snippet::primary(
+                    "expected due to this return type",
+                    module_context.source_id,
+                    span,
+                )),
         }
     }
 }
