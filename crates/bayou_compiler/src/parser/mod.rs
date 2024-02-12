@@ -9,7 +9,7 @@ use bayou_diagnostic::span::Span;
 use self::lexer::{Lexer, LexerError, Peek};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::ir::{Ident, Interner};
+use crate::ir::{Ident, Interner, Spanned};
 
 pub enum ParseError {
     Expected { expected: String, span: Span },
@@ -48,7 +48,7 @@ impl<'sess> Parser<'sess> {
         while !self.lexer.at_end() {
             let item = self.parse_or_recover(
                 |parser| parser.parse_func_decl().map(Item::FuncDecl),
-                |_| Item::ParseError,
+                |_, _| Item::ParseError,
             );
             items.push(item);
         }
@@ -81,7 +81,7 @@ impl<'sess> Parser<'sess> {
     }
 
     fn parse_statement_or_recover(&mut self) -> Stmt {
-        self.parse_or_recover(Self::parse_statement, |parser| {
+        self.parse_or_recover(Self::parse_statement, |parser, _| {
             parser.seek_and_consume(TokenKind::Semicolon);
             Stmt::ParseError
         })
@@ -92,7 +92,11 @@ impl<'sess> Parser<'sess> {
         match self.lexer.next() {
             Some(token) if token.kind == TokenKind::Keyword(Keyword::Return) => {
                 let expr = if self.eat_kind(TokenKind::Semicolon) {
-                    Expr::Void
+                    Expr::new(
+                        ExprKind::Void,
+                        // start of semicolon
+                        Span::empty(self.lexer.prev_span().start),
+                    )
                 } else {
                     let expr = self.parse_expr()?;
                     self.expect(TokenKind::Semicolon)?;
@@ -127,12 +131,26 @@ impl<'sess> Parser<'sess> {
     fn parse_or_recover<T>(
         &mut self,
         parse: impl FnOnce(&mut Self) -> ParseResult<T>,
-        recover: impl FnOnce(&mut Self) -> T,
+        recover: impl FnOnce(&mut Self, Span) -> T,
     ) -> T {
-        parse(self).unwrap_or_else(|err| {
-            self.report(err);
-            recover(self)
-        })
+        let result = self.parse_spanned(parse);
+        match result.node {
+            Ok(node) => node,
+            Err(err) => {
+                self.report(err);
+                recover(self, result.span)
+            }
+        }
+    }
+
+    fn parse_spanned<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Spanned<T> {
+        let span_start = self.lexer.peek_span();
+        let node = f(self);
+        let span_end = self.lexer.prev_span();
+
+        let span = Span::new(span_start.start, span_end.end.max(span_start.start));
+
+        Spanned { node, span }
     }
 
     fn expect(&mut self, kind: TokenKind) -> ParseResult<Token> {

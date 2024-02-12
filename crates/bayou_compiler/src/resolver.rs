@@ -119,15 +119,15 @@ impl<'cx> Resolver<'cx> {
     }
 
     fn resolve_expr(&mut self, expr: ast::Expr) -> Option<ir::Expr> {
-        let expr_kind = match expr {
-            ast::Expr::Constant(n) => ir::ExprKind::Constant(ir::Constant::I64(n)),
+        let expr_kind = match expr.kind {
+            ast::ExprKind::Constant(n) => ir::ExprKind::Constant(ir::Constant::I64(n)),
 
-            ast::Expr::Var(ident) => {
+            ast::ExprKind::Var(ident) => {
                 let id = self.lookup_local(ident)?;
                 ir::ExprKind::Var(id)
             }
 
-            ast::Expr::UnOp { op, expr } => {
+            ast::ExprKind::UnOp { op, expr } => {
                 let expr = self.resolve_expr(*expr)?;
                 ir::ExprKind::UnOp {
                     op,
@@ -135,7 +135,7 @@ impl<'cx> Resolver<'cx> {
                 }
             }
 
-            ast::Expr::BinOp { op, lhs, rhs } => {
+            ast::ExprKind::BinOp { op, lhs, rhs } => {
                 // resolve both before using `?`
                 let lhs = self.resolve_expr(*lhs);
                 let rhs = self.resolve_expr(*rhs);
@@ -147,9 +147,9 @@ impl<'cx> Resolver<'cx> {
                 }
             }
 
-            ast::Expr::Void => ir::ExprKind::Void,
+            ast::ExprKind::Void => ir::ExprKind::Void,
 
-            ast::Expr::ParseError => unreachable!(),
+            ast::ExprKind::ParseError => unreachable!(),
         };
 
         Some(ir::Expr {

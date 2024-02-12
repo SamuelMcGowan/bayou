@@ -33,6 +33,7 @@ pub struct Lexer<'sess> {
 
     token_start: usize,
 
+    prev_span: Span,
     current: Option<Token>,
 }
 
@@ -47,10 +48,21 @@ impl<'sess> Lexer<'sess> {
 
             token_start: 0,
 
+            prev_span: Span::new(0, 0),
             current: None,
         };
         lexer.current = lexer.lex_token();
         lexer
+    }
+
+    pub fn peek_span(&self) -> Span {
+        self.peek()
+            .map(|t| t.span)
+            .unwrap_or_else(|| self.eof_span())
+    }
+
+    pub fn prev_span(&self) -> Span {
+        self.prev_span
     }
 
     pub fn eof_span(&self) -> Span {
@@ -183,9 +195,10 @@ impl Iterator for Lexer<'_> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let token = self.current.take();
+        let token = self.current.take()?;
+        self.prev_span = token.span;
         self.current = self.lex_token();
-        token
+        Some(token)
     }
 }
 

@@ -1,3 +1,5 @@
+use bayou_diagnostic::span::Span;
+
 use super::{BinOp, Ident, Node, UnOp};
 
 #[derive(Node!)]
@@ -27,7 +29,19 @@ pub enum Stmt {
 }
 
 #[derive(Node!)]
-pub enum Expr {
+pub struct Expr {
+    pub kind: ExprKind,
+    pub span: Span,
+}
+
+impl Expr {
+    pub fn new(kind: ExprKind, span: Span) -> Self {
+        Self { kind, span }
+    }
+}
+
+#[derive(Node!)]
+pub enum ExprKind {
     Constant(i64),
 
     Var(Ident),

@@ -44,3 +44,18 @@ pub enum UnOp {
     Negate,
     BitwiseInvert,
 }
+
+#[derive(NodeCopy!)]
+pub struct Spanned<T> {
+    pub node: T,
+    pub span: Span,
+}
+
+impl<T, E> Spanned<Result<T, E>> {
+    pub fn transpose(self) -> Result<Spanned<T>, E> {
+        self.node.map(|node| Spanned {
+            node,
+            span: self.span,
+        })
+    }
+}

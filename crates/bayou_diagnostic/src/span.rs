@@ -12,6 +12,10 @@ impl Span {
         Self { start, end }
     }
 
+    pub fn empty(start: usize) -> Self {
+        Self { start, end: start }
+    }
+
     pub fn contains(&self, n: usize) -> bool {
         n >= self.start && n < self.end
     }
@@ -22,6 +26,13 @@ impl Span {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn union(self, other: Self) -> Span {
+        Span {
+            start: self.start.min(other.start),
+            end: self.end.max(other.end),
+        }
     }
 }
 
