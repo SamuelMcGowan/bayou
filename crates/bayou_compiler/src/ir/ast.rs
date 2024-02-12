@@ -1,5 +1,6 @@
 use bayou_diagnostic::span::Span;
 
+use super::ir::Type;
 use super::{BinOp, Ident, Node, UnOp};
 
 #[derive(Node!)]
@@ -16,6 +17,7 @@ pub enum Item {
 #[derive(Node!)]
 pub struct FuncDecl {
     pub name: Ident,
+    pub ret_ty: Type,
     pub statements: Vec<Stmt>,
 }
 

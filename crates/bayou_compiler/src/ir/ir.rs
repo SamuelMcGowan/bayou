@@ -16,6 +16,7 @@ pub enum Item {
 #[derive(Node!)]
 pub struct FuncDecl {
     pub name: Ident,
+    pub ret_ty: Type,
     pub statements: Vec<Stmt>,
 }
 

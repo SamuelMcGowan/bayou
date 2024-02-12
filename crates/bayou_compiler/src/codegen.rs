@@ -11,6 +11,8 @@ use crate::ir::{BinOp, UnOp};
 use crate::target::UnsupportedTarget;
 use crate::{CompilerError, CompilerResult};
 
+type IrType = crate::ir::ir::Type;
+
 pub struct Codegen {
     ctx: codegen::Context,
     builder_ctx: FunctionBuilderContext,
@@ -63,8 +65,12 @@ impl Codegen {
     fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleContext) -> CompilerResult<()> {
         self.module.clear_context(&mut self.ctx);
 
-        // no parameters, one return value
-        self.ctx.func.signature.returns.push(AbiParam::new(I64));
+        match func_decl.ret_ty {
+            IrType::I64 => {
+                self.ctx.func.signature.returns.push(AbiParam::new(I64));
+            }
+            IrType::Void | IrType::Never => {}
+        }
 
         let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_ctx);
 
@@ -146,7 +152,7 @@ impl FuncCodegen<'_> {
                 let local_ty = self.cx.symbols.locals[*local].ty;
 
                 // Void typed variables don't emit expressions.
-                if local_ty == crate::ir::ir::Type::Void {
+                if local_ty == IrType::Void {
                     let var = Variable::new(local.0);
                     self.builder.use_var(var)
                 } else {

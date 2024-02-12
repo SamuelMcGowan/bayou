@@ -103,6 +103,7 @@ impl<'sess> Lexer<'sess> {
                 '(' => TokenKind::LParen,
                 ')' => TokenKind::RParen,
                 ';' => TokenKind::Semicolon,
+                '!' => TokenKind::Bang, // will break `!=`
                 '-' if self.chars.eat('>') => TokenKind::Arrow,
 
                 '+' => TokenKind::Add,

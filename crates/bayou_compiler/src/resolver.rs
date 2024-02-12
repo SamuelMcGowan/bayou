@@ -114,6 +114,7 @@ impl<'cx> Resolver<'cx> {
 
         Some(ir::FuncDecl {
             name: func_decl.name,
+            ret_ty: func_decl.ret_ty,
             statements: resolved_stmts,
         })
     }

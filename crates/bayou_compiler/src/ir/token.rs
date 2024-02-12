@@ -19,6 +19,7 @@ pub enum TokenKind {
     LParen,
     RParen,
     Semicolon,
+    Bang,
     Arrow,
 
     Add,
@@ -77,6 +78,7 @@ impl TokenKind {
             TokenKind::LParen => "`(`",
             TokenKind::RParen => "`)`",
             TokenKind::Semicolon => "`;`",
+            TokenKind::Bang => "`!`",
             TokenKind::Arrow => "`->`",
             TokenKind::Add => "`+`",
             TokenKind::Sub => "`-`",

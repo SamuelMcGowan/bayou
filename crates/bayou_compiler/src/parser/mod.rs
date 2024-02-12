@@ -8,6 +8,7 @@ use bayou_diagnostic::span::Span;
 
 use self::lexer::{Lexer, LexerError, Peek};
 use crate::ir::ast::*;
+use crate::ir::ir::Type;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{Ident, Interner, Spanned};
 
@@ -72,8 +73,14 @@ impl<'sess> Parser<'sess> {
         self.expect(TokenKind::LParen)?;
         self.expect(TokenKind::RParen)?;
 
-        self.expect(TokenKind::Arrow)?;
-        self.expect(TokenKind::Keyword(Keyword::Int))?;
+        let ret_ty = if self.eat_kind(TokenKind::Arrow) {
+            self.parse_or_recover(Self::parse_type, |parser, _| {
+                parser.seek(TokenKind::LBrace);
+                Type::Void
+            })
+        } else {
+            Type::Void
+        };
 
         self.expect(TokenKind::LBrace)?;
 
@@ -89,7 +96,30 @@ impl<'sess> Parser<'sess> {
 
         self.expect(TokenKind::RBrace)?;
 
-        Ok(FuncDecl { name, statements })
+        Ok(FuncDecl {
+            name,
+            ret_ty,
+            statements,
+        })
+    }
+
+    fn parse_type(&mut self) -> ParseResult<Type> {
+        match self.lexer.peek() {
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::Int) => {
+                self.lexer.next();
+                Ok(Type::I64)
+            }
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::Void) => {
+                self.lexer.next();
+                Ok(Type::Void)
+            }
+            Some(t) if t.kind == TokenKind::Bang => {
+                self.lexer.next();
+                Ok(Type::Never)
+            }
+
+            other => Err(self.error_expected("a type", other)),
+        }
     }
 
     fn parse_statement_or_recover(&mut self) -> Stmt {

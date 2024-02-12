@@ -46,8 +46,6 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_func_decl(&mut self, func_decl: &mut FuncDecl) {
-        let expected_ret = Type::I64;
-
         for stmt in &mut func_decl.statements {
             match stmt {
                 Stmt::Assign { local, expr } => {
@@ -63,7 +61,7 @@ impl<'a> TypeChecker<'a> {
                     self.check_expr(expr);
                     if let Some(ty) = expr.ty {
                         self.check_types_match(
-                            expected_ret,
+                            func_decl.ret_ty,
                             // FIXME: use return type span
                             Some(func_decl.name.span),
                             ty,
@@ -76,12 +74,12 @@ impl<'a> TypeChecker<'a> {
 
         // If the function needs to return a value, ensure that the final statement returns.
         // Return *types* are already checked.
-        if expected_ret != Type::Void
+        if func_decl.ret_ty != Type::Void
             && !matches!(func_decl.statements.last(), Some(stmt) if stmt.always_returns())
         {
             // FIXME: use function return type span
             self.errors.push(TypeError::MissingReturn {
-                ty: expected_ret,
+                ty: func_decl.ret_ty,
                 span: func_decl.name.span,
             });
         }
