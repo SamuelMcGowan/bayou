@@ -1,4 +1,4 @@
-int main() {
+func main() -> int {
     let a = 12;
     let b = 14;
     // return a + b;

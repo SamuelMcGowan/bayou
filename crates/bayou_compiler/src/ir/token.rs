@@ -19,6 +19,7 @@ pub enum TokenKind {
     LParen,
     RParen,
     Semicolon,
+    Arrow,
 
     Add,
     Sub,
@@ -50,19 +51,23 @@ pub enum TokenKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Keyword {
-    Int,
+    Func,
     Return,
+
     Let,
+
     Void,
+    Int,
 }
 
 impl TokenKind {
     pub fn token_name(&self) -> &'static str {
         match self {
             TokenKind::Keyword(kw) => match kw {
-                Keyword::Int => "keyword `int`",
+                Keyword::Func => "keyword `func`",
                 Keyword::Return => "keyword `return`",
                 Keyword::Let => "keyword `let`",
+                Keyword::Int => "keyword `int`",
                 Keyword::Void => "keyword `void`",
             },
             TokenKind::Identifier(_) => "identifier",
@@ -72,6 +77,7 @@ impl TokenKind {
             TokenKind::LParen => "`(`",
             TokenKind::RParen => "`)`",
             TokenKind::Semicolon => "`;`",
+            TokenKind::Arrow => "`->`",
             TokenKind::Add => "`+`",
             TokenKind::Sub => "`-`",
             TokenKind::Mul => "`*`",

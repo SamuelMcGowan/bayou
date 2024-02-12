@@ -103,6 +103,7 @@ impl<'sess> Lexer<'sess> {
                 '(' => TokenKind::LParen,
                 ')' => TokenKind::RParen,
                 ';' => TokenKind::Semicolon,
+                '-' if self.chars.eat('>') => TokenKind::Arrow,
 
                 '+' => TokenKind::Add,
                 '-' => TokenKind::Sub,
@@ -170,9 +171,10 @@ impl<'sess> Lexer<'sess> {
         let s = &self.all[self.token_start..self.byte_pos()];
 
         match s {
-            "int" => TokenKind::Keyword(Keyword::Int),
+            "func" => TokenKind::Keyword(Keyword::Func),
             "return" => TokenKind::Keyword(Keyword::Return),
             "let" => TokenKind::Keyword(Keyword::Let),
+            "int" => TokenKind::Keyword(Keyword::Int),
             "void" => TokenKind::Keyword(Keyword::Void),
             _ => {
                 let interned = self.interner.get_or_intern(s);
