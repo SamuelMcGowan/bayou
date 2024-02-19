@@ -1,7 +1,7 @@
 use crate::compiler::ModuleContext;
 use crate::ir::ir::Type;
 use crate::ir::{ast, ir, Ident, InternedStr};
-use crate::symbols::{GlobalSymbol, LocalId, LocalSymbol};
+use crate::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
 
 pub enum ResolverError {
     LocalUndefined(Ident),
@@ -39,25 +39,28 @@ impl<'cx> Resolver<'cx> {
     fn declare_globals(&mut self, items: &[ast::Item]) {
         for item in items {
             match item {
-                ast::Item::FuncDecl(func_decl) => self.declare_global(GlobalSymbol {
+                ast::Item::FuncDecl(func_decl) => self.declare_global_func(FunctionSymbol {
                     ident: func_decl.name,
+                    ret_ty: func_decl.ret_ty,
                 }),
                 ast::Item::ParseError => unreachable!(),
             }
         }
     }
 
-    fn declare_global(&mut self, symbol: GlobalSymbol) {
+    fn declare_global_func(&mut self, symbol: FunctionSymbol) {
         let ident = symbol.ident;
+
+        let func_id = self.context.symbols.funcs.insert(symbol);
 
         if let Some(first_symbol) = self
             .context
             .symbols
-            .globals
-            .insert(symbol.ident.ident, symbol)
+            .global_lookup
+            .insert(ident.ident, GlobalId::Func(func_id))
         {
             self.errors.push(ResolverError::DuplicateGlobal {
-                first: first_symbol.ident,
+                first: self.context.symbols.get_global_ident(first_symbol).unwrap(),
                 second: ident,
             })
         }
