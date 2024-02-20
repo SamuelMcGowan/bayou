@@ -12,111 +12,51 @@ use crate::passes::type_check::TypeChecker;
 use crate::resolver::Resolver;
 use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
+use crate::target::Linker;
 use crate::utils::keyvec::{declare_key_type, KeyVec};
 use crate::{CompilerError, CompilerResult};
 
 declare_key_type! { pub struct ModuleId; }
 
-pub struct Compiler<D: DiagnosticEmitter> {
-    name: String,
-    sources: SourceMap,
-    diagnostics: D,
-
-    asts: KeyVec<ModuleId, Module>,
-    module_cxs: KeyVec<ModuleId, ModuleContext>,
-
-    triple: Triple,
+impl ModuleId {
+    pub fn root() -> Self {
+        use crate::utils::keyvec::Key;
+        Self::from_usize(0)
+    }
 }
 
-impl<D: DiagnosticEmitter> Compiler<D> {
-    pub fn new(name: impl Into<String>, diagnostics: D, triple: Triple) -> Self {
-        Self {
-            name: name.into(),
+pub struct Session<D: DiagnosticEmitter> {
+    pub sources: SourceMap,
+    pub diagnostics: D,
+
+    pub triple: Triple,
+    pub linker: Linker,
+}
+
+impl<D: DiagnosticEmitter> Session<D> {
+    pub fn new(diagnostics: D, triple: Triple) -> CompilerResult<Self> {
+        Ok(Self {
             sources: SourceMap::default(),
             diagnostics,
 
-            asts: KeyVec::new(),
-            module_cxs: KeyVec::new(),
-
+            linker: Linker::from_triple(&triple)?,
             triple,
-        }
+        })
     }
 
-    pub fn add_module(
+    pub fn report_all<Errs>(
         &mut self,
-        name: impl Into<String>,
-        source: impl Into<String>,
-    ) -> CompilerResult<ModuleId> {
-        let source_id = self.sources.insert(Source::new(name, source));
-        let source = self.sources.get_source(source_id).unwrap();
-
-        let parser = Parser::new(source.source_str());
-        let (ast, interner, parse_errors) = parser.parse();
-
-        let module_context = ModuleContext {
-            source_id,
-            symbols: Symbols::default(),
-            interner,
-        };
-
-        self.report(parse_errors, &module_context)?;
-
-        let _ = self.module_cxs.insert(module_context);
-        let module_id = self.asts.insert(ast);
-
-        Ok(module_id)
-    }
-
-    pub fn compile(mut self) -> CompilerResult<ObjectProduct> {
-        use std::mem::take;
-
-        let mut codegen = Codegen::new(self.triple.clone(), &self.name)?;
-
-        let mut cxs = take(&mut self.module_cxs);
-        let mut irs = vec![];
-
-        // name resolution
-        for (ast, cx) in take(&mut self.asts).into_iter().zip(&mut cxs) {
-            let resolver = Resolver::new(cx);
-            let ir = match resolver.run(ast) {
-                Ok(ir) => ir,
-                Err(errors) => {
-                    let _ = self.report(errors, cx);
-                    return Err(CompilerError::HadErrors);
-                }
-            };
-            irs.push(ir);
-        }
-
-        // type checking
-        for (ir, cx) in irs.iter_mut().zip(&mut cxs) {
-            let type_checker = TypeChecker::new(cx);
-            let type_errors = type_checker.run(ir);
-            self.report(type_errors, cx)?;
-        }
-
-        // codegen
-        for (ir, cx) in irs.iter().zip(&cxs) {
-            codegen.compile_module(ir, cx)?;
-        }
-
-        let object = codegen.finish()?;
-
-        Ok(object)
-    }
-
-    fn report<I: IntoIterator>(
-        &mut self,
-        diagnostics: I,
-        module_context: &ModuleContext,
+        diagnostics: Errs,
+        module_cx: &ModuleCx,
     ) -> CompilerResult<()>
     where
-        I::Item: IntoDiagnostic,
+        Errs: IntoIterator,
+        Errs::Item: IntoDiagnostic,
     {
         let mut had_errors = false;
 
         for diagnostic in diagnostics {
-            let diagnostic = diagnostic.into_diagnostic(module_context);
+            let diagnostic = diagnostic.into_diagnostic(module_cx);
             had_errors |= diagnostic.kind >= DiagnosticKind::Error;
             self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
         }
@@ -129,9 +69,98 @@ impl<D: DiagnosticEmitter> Compiler<D> {
     }
 }
 
-pub struct ModuleContext {
+pub struct ModuleCx {
     pub source_id: SourceId,
 
     pub symbols: Symbols,
     pub interner: Interner,
+}
+
+/// A package that is being compiled.
+pub struct PackageCompilation {
+    name: String,
+
+    asts: KeyVec<ModuleId, Module>,
+    module_cxs: KeyVec<ModuleId, ModuleCx>,
+}
+
+impl PackageCompilation {
+    pub fn parse<D>(
+        session: &mut Session<D>,
+        name: impl Into<String>,
+        source: impl Into<String>,
+    ) -> CompilerResult<Self>
+    where
+        D: DiagnosticEmitter,
+    {
+        let name = name.into();
+
+        let source_id = session.sources.insert(Source::new(&name, source));
+        let source = session.sources.get_source(source_id).unwrap();
+
+        let parser = Parser::new(source.source_str());
+        let (ast, interner, parse_errors) = parser.parse();
+
+        let module_cx = ModuleCx {
+            source_id,
+            symbols: Symbols::default(),
+            interner,
+        };
+
+        session.report_all(parse_errors, &module_cx)?;
+
+        let mut asts = KeyVec::new();
+        let mut module_cxs = KeyVec::new();
+
+        // will have root id
+        let _ = asts.insert(ast);
+        let _ = module_cxs.insert(module_cx);
+
+        Ok(PackageCompilation {
+            name,
+            asts,
+            module_cxs,
+        })
+    }
+
+    pub fn compile<D: DiagnosticEmitter>(
+        mut self,
+        session: &mut Session<D>,
+    ) -> CompilerResult<ObjectProduct> {
+        use std::mem::take;
+
+        let mut codegen = Codegen::new(session.triple.clone(), &self.name)?;
+
+        let mut module_cxs = take(&mut self.module_cxs);
+        let mut irs = vec![];
+
+        // name resolution
+        for (ast, module_cx) in take(&mut self.asts).into_iter().zip(&mut module_cxs) {
+            let resolver = Resolver::new(module_cx);
+            let ir = match resolver.run(ast) {
+                Ok(ir) => ir,
+                Err(errors) => {
+                    let _ = session.report_all(errors, module_cx);
+                    return Err(CompilerError::HadErrors);
+                }
+            };
+            irs.push(ir);
+        }
+
+        // type checking
+        for (ir, module_cx) in irs.iter_mut().zip(&mut module_cxs) {
+            let type_checker = TypeChecker::new(module_cx);
+            let type_errors = type_checker.run(ir);
+            session.report_all(type_errors, module_cx)?;
+        }
+
+        // codegen
+        for (ir, module_cx) in irs.iter().zip(&module_cxs) {
+            codegen.compile_module(ir, module_cx)?;
+        }
+
+        let object = codegen.finish()?;
+
+        Ok(object)
+    }
 }

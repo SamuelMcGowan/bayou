@@ -1,4 +1,4 @@
-use crate::compiler::ModuleContext;
+use crate::compiler::ModuleCx;
 use crate::ir::ir::Type;
 use crate::ir::{ast, ir, Ident, InternedStr};
 use crate::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
@@ -9,14 +9,14 @@ pub enum ResolverError {
 }
 
 pub struct Resolver<'cx> {
-    context: &'cx mut ModuleContext,
+    context: &'cx mut ModuleCx,
     errors: Vec<ResolverError>,
 
     local_stack: Vec<LocalEntry>,
 }
 
 impl<'cx> Resolver<'cx> {
-    pub fn new(context: &'cx mut ModuleContext) -> Self {
+    pub fn new(context: &'cx mut ModuleCx) -> Self {
         Self {
             context,
             errors: vec![],

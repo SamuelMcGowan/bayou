@@ -20,14 +20,13 @@ use std::str::FromStr;
 
 use clap::Parser as _;
 use cli::{Cli, Command};
+use compiler::{PackageCompilation, Session};
 use target::UnsupportedTarget;
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
 
-use crate::compiler::Compiler;
 use crate::diagnostics::PrettyDiagnosticEmitter;
-use crate::target::Linker;
 
 #[derive(thiserror::Error, Debug)]
 enum CompilerError {
@@ -71,6 +70,13 @@ fn run() -> CompilerResult<()> {
             output,
             target,
         } => {
+            // get session
+            let triple = match target {
+                Some(s) => Triple::from_str(&s).map_err(UnsupportedTarget::ParseError)?,
+                None => Triple::host(),
+            };
+            let mut sess = Session::new(PrettyDiagnosticEmitter::default(), triple)?;
+
             let (name, name_stem, source) = if source {
                 ("unnamed".to_owned(), "unnamed".to_owned(), input)
             } else {
@@ -83,26 +89,15 @@ fn run() -> CompilerResult<()> {
                     .to_owned();
                 (input, name_normalised, source)
             };
-            let output = output.unwrap_or_else(|| name_stem.clone());
 
-            let triple = match target {
-                Some(s) => Triple::from_str(&s).map_err(UnsupportedTarget::ParseError)?,
-                None => Triple::host(),
-            };
-            let linker = Linker::from_triple(&triple)?;
+            let output = output.unwrap_or_else(|| name_stem.clone());
 
             // compilation
             let object = {
                 println!("compiling project `{name}`");
 
-                let mut compiler = Compiler::new(
-                    name.clone(),
-                    PrettyDiagnosticEmitter::default(),
-                    triple.clone(),
-                );
-
-                let _module_id = compiler.add_module(&name, source)?;
-                compiler.compile()?
+                let pkg = PackageCompilation::parse(&mut sess, &name, source)?;
+                pkg.compile(&mut sess)?
             };
 
             // emit and link objects
@@ -120,7 +115,7 @@ fn run() -> CompilerResult<()> {
                 std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");
-                linker.run(&[tmp_file.path()], &output)?;
+                sess.linker.run(&[tmp_file.path()], &output)?;
             }
 
             Ok(())

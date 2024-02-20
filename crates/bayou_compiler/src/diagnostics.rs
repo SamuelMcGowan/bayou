@@ -1,7 +1,7 @@
 use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Snippet};
 
-use crate::compiler::ModuleContext;
+use crate::compiler::ModuleCx;
 use crate::parser::ParseError;
 use crate::passes::type_check::TypeError;
 use crate::resolver::ResolverError;
@@ -43,11 +43,11 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
 
 pub trait IntoDiagnostic {
     // TODO: take reference to source context
-    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic;
+    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic;
 }
 
 impl IntoDiagnostic for ParseError {
-    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic {
+    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic {
         match self {
             ParseError::Expected { expected, span } => Diagnostic::error()
                 .with_message("syntax error")
@@ -69,7 +69,7 @@ impl IntoDiagnostic for ParseError {
 }
 
 impl IntoDiagnostic for ResolverError {
-    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic {
+    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic {
         match self {
             ResolverError::DuplicateGlobal { first, second } => {
                 let name_str = module_context.interner.resolve(&first.ident);
@@ -102,7 +102,7 @@ impl IntoDiagnostic for ResolverError {
 }
 
 impl IntoDiagnostic for TypeError {
-    fn into_diagnostic(self, module_context: &ModuleContext) -> Diagnostic {
+    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic {
         match self {
             TypeError::TypeMismatch {
                 expected,

@@ -5,7 +5,7 @@ use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
-use crate::compiler::ModuleContext;
+use crate::compiler::ModuleCx;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 use crate::target::UnsupportedTarget;
@@ -48,7 +48,7 @@ impl Codegen {
         })
     }
 
-    pub fn compile_module(&mut self, module: &Module, cx: &ModuleContext) -> CompilerResult<()> {
+    pub fn compile_module(&mut self, module: &Module, cx: &ModuleCx) -> CompilerResult<()> {
         for item in &module.items {
             match item {
                 Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, cx)?,
@@ -62,7 +62,7 @@ impl Codegen {
         Ok(self.module.finish())
     }
 
-    fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleContext) -> CompilerResult<()> {
+    fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleCx) -> CompilerResult<()> {
         self.module.clear_context(&mut self.ctx);
 
         match func_decl.ret_ty {
@@ -108,7 +108,7 @@ impl Codegen {
 struct FuncCodegen<'a> {
     builder: FunctionBuilder<'a>,
     module: &'a mut ObjectModule,
-    cx: &'a ModuleContext,
+    cx: &'a ModuleCx,
 }
 
 impl FuncCodegen<'_> {

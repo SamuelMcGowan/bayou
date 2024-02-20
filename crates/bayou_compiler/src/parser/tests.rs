@@ -1,10 +1,13 @@
 use target_lexicon::Triple;
 
-use crate::compiler::Compiler;
+use crate::compiler::{PackageCompilation, Session};
 
 fn test_compiles(source: &str, should_compile: bool) {
-    let mut compiler = Compiler::new("tests", vec![], Triple::host());
-    let compiled = compiler.add_module("test_source", source).is_ok();
+    let mut sess = Session::new(vec![], Triple::host()).expect("failed to create session");
+
+    let compiled = PackageCompilation::parse(&mut sess, "tests", source)
+        .and_then(|pkg| pkg.compile(&mut sess))
+        .is_ok();
 
     match (compiled, should_compile) {
         (false, true) => panic!("failed to compile: {source:?}"),

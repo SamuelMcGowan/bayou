@@ -1,6 +1,6 @@
 use bayou_diagnostic::span::Span;
 
-use crate::compiler::ModuleContext;
+use crate::compiler::ModuleCx;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 
@@ -21,12 +21,12 @@ pub enum TypeError {
 }
 
 pub struct TypeChecker<'a> {
-    context: &'a mut ModuleContext,
+    context: &'a mut ModuleCx,
     errors: Vec<TypeError>,
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(context: &'a mut ModuleContext) -> Self {
+    pub fn new(context: &'a mut ModuleCx) -> Self {
         Self {
             context,
             errors: vec![],
