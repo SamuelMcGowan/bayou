@@ -26,6 +26,10 @@ impl<K: Key, V> KeyVec<K, V> {
     pub fn get_mut(&mut self, key: K) -> Option<&mut V> {
         self.inner.get_mut(key.as_usize())
     }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<V> {
+        self.inner.iter_mut()
+    }
 }
 
 impl<K, V> Default for KeyVec<K, V> {
@@ -61,11 +65,28 @@ impl<K: Key, V> IndexMut<K> for KeyVec<K, V> {
 
 impl<K, V> IntoIterator for KeyVec<K, V> {
     type Item = V;
-
     type IntoIter = std::vec::IntoIter<V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.inner.into_iter()
+    }
+}
+
+impl<'a, K, V> IntoIterator for &'a KeyVec<K, V> {
+    type Item = &'a V;
+    type IntoIter = std::slice::Iter<'a, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.iter()
+    }
+}
+
+impl<'a, K, V> IntoIterator for &'a mut KeyVec<K, V> {
+    type Item = &'a mut V;
+    type IntoIter = std::slice::IterMut<'a, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.iter_mut()
     }
 }
 

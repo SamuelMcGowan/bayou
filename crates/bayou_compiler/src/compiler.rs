@@ -22,7 +22,7 @@ pub struct Compiler<D: DiagnosticEmitter> {
     sources: SourceMap,
     diagnostics: D,
 
-    modules: KeyVec<ModuleId, Module>,
+    asts: KeyVec<ModuleId, Module>,
     module_cxs: KeyVec<ModuleId, ModuleContext>,
 
     triple: Triple,
@@ -35,7 +35,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
             sources: SourceMap::default(),
             diagnostics,
 
-            modules: KeyVec::new(),
+            asts: KeyVec::new(),
             module_cxs: KeyVec::new(),
 
             triple,
@@ -62,7 +62,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         self.report(parse_errors, &module_context)?;
 
         let _ = self.module_cxs.insert(module_context);
-        let module_id = self.modules.insert(ast);
+        let module_id = self.asts.insert(ast);
 
         Ok(module_id)
     }
@@ -72,24 +72,32 @@ impl<D: DiagnosticEmitter> Compiler<D> {
 
         let mut codegen = Codegen::new(self.triple.clone(), &self.name)?;
 
-        for (ast, mut module_cx) in take(&mut self.modules)
-            .into_iter()
-            .zip(take(&mut self.module_cxs))
-        {
-            let resolver = Resolver::new(&mut module_cx);
-            let mut ir = match resolver.run(ast) {
+        let mut cxs = take(&mut self.module_cxs);
+        let mut irs = vec![];
+
+        // name resolution
+        for (ast, cx) in take(&mut self.asts).into_iter().zip(&mut cxs) {
+            let resolver = Resolver::new(cx);
+            let ir = match resolver.run(ast) {
                 Ok(ir) => ir,
                 Err(errors) => {
-                    let _ = self.report(errors, &module_cx);
+                    let _ = self.report(errors, cx);
                     return Err(CompilerError::HadErrors);
                 }
             };
+            irs.push(ir);
+        }
 
-            let type_checker = TypeChecker::new(&mut module_cx);
-            let type_errors = type_checker.run(&mut ir);
-            self.report(type_errors, &module_cx)?;
+        // type checking
+        for (ir, cx) in irs.iter_mut().zip(&mut cxs) {
+            let type_checker = TypeChecker::new(cx);
+            let type_errors = type_checker.run(ir);
+            self.report(type_errors, cx)?;
+        }
 
-            codegen.compile_module(&ir, &module_cx)?;
+        // codegen
+        for (ir, cx) in irs.iter().zip(&cxs) {
+            codegen.compile_module(ir, cx)?;
         }
 
         let object = codegen.finish()?;
