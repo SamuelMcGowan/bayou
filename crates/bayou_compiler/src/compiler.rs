@@ -5,7 +5,7 @@ use target_lexicon::Triple;
 
 use crate::codegen::Codegen;
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
-use crate::ir::ir::Module;
+use crate::ir::ast::Module;
 use crate::ir::Interner;
 use crate::parser::Parser;
 use crate::passes::type_check::TypeChecker;
@@ -23,7 +23,7 @@ pub struct Compiler<D: DiagnosticEmitter> {
     diagnostics: D,
 
     modules: KeyVec<ModuleId, Module>,
-    module_cxts: KeyVec<ModuleId, ModuleContext>,
+    module_cxs: KeyVec<ModuleId, ModuleContext>,
 
     triple: Triple,
 }
@@ -36,7 +36,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
             diagnostics,
 
             modules: KeyVec::new(),
-            module_cxts: KeyVec::new(),
+            module_cxs: KeyVec::new(),
 
             triple,
         }
@@ -53,7 +53,7 @@ impl<D: DiagnosticEmitter> Compiler<D> {
         let parser = Parser::new(source.source_str());
         let (ast, interner, parse_errors) = parser.parse();
 
-        let mut module_context = ModuleContext {
+        let module_context = ModuleContext {
             source_id,
             symbols: Symbols::default(),
             interner,
@@ -61,30 +61,35 @@ impl<D: DiagnosticEmitter> Compiler<D> {
 
         self.report(parse_errors, &module_context)?;
 
-        let resolver = Resolver::new(&mut module_context);
-        let mut ir = match resolver.run(ast) {
-            Ok(ir) => ir,
-            Err(errors) => {
-                let _ = self.report(errors, &module_context);
-                return Err(CompilerError::HadErrors);
-            }
-        };
-
-        let type_checker = TypeChecker::new(&mut module_context);
-        let type_errors = type_checker.run(&mut ir);
-        self.report(type_errors, &module_context)?;
-
-        let module_id = self.modules.insert(ir);
-        let _ = self.module_cxts.insert(module_context);
+        let _ = self.module_cxs.insert(module_context);
+        let module_id = self.modules.insert(ast);
 
         Ok(module_id)
     }
 
-    pub fn compile(&mut self) -> CompilerResult<ObjectProduct> {
+    pub fn compile(mut self) -> CompilerResult<ObjectProduct> {
+        use std::mem::take;
+
         let mut codegen = Codegen::new(self.triple.clone(), &self.name)?;
 
-        for (module, cx) in self.modules.iter().zip(self.module_cxts.iter()) {
-            codegen.compile_module(module, cx)?;
+        for (ast, mut module_cx) in take(&mut self.modules)
+            .into_iter()
+            .zip(take(&mut self.module_cxs))
+        {
+            let resolver = Resolver::new(&mut module_cx);
+            let mut ir = match resolver.run(ast) {
+                Ok(ir) => ir,
+                Err(errors) => {
+                    let _ = self.report(errors, &module_cx);
+                    return Err(CompilerError::HadErrors);
+                }
+            };
+
+            let type_checker = TypeChecker::new(&mut module_cx);
+            let type_errors = type_checker.run(&mut ir);
+            self.report(type_errors, &module_cx)?;
+
+            codegen.compile_module(&ir, &module_cx)?;
         }
 
         let object = codegen.finish()?;
