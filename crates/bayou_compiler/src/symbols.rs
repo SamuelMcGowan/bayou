@@ -38,6 +38,14 @@ pub enum GlobalId {
     Func(FuncId),
 }
 
+impl GlobalId {
+    pub fn as_func(self) -> Option<FuncId> {
+        match self {
+            Self::Func(id) => Some(id),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct FunctionSymbol {
     pub ident: Ident,
