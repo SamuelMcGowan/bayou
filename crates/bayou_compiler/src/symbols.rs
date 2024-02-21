@@ -15,6 +15,10 @@ pub struct Symbols {
 }
 
 impl Symbols {
+    pub fn lookup_global(&self, name: InternedStr) -> Option<GlobalId> {
+        self.global_lookup.get(&name).copied()
+    }
+
     pub fn get_global_ident(&self, id: GlobalId) -> Option<Ident> {
         match id {
             GlobalId::Func(id) => self.funcs.get(id).map(|s| s.ident),

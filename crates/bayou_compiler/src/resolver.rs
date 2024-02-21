@@ -41,6 +41,7 @@ impl<'cx> Resolver<'cx> {
             match item {
                 ast::Item::FuncDecl(func_decl) => self.declare_global_func(FunctionSymbol {
                     ident: func_decl.name,
+
                     ret_ty: func_decl.ret_ty,
                 }),
                 ast::Item::ParseError => unreachable!(),

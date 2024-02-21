@@ -5,13 +5,14 @@ use target_lexicon::Triple;
 
 use crate::codegen::Codegen;
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
-use crate::ir::ir::{Module, Type};
+use crate::ir::ir::Module;
 use crate::ir::Interner;
 use crate::parser::Parser;
+use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
 use crate::resolver::Resolver;
 use crate::sourcemap::{Source, SourceId, SourceMap};
-use crate::symbols::{GlobalId, Symbols};
+use crate::symbols::Symbols;
 use crate::target::Linker;
 use crate::utils::keyvec::{declare_key_type, KeyVec};
 use crate::{CompilerError, CompilerResult};
@@ -78,10 +79,11 @@ pub struct ModuleCx {
 
 /// A package that is being compiled.
 pub struct PackageCompilation {
-    name: String,
+    // FIXME: make these private
+    pub name: String,
 
-    irs: KeyVec<ModuleId, Module>,
-    module_cxs: KeyVec<ModuleId, ModuleCx>,
+    pub irs: KeyVec<ModuleId, Module>,
+    pub module_cxs: KeyVec<ModuleId, ModuleCx>,
 }
 
 impl PackageCompilation {
@@ -146,8 +148,10 @@ impl PackageCompilation {
             session.report_all(type_errors, module_cx)?;
         }
 
-        // FIXME: this is messy
-        self.check_for_main_function()?;
+        if let Err(err) = check_entrypoint(&self) {
+            let module_cx = &self.module_cxs[ModuleId::root()];
+            session.report_all([err], module_cx)?;
+        }
 
         // codegen
         for (ir, module_cx) in self.irs.iter().zip(&self.module_cxs) {
@@ -157,27 +161,5 @@ impl PackageCompilation {
         let object = codegen.finish()?;
 
         Ok(object)
-    }
-
-    fn check_for_main_function(&mut self) -> CompilerResult<()> {
-        let root_module_cx = &mut self.module_cxs[ModuleId::root()];
-
-        let main_ident = root_module_cx.interner.get_or_intern("main");
-
-        let func_id = root_module_cx
-            .symbols
-            .global_lookup
-            .get(&main_ident)
-            .and_then(|id| id.as_func())
-            .ok_or(CompilerError::MissingMain)?;
-
-        let func = &root_module_cx.symbols.funcs[func_id];
-
-        if func.ret_ty != Type::I64 {
-            // TODO: emit a diagnostic here
-            return Err(CompilerError::MainHasWrongSignature);
-        }
-
-        Ok(())
     }
 }

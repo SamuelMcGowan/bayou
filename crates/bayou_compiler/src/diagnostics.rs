@@ -3,6 +3,7 @@ use bayou_diagnostic::{Config, Snippet};
 
 use crate::compiler::ModuleCx;
 use crate::parser::ParseError;
+use crate::passes::entry_point::EntrypointError;
 use crate::passes::type_check::TypeError;
 use crate::resolver::ResolverError;
 use crate::sourcemap::SourceMap;
@@ -137,6 +138,18 @@ impl IntoDiagnostic for TypeError {
                     "expected due to this return type",
                     module_context.source_id,
                     span,
+                )),
+        }
+    }
+}
+
+impl IntoDiagnostic for EntrypointError {
+    fn into_diagnostic(self, _module_context: &ModuleCx) -> Diagnostic {
+        match self {
+            EntrypointError::Missing => Diagnostic::error().with_message("`main` function missing"),
+            EntrypointError::WrongSignature { expected, found } => Diagnostic::error()
+                .with_message(format!(
+                    "expected main function with return type {expected:?}, but it returned type {found:?}"
                 )),
         }
     }

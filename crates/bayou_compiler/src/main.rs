@@ -48,12 +48,6 @@ enum CompilerError {
     #[error("linker error: {}", String::from_utf8_lossy(.0))]
     Linker(Vec<u8>),
 
-    #[error("main function missing")]
-    MissingMain,
-
-    #[error("main function has wrong signature")]
-    MainHasWrongSignature,
-
     #[error("errors while compiling")]
     HadErrors,
 }
