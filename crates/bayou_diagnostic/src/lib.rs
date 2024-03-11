@@ -3,6 +3,7 @@ pub mod sources;
 pub mod span;
 
 use derive_where::derive_where;
+#[cfg(feature = "serialize")]
 use serde::Serialize;
 use span::AsSpan;
 pub use termcolor;
@@ -19,7 +20,10 @@ pub struct Diagnostic<S: SourceMap> {
     pub message: Option<String>,
     pub id: Option<String>,
 
-    #[serde(bound(serialize = "S::SourceId: Serialize"))]
+    #[cfg_attr(
+        feature = "serialize",
+        serde(bound(serialize = "S::SourceId: Serialize"))
+    )]
     pub snippets: Vec<Snippet<S>>,
 }
 
@@ -75,7 +79,10 @@ pub struct Snippet<S: SourceMap> {
     label: String,
     kind: SnippetKind,
 
-    #[serde(bound(serialize = "S::SourceId: Serialize"))]
+    #[cfg_attr(
+        feature = "serialize",
+        serde(bound(serialize = "S::SourceId: Serialize"))
+    )]
     source_id: S::SourceId,
     span: Span,
 }
