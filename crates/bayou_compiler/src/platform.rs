@@ -11,7 +11,7 @@ pub enum Linker {
 }
 
 impl Linker {
-    pub fn from_triple(triple: &Triple) -> Result<Self, UnsupportedTarget> {
+    pub fn from_host_triple(triple: &Triple) -> Result<Self, UnsupportedTarget> {
         match triple.environment {
             Environment::Gnu => Ok(Linker::Gcc),
             _ => Err(UnsupportedTarget::NoLinkerFound(triple.clone())),

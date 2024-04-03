@@ -10,10 +10,10 @@ use crate::ir::Interner;
 use crate::parser::Parser;
 use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
+use crate::platform::Linker;
 use crate::resolver::Resolver;
 use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
-use crate::target::Linker;
 use crate::utils::keyvec::{declare_key_type, KeyVec};
 use crate::{CompilerError, CompilerResult};
 
@@ -30,18 +30,24 @@ pub struct Session<D: DiagnosticEmitter> {
     pub sources: SourceMap,
     pub diagnostics: D,
 
-    pub triple: Triple,
+    pub host: Triple,
+    pub target: Triple,
+
     pub linker: Linker,
 }
 
 impl<D: DiagnosticEmitter> Session<D> {
     pub fn new(diagnostics: D, triple: Triple) -> CompilerResult<Self> {
+        let host = Triple::host();
+
         Ok(Self {
             sources: SourceMap::default(),
             diagnostics,
 
-            linker: Linker::from_triple(&triple)?,
-            triple,
+            linker: Linker::from_host_triple(&host)?,
+
+            host,
+            target: triple,
         })
     }
 
@@ -139,7 +145,7 @@ impl PackageCompilation {
         mut self,
         session: &mut Session<D>,
     ) -> CompilerResult<ObjectProduct> {
-        let mut codegen = Codegen::new(session.triple.clone(), &self.name)?;
+        let mut codegen = Codegen::new(session.target.clone(), &self.name)?;
 
         // type checking
         for (ir, module_cx) in self.irs.iter_mut().zip(&mut self.module_cxs) {

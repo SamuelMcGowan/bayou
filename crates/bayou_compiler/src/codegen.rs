@@ -8,7 +8,7 @@ use target_lexicon::Triple;
 use crate::compiler::ModuleCx;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
-use crate::target::UnsupportedTarget;
+use crate::platform::UnsupportedTarget;
 use crate::{CompilerError, CompilerResult};
 
 type IrType = crate::ir::ir::Type;
