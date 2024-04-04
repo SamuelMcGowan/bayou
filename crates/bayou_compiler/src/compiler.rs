@@ -10,7 +10,6 @@ use crate::ir::Interner;
 use crate::parser::Parser;
 use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
-use crate::platform::Linker;
 use crate::resolver::Resolver;
 use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
@@ -29,19 +28,15 @@ impl ModuleId {
 pub struct Session<D: DiagnosticEmitter> {
     pub sources: SourceMap,
     pub diagnostics: D,
-
     pub target: Triple,
-    pub linker: Linker,
 }
 
 impl<D: DiagnosticEmitter> Session<D> {
-    pub fn new(diagnostics: D, target: Triple, linker: Linker) -> Self {
+    pub fn new(diagnostics: D, target: Triple) -> Self {
         Self {
             sources: SourceMap::default(),
             diagnostics,
-
             target,
-            linker,
         }
     }
 

@@ -76,7 +76,7 @@ fn run() -> CompilerResult<()> {
                 None => Triple::host(),
             };
             let linker = Linker::detect(&target).ok_or(PlatformError::NoLinker)?;
-            let mut sess = Session::new(PrettyDiagnosticEmitter::default(), target, linker);
+            let mut sess = Session::new(PrettyDiagnosticEmitter::default(), target);
 
             let (name, name_stem, source) = if source {
                 ("unnamed".to_owned(), "unnamed".to_owned(), input)
@@ -116,7 +116,7 @@ fn run() -> CompilerResult<()> {
                 std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");
-                sess.linker.link(&[tmp_file.path()], output)?;
+                linker.link(&[tmp_file.path()], output)?;
             }
 
             Ok(())
