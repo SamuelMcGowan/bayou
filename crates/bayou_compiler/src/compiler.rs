@@ -10,7 +10,7 @@ use crate::ir::Interner;
 use crate::parser::Parser;
 use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
-use crate::platform::Platform;
+use crate::platform::Linker;
 use crate::resolver::Resolver;
 use crate::sourcemap::{Source, SourceId, SourceMap};
 use crate::symbols::Symbols;
@@ -30,17 +30,19 @@ pub struct Session<D: DiagnosticEmitter> {
     pub sources: SourceMap,
     pub diagnostics: D,
 
-    pub platform: Platform,
+    pub target: Triple,
+    pub linker: Linker,
 }
 
 impl<D: DiagnosticEmitter> Session<D> {
-    pub fn new(diagnostics: D, target: Triple) -> CompilerResult<Self> {
-        Ok(Self {
+    pub fn new(diagnostics: D, target: Triple, linker: Linker) -> Self {
+        Self {
             sources: SourceMap::default(),
             diagnostics,
 
-            platform: Platform::new(target)?,
-        })
+            target,
+            linker,
+        }
     }
 
     pub fn report_all<Errs>(
@@ -137,7 +139,7 @@ impl PackageCompilation {
         mut self,
         session: &mut Session<D>,
     ) -> CompilerResult<ObjectProduct> {
-        let mut codegen = Codegen::new(session.platform.target.clone(), &self.name)?;
+        let mut codegen = Codegen::new(session.target.clone(), &self.name)?;
 
         // type checking
         for (ir, module_cx) in self.irs.iter_mut().zip(&mut self.module_cxs) {

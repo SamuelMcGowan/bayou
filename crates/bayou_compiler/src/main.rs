@@ -21,7 +21,7 @@ use std::str::FromStr;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use compiler::{PackageCompilation, Session};
-use platform::{LinkerError, PlatformError};
+use platform::{Linker, LinkerError, PlatformError};
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
@@ -71,11 +71,12 @@ fn run() -> CompilerResult<()> {
             target,
         } => {
             // get session
-            let triple = match target {
+            let target = match target {
                 Some(s) => Triple::from_str(&s).map_err(PlatformError::ParseError)?,
                 None => Triple::host(),
             };
-            let mut sess = Session::new(PrettyDiagnosticEmitter::default(), triple)?;
+            let linker = Linker::detect(&target).ok_or(PlatformError::NoLinker)?;
+            let mut sess = Session::new(PrettyDiagnosticEmitter::default(), target, linker);
 
             let (name, name_stem, source) = if source {
                 ("unnamed".to_owned(), "unnamed".to_owned(), input)
@@ -115,7 +116,7 @@ fn run() -> CompilerResult<()> {
                 std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");
-                sess.platform.run_linker(&[tmp_file.path()], &output)?;
+                sess.linker.link(&[tmp_file.path()], output)?;
             }
 
             Ok(())
