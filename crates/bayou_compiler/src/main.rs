@@ -21,7 +21,7 @@ use std::str::FromStr;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use compiler::{PackageCompilation, Session};
-use platform::UnsupportedTarget;
+use platform::{LinkerError, PlatformError};
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
@@ -34,7 +34,7 @@ enum CompilerError {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    UnsupportedTarget(#[from] UnsupportedTarget),
+    UnsupportedTarget(#[from] PlatformError),
 
     #[error(transparent)]
     Module(#[from] cranelift_module::ModuleError),
@@ -45,8 +45,8 @@ enum CompilerError {
     #[error("error emitting object: {0}")]
     Object(#[from] cranelift_object::object::write::Error),
 
-    #[error("linker error: {}", String::from_utf8_lossy(.0))]
-    Linker(Vec<u8>),
+    #[error("linker error: {0}")]
+    Linker(#[from] LinkerError),
 
     #[error("errors while compiling")]
     HadErrors,
@@ -72,7 +72,7 @@ fn run() -> CompilerResult<()> {
         } => {
             // get session
             let triple = match target {
-                Some(s) => Triple::from_str(&s).map_err(UnsupportedTarget::ParseError)?,
+                Some(s) => Triple::from_str(&s).map_err(PlatformError::ParseError)?,
                 None => Triple::host(),
             };
             let mut sess = Session::new(PrettyDiagnosticEmitter::default(), triple)?;
@@ -115,7 +115,7 @@ fn run() -> CompilerResult<()> {
                 std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");
-                sess.linker.run(&[tmp_file.path()], &output)?;
+                sess.platform.run_linker(&[tmp_file.path()], &output)?;
             }
 
             Ok(())

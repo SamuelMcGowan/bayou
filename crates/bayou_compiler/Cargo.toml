@@ -10,6 +10,7 @@ clap = { version = "4.4.18", features = ["derive"] }
 cranelift = "0.104.1"
 cranelift-module = "0.104.1"
 cranelift-object = "0.104.1"
+goblin = "0.8.0"
 lasso = { version = "0.7.2", features = ["serialize"] }
 macro_rules_attribute = "0.2.0"
 serde = { version = "1.0.195", features = ["derive"] }

@@ -8,7 +8,7 @@ use target_lexicon::Triple;
 use crate::compiler::ModuleCx;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
-use crate::platform::UnsupportedTarget;
+use crate::platform::PlatformError;
 use crate::{CompilerError, CompilerResult};
 
 type IrType = crate::ir::ir::Type;
@@ -20,18 +20,18 @@ pub struct Codegen {
 }
 
 impl Codegen {
-    pub fn new(triple: Triple, name: &str) -> CompilerResult<Self> {
+    pub fn new(target: Triple, name: &str) -> CompilerResult<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("is_pic", "true").unwrap();
         flag_builder.set("opt_level", "speed").unwrap();
 
         let flags = settings::Flags::new(flag_builder);
 
-        let isa = match isa::lookup(triple.clone()) {
+        let isa = match isa::lookup(target.clone()) {
             Ok(isa_builder) => isa_builder.finish(flags)?,
             Err(_) => {
                 return Err(CompilerError::UnsupportedTarget(
-                    UnsupportedTarget::ArchUnsupported(triple.architecture),
+                    PlatformError::ArchUnsupported(target.architecture),
                 ));
             }
         };
