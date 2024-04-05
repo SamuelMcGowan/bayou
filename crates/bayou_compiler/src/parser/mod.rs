@@ -25,23 +25,23 @@ pub struct Parser<'sess> {
 }
 
 impl<'sess> Parser<'sess> {
-    pub fn new(source: &'sess str) -> Self {
+    pub fn new(source: &'sess str, interner: &'sess mut Interner) -> Self {
         Self {
             errors: vec![],
-            lexer: Lexer::new(source),
+            lexer: Lexer::new(source, interner),
         }
     }
 
-    pub fn parse(mut self) -> (Module, Interner, Vec<ParseError>) {
+    pub fn parse(mut self) -> (Module, Vec<ParseError>) {
         let module = self.parse_module();
 
-        let (interner, lexer_errors) = self.lexer.finish();
+        let lexer_errors = self.lexer.finish();
 
         let mut errors = vec![];
         errors.extend(lexer_errors.into_iter().map(ParseError::Lexer));
         errors.extend(self.errors);
 
-        (module, interner, errors)
+        (module, errors)
     }
 
     fn parse_module(&mut self) -> Module {

@@ -28,6 +28,7 @@ impl ModuleId {
 /// Session shared between multiple package compilations.
 pub struct Session<D: DiagnosticEmitter> {
     pub sources: SourceMap,
+    pub interner: Interner,
     pub diagnostics: D,
 }
 
@@ -35,16 +36,19 @@ impl<D: DiagnosticEmitter> Session<D> {
     pub fn new(diagnostics: D) -> Self {
         Self {
             sources: SourceMap::default(),
+            interner: Interner::new(),
             diagnostics,
         }
     }
+
+    // TODO: don't take module contexts
 
     pub fn report(
         &mut self,
         diagnostic: impl IntoDiagnostic,
         module_cx: &ModuleCx,
     ) -> CompilerResult<()> {
-        let diagnostic = diagnostic.into_diagnostic(module_cx);
+        let diagnostic = diagnostic.into_diagnostic(module_cx.source_id, &self.interner);
         let kind = diagnostic.kind;
 
         self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
@@ -64,7 +68,7 @@ impl<D: DiagnosticEmitter> Session<D> {
         let mut had_error = false;
 
         for diagnostic in diagnostics {
-            let diagnostic = diagnostic.into_diagnostic(module_cx);
+            let diagnostic = diagnostic.into_diagnostic(module_cx.source_id, &self.interner);
             had_error |= diagnostic.kind >= DiagnosticKind::Error;
             self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
         }
@@ -79,23 +83,25 @@ impl<D: DiagnosticEmitter> Session<D> {
 
 pub struct ModuleCx {
     pub source_id: SourceId,
-
     pub symbols: Symbols,
-    pub interner: Interner,
 }
 
 /// A package that is being compiled.
-pub struct PackageCompilation {
+pub struct PackageCompilation<'sess, D: DiagnosticEmitter> {
     // FIXME: make these private
+
+    // TODO: should this be in here? maybe not
+    pub session: &'sess mut Session<D>,
+
     pub name: String,
 
     pub irs: KeyVec<ModuleId, Module>,
     pub module_cxs: KeyVec<ModuleId, ModuleCx>,
 }
 
-impl PackageCompilation {
-    pub fn parse<D>(
-        session: &mut Session<D>,
+impl<'sess, D: DiagnosticEmitter> PackageCompilation<'sess, D> {
+    pub fn parse(
+        session: &'sess mut Session<D>,
 
         name: impl Into<String>,
         source: impl Into<String>,
@@ -108,13 +114,12 @@ impl PackageCompilation {
         let source_id = session.sources.insert(Source::new(&name, source));
         let source = session.sources.get_source(source_id).unwrap();
 
-        let parser = Parser::new(source.source_str());
-        let (ast, interner, parse_errors) = parser.parse();
+        let parser = Parser::new(source.source_str(), &mut session.interner);
+        let (ast, parse_errors) = parser.parse();
 
         let mut module_cx = ModuleCx {
             source_id,
             symbols: Symbols::default(),
-            interner,
         };
 
         session.report_all(parse_errors, &module_cx)?;
@@ -137,36 +142,33 @@ impl PackageCompilation {
         let _ = module_cxs.insert(module_cx);
 
         Ok(PackageCompilation {
+            session,
+
             name,
+
             irs,
             module_cxs,
         })
     }
 
-    pub fn compile<D: DiagnosticEmitter>(
-        mut self,
-
-        session: &mut Session<D>,
-        target: &Triple,
-    ) -> CompilerResult<ObjectProduct> {
-        let mut codegen = Codegen::new(target.clone(), &self.name)?;
-
+    pub fn compile(mut self, target: &Triple) -> CompilerResult<ObjectProduct> {
         // type checking
         for (ir, module_cx) in self.irs.iter_mut().zip(&mut self.module_cxs) {
             let type_checker = TypeChecker::new(module_cx);
             let type_errors = type_checker.run(ir);
 
-            session.report_all(type_errors, module_cx)?;
+            self.session.report_all(type_errors, module_cx)?;
         }
 
         if let Err(err) = check_entrypoint(&self) {
             let module_cx = &self.module_cxs[ModuleId::root()];
 
-            let _ = session.report(err, module_cx);
+            let _ = self.session.report(err, module_cx);
             return Err(CompilerError::HadErrors);
         }
 
         // codegen
+        let mut codegen = Codegen::new(self.session, target.clone(), &self.name)?;
         for (ir, module_cx) in self.irs.iter().zip(&self.module_cxs) {
             codegen.compile_module(ir, module_cx)?;
         }

@@ -25,7 +25,7 @@ pub enum LexerErrorKind {
 pub type LexerResult<T> = Result<T, LexerErrorKind>;
 
 pub struct Lexer<'sess> {
-    interner: Interner,
+    interner: &'sess mut Interner,
     errors: Vec<LexerError>,
 
     all: &'sess str,
@@ -38,9 +38,9 @@ pub struct Lexer<'sess> {
 }
 
 impl<'sess> Lexer<'sess> {
-    pub fn new(source: &'sess str) -> Self {
+    pub fn new(source: &'sess str, interner: &'sess mut Interner) -> Self {
         let mut lexer = Self {
-            interner: Interner::new(),
+            interner,
             errors: vec![],
 
             all: source,
@@ -69,8 +69,8 @@ impl<'sess> Lexer<'sess> {
         Span::new(self.all.len(), self.all.len())
     }
 
-    pub fn finish(self) -> (Interner, Vec<LexerError>) {
-        (self.interner, self.errors)
+    pub fn finish(self) -> Vec<LexerError> {
+        self.errors
     }
 
     pub fn lex_token(&mut self) -> Option<Token> {

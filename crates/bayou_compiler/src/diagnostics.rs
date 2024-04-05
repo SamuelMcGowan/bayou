@@ -1,12 +1,12 @@
 use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Snippet};
 
-use crate::compiler::ModuleCx;
+use crate::ir::Interner;
 use crate::parser::ParseError;
 use crate::passes::entry_point::EntrypointError;
 use crate::passes::type_check::TypeError;
 use crate::resolver::ResolverError;
-use crate::sourcemap::SourceMap;
+use crate::sourcemap::{SourceId, SourceMap};
 
 pub type Diagnostic = bayou_diagnostic::Diagnostic<SourceMap>;
 
@@ -44,23 +44,23 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
 
 pub trait IntoDiagnostic {
     // TODO: take reference to source context
-    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic;
+    fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic;
 }
 
 impl IntoDiagnostic for Diagnostic {
-    fn into_diagnostic(self, _module_context: &ModuleCx) -> Diagnostic {
+    fn into_diagnostic(self, _source_id: SourceId, _interner: &Interner) -> Diagnostic {
         self
     }
 }
 
 impl IntoDiagnostic for ParseError {
-    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic {
+    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
         match self {
             ParseError::Expected { expected, span } => Diagnostic::error()
                 .with_message("syntax error")
                 .with_snippet(Snippet::primary(
                     format!("expected {expected} here"),
-                    module_context.source_id,
+                    source_id,
                     span,
                 )),
 
@@ -68,7 +68,7 @@ impl IntoDiagnostic for ParseError {
                 .with_message("syntax error")
                 .with_snippet(Snippet::primary(
                     error.kind.to_string(),
-                    module_context.source_id,
+                    source_id,
                     error.span,
                 )),
         }
@@ -76,31 +76,31 @@ impl IntoDiagnostic for ParseError {
 }
 
 impl IntoDiagnostic for ResolverError {
-    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic {
+    fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic {
         match self {
             ResolverError::DuplicateGlobal { first, second } => {
-                let name_str = module_context.interner.resolve(&first.ident);
+                let name_str = interner.resolve(&first.ident);
                 Diagnostic::error()
                     .with_message(format!("duplicate global `{name_str}`"))
                     .with_snippet(Snippet::secondary(
                         "first definition",
-                        module_context.source_id,
+                        source_id,
                         first.span,
                     ))
                     .with_snippet(Snippet::primary(
                         "second definition",
-                        module_context.source_id,
+                        source_id,
                         second.span,
                     ))
             }
 
             ResolverError::LocalUndefined(ident) => {
-                let name_str = module_context.interner.resolve(&ident.ident);
+                let name_str = interner.resolve(&ident.ident);
                 Diagnostic::error()
                     .with_message(format!("undefined variable `{name_str}`"))
                     .with_snippet(Snippet::primary(
                         "undefined variable here",
-                        module_context.source_id,
+                        source_id,
                         ident.span,
                     ))
             }
@@ -109,7 +109,7 @@ impl IntoDiagnostic for ResolverError {
 }
 
 impl IntoDiagnostic for TypeError {
-    fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic {
+    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
         match self {
             TypeError::TypeMismatch {
                 expected,
@@ -119,16 +119,12 @@ impl IntoDiagnostic for TypeError {
             } => {
                 let mut diagnostic = Diagnostic::error()
                     .with_message(format!("expected type {expected:?}, found type {found:?}"))
-                    .with_snippet(Snippet::primary(
-                        "unexpected type",
-                        module_context.source_id,
-                        found_span,
-                    ));
+                    .with_snippet(Snippet::primary("unexpected type", source_id, found_span));
 
                 if let Some(expected_span) = expected_span {
                     diagnostic = diagnostic.with_snippet(Snippet::secondary(
                         "expected due to this type",
-                        module_context.source_id,
+                        source_id,
                         expected_span,
                     ));
                 }
@@ -142,7 +138,7 @@ impl IntoDiagnostic for TypeError {
                 ))
                 .with_snippet(Snippet::primary(
                     "expected due to this return type",
-                    module_context.source_id,
+                    source_id,
                     span,
                 )),
         }
@@ -150,7 +146,7 @@ impl IntoDiagnostic for TypeError {
 }
 
 impl IntoDiagnostic for EntrypointError {
-    fn into_diagnostic(self, _module_context: &ModuleCx) -> Diagnostic {
+    fn into_diagnostic(self, _source_id: SourceId, _interner: &Interner) -> Diagnostic {
         match self {
             EntrypointError::Missing => Diagnostic::error().with_message("`main` function missing"),
             EntrypointError::WrongSignature { expected, found } => Diagnostic::error()

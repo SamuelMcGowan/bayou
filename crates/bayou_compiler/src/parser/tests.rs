@@ -6,7 +6,7 @@ fn test_compiles(source: &str, should_compile: bool) {
     let mut session = Session::new(vec![]);
 
     let compiled = PackageCompilation::parse(&mut session, "tests", source)
-        .and_then(|pkg| pkg.compile(&mut session, &Triple::host()))
+        .and_then(|pkg| pkg.compile(&Triple::host()))
         .is_ok();
 
     match (compiled, should_compile) {

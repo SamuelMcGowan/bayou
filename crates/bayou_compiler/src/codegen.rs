@@ -5,7 +5,8 @@ use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
-use crate::compiler::ModuleCx;
+use crate::compiler::{ModuleCx, Session};
+use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 use crate::platform::PlatformError;
@@ -13,14 +14,16 @@ use crate::{CompilerError, CompilerResult};
 
 type IrType = crate::ir::ir::Type;
 
-pub struct Codegen {
+pub struct Codegen<'sess, D: DiagnosticEmitter> {
+    session: &'sess mut Session<D>,
+
     ctx: codegen::Context,
     builder_ctx: FunctionBuilderContext,
     module: ObjectModule,
 }
 
-impl Codegen {
-    pub fn new(target: Triple, name: &str) -> CompilerResult<Self> {
+impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
+    pub fn new(session: &'sess mut Session<D>, target: Triple, name: &str) -> CompilerResult<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("is_pic", "true").unwrap();
         flag_builder.set("opt_level", "speed").unwrap();
@@ -42,6 +45,8 @@ impl Codegen {
         let module = ObjectModule::new(module_builder);
 
         Ok(Self {
+            session,
+
             ctx: module.make_context(),
             builder_ctx: FunctionBuilderContext::new(),
             module,
@@ -95,7 +100,7 @@ impl Codegen {
         verify_function(&self.ctx.func, self.module.isa()).unwrap();
 
         // declare and define in module (not final)
-        let name = cx.interner.resolve(&func_decl.name.ident);
+        let name = self.session.interner.resolve(&func_decl.name.ident);
         let id = self
             .module
             .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;
