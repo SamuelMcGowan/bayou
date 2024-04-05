@@ -1,4 +1,5 @@
 use bayou_diagnostic::DiagnosticKind;
+use target_lexicon::Triple;
 
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
 use crate::ir::Interner;
@@ -7,16 +8,22 @@ use crate::{CompilerError, CompilerResult};
 
 /// Session shared between multiple package compilations.
 pub struct Session<D: DiagnosticEmitter> {
+    pub target: Triple,
+
     pub sources: SourceMap,
     pub interner: Interner,
+
     pub diagnostics: D,
 }
 
 impl<D: DiagnosticEmitter> Session<D> {
-    pub fn new(diagnostics: D) -> Self {
+    pub fn new(target: Triple, diagnostics: D) -> Self {
         Self {
+            target,
+
             sources: SourceMap::default(),
             interner: Interner::new(),
+
             diagnostics,
         }
     }

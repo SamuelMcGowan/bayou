@@ -33,25 +33,6 @@ pub enum LinkerError {
     Terminated { stderr: Vec<u8> },
 }
 
-pub struct Platform {
-    pub target: Triple,
-    pub linker: Linker,
-}
-
-impl Platform {
-    pub fn new(
-        target: Triple,
-        custom_linker: Option<(String, Vec<String>)>,
-    ) -> Result<Self, PlatformError> {
-        let linker = custom_linker
-            .map(|(cmd, args)| Linker::Custom(cmd, args))
-            .or_else(|| Linker::detect(&target))
-            .ok_or(PlatformError::NoLinker)?;
-
-        Ok(Self { target, linker })
-    }
-}
-
 pub enum Linker {
     Gcc,
     Custom(String, Vec<String>),

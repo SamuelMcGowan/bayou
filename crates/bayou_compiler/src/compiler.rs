@@ -1,6 +1,5 @@
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use cranelift_object::ObjectProduct;
-use target_lexicon::Triple;
 
 use crate::codegen::Codegen;
 use crate::diagnostics::DiagnosticEmitter;
@@ -33,7 +32,6 @@ pub struct ModuleCx {
 /// A package that is being compiled.
 pub struct PackageCompilation {
     pub name: String,
-    pub target: Triple,
 
     // These are separate so that info about other modules
     // can be accessed while mutating a module.
@@ -45,7 +43,6 @@ impl PackageCompilation {
     /// Parse all modules and resolve names.
     pub fn start<D>(
         session: &mut Session<D>,
-        target: Triple,
 
         name: impl Into<String>,
         source: impl Into<String>,
@@ -87,7 +84,6 @@ impl PackageCompilation {
 
         Ok(Self {
             name,
-            target,
 
             module_irs,
             module_cxs,
@@ -114,7 +110,7 @@ impl PackageCompilation {
         }
 
         // codegen
-        let mut codegen = Codegen::new(session, self.target, &self.name)?;
+        let mut codegen = Codegen::new(session, session.target.clone(), &self.name)?;
         for (ir, module_cx) in self.module_irs.iter().zip(&self.module_cxs) {
             codegen.compile_module(ir, module_cx)?;
         }

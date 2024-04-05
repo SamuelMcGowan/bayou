@@ -4,9 +4,9 @@ use crate::compiler::PackageCompilation;
 use crate::session::Session;
 
 fn test_compiles(source: &str, should_compile: bool) {
-    let mut session = Session::new(vec![]);
+    let mut session = Session::new(Triple::host(), vec![]);
 
-    let compiled = PackageCompilation::start(&mut session, Triple::host(), "tests", source)
+    let compiled = PackageCompilation::start(&mut session, "tests", source)
         .and_then(|pkg| pkg.compile(&mut session))
         .is_ok();
 

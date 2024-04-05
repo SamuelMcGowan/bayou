@@ -22,7 +22,7 @@ use std::str::FromStr;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use compiler::PackageCompilation;
-use platform::{LinkerError, Platform, PlatformError};
+use platform::{Linker, LinkerError, PlatformError};
 use session::Session;
 use target_lexicon::Triple;
 use temp_dir::TempDir;
@@ -72,13 +72,13 @@ fn run() -> CompilerResult<()> {
             output,
             target,
         } => {
-            let mut session = Session::new(PrettyDiagnosticEmitter::default());
-
             let target = match target {
                 Some(s) => Triple::from_str(&s).map_err(PlatformError::ParseError)?,
                 None => Triple::host(),
             };
-            let platform = Platform::new(target, None)?;
+            let linker = Linker::detect(&target).ok_or(PlatformError::NoLinker)?;
+
+            let mut session = Session::new(target, PrettyDiagnosticEmitter::default());
 
             let (name, name_stem, source) = if source {
                 ("unnamed".to_owned(), "unnamed".to_owned(), input)
@@ -99,12 +99,7 @@ fn run() -> CompilerResult<()> {
             let object = {
                 println!("compiling project `{name}`");
 
-                let pkg = PackageCompilation::start(
-                    &mut session,
-                    platform.target.clone(),
-                    &name,
-                    source,
-                )?;
+                let pkg = PackageCompilation::start(&mut session, &name, source)?;
                 pkg.compile(&mut session)?
             };
 
@@ -123,7 +118,7 @@ fn run() -> CompilerResult<()> {
                 std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");
-                platform.linker.link(&[tmp_file.path()], output)?;
+                linker.link(&[tmp_file.path()], output)?;
             }
 
             Ok(())
