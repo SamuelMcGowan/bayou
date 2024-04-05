@@ -21,7 +21,7 @@ use std::str::FromStr;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use compiler::{PackageCompilation, Session};
-use platform::{Linker, LinkerError, PlatformError};
+use platform::{LinkerError, Platform, PlatformError};
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
@@ -76,7 +76,7 @@ fn run() -> CompilerResult<()> {
                 Some(s) => Triple::from_str(&s).map_err(PlatformError::ParseError)?,
                 None => Triple::host(),
             };
-            let linker = Linker::detect(&target).ok_or(PlatformError::NoLinker)?;
+            let platform = Platform::new(target, None)?;
 
             let (name, name_stem, source) = if source {
                 ("unnamed".to_owned(), "unnamed".to_owned(), input)
@@ -98,7 +98,7 @@ fn run() -> CompilerResult<()> {
                 println!("compiling project `{name}`");
 
                 let pkg = PackageCompilation::parse(&mut session, &name, source)?;
-                pkg.compile(&mut session, &target)?
+                pkg.compile(&mut session, &platform.target)?
             };
 
             // emit and link objects
@@ -116,7 +116,7 @@ fn run() -> CompilerResult<()> {
                 std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");
-                linker.link(&[tmp_file.path()], output)?;
+                platform.linker.link(&[tmp_file.path()], output)?;
             }
 
             Ok(())
