@@ -28,8 +28,6 @@ impl<D: DiagnosticEmitter> Session<D> {
         }
     }
 
-    // TODO: don't take module contexts
-
     pub fn report(
         &mut self,
         diagnostic: impl IntoDiagnostic,

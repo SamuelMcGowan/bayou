@@ -5,7 +5,7 @@ use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
-use crate::compiler::ModuleCx;
+use crate::compiler::ModuleCompilation;
 use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
@@ -54,10 +54,14 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         })
     }
 
-    pub fn compile_module(&mut self, module: &Module, cx: &ModuleCx) -> CompilerResult<()> {
+    pub fn compile_module(
+        &mut self,
+        module: &Module,
+        compilation: &ModuleCompilation,
+    ) -> CompilerResult<()> {
         for item in &module.items {
             match item {
-                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, cx)?,
+                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, compilation)?,
             }
         }
 
@@ -68,7 +72,11 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         Ok(self.module.finish())
     }
 
-    fn gen_func_decl(&mut self, func_decl: &FuncDecl, cx: &ModuleCx) -> CompilerResult<()> {
+    fn gen_func_decl(
+        &mut self,
+        func_decl: &FuncDecl,
+        compilation: &ModuleCompilation,
+    ) -> CompilerResult<()> {
         self.module.clear_context(&mut self.ctx);
 
         match func_decl.ret_ty {
@@ -89,7 +97,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         let mut func_codegen = FuncCodegen {
             builder,
             module: &mut self.module,
-            cx,
+            compilation,
         };
 
         for stmt in &func_decl.statements {
@@ -114,7 +122,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
 struct FuncCodegen<'a> {
     builder: FunctionBuilder<'a>,
     module: &'a mut ObjectModule,
-    cx: &'a ModuleCx,
+    compilation: &'a ModuleCompilation,
 }
 
 impl FuncCodegen<'_> {
@@ -155,7 +163,7 @@ impl FuncCodegen<'_> {
             },
 
             ExprKind::Var(local) => {
-                let local_ty = self.cx.symbols.locals[*local].ty;
+                let local_ty = self.compilation.symbols.locals[*local].ty;
 
                 // Void typed variables don't emit expressions.
                 if local_ty == IrType::Void {

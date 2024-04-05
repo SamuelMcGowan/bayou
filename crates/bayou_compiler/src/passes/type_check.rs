@@ -1,6 +1,6 @@
 use bayou_diagnostic::span::Span;
 
-use crate::compiler::ModuleCx;
+use crate::compiler::ModuleCompilation;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 
@@ -20,15 +20,15 @@ pub enum TypeError {
     },
 }
 
-pub struct TypeChecker<'a> {
-    context: &'a mut ModuleCx,
+pub struct TypeChecker<'m> {
+    compilation: &'m mut ModuleCompilation,
     errors: Vec<TypeError>,
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(context: &'a mut ModuleCx) -> Self {
+    pub fn new(compilation: &'a mut ModuleCompilation) -> Self {
         Self {
-            context,
+            compilation,
             errors: vec![],
         }
     }
@@ -51,7 +51,7 @@ impl<'a> TypeChecker<'a> {
                 Stmt::Assign { local, expr } => {
                     self.check_expr(expr);
 
-                    let local = &self.context.symbols.locals[*local];
+                    let local = &self.compilation.symbols.locals[*local];
                     if let Some(ty) = expr.ty {
                         self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
                     }
@@ -89,7 +89,7 @@ impl<'a> TypeChecker<'a> {
         expr.ty = match &mut expr.kind {
             ExprKind::Constant(constant) => Some(constant.ty()),
 
-            ExprKind::Var(local) => Some(self.context.symbols.locals[*local].ty),
+            ExprKind::Var(local) => Some(self.compilation.symbols.locals[*local].ty),
 
             ExprKind::UnOp { op, expr } => {
                 self.check_expr(expr);

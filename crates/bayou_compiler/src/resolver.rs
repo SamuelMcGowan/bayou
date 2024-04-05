@@ -1,4 +1,4 @@
-use crate::compiler::ModuleCx;
+use crate::compiler::ModuleCompilation;
 use crate::ir::ir::Type;
 use crate::ir::{ast, ir, Ident, InternedStr};
 use crate::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
@@ -8,17 +8,17 @@ pub enum ResolverError {
     DuplicateGlobal { first: Ident, second: Ident },
 }
 
-pub struct Resolver<'cx> {
-    context: &'cx mut ModuleCx,
+pub struct Resolver<'m> {
+    compilation: &'m mut ModuleCompilation,
     errors: Vec<ResolverError>,
 
     local_stack: Vec<LocalEntry>,
 }
 
-impl<'cx> Resolver<'cx> {
-    pub fn new(context: &'cx mut ModuleCx) -> Self {
+impl<'m> Resolver<'m> {
+    pub fn new(compilation: &'m mut ModuleCompilation) -> Self {
         Self {
-            context,
+            compilation,
             errors: vec![],
 
             local_stack: vec![],
@@ -52,16 +52,20 @@ impl<'cx> Resolver<'cx> {
     fn declare_global_func(&mut self, symbol: FunctionSymbol) {
         let ident = symbol.ident;
 
-        let func_id = self.context.symbols.funcs.insert(symbol);
+        let func_id = self.compilation.symbols.funcs.insert(symbol);
 
         if let Some(first_symbol) = self
-            .context
+            .compilation
             .symbols
             .global_lookup
             .insert(ident.ident, GlobalId::Func(func_id))
         {
             self.errors.push(ResolverError::DuplicateGlobal {
-                first: self.context.symbols.get_global_ident(first_symbol).unwrap(),
+                first: self
+                    .compilation
+                    .symbols
+                    .get_global_ident(first_symbol)
+                    .unwrap(),
                 second: ident,
             })
         }
@@ -179,7 +183,7 @@ impl<'cx> Resolver<'cx> {
 
     #[must_use]
     fn declare_local(&mut self, ident: Ident, ty: Type) -> LocalId {
-        let id = self.context.symbols.locals.insert(LocalSymbol {
+        let id = self.compilation.symbols.locals.insert(LocalSymbol {
             ident,
             ty,
             // FIXME: use variable type span
