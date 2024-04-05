@@ -1,6 +1,7 @@
 use target_lexicon::Triple;
 
-use crate::compiler::{PackageCompilation, Session};
+use crate::compiler::PackageCompilation;
+use crate::session::Session;
 
 fn test_compiles(source: &str, should_compile: bool) {
     let mut session = Session::new(vec![]);

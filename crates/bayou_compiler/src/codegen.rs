@@ -5,11 +5,12 @@ use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
-use crate::compiler::{ModuleCx, Session};
+use crate::compiler::ModuleCx;
 use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 use crate::platform::PlatformError;
+use crate::session::Session;
 use crate::{CompilerError, CompilerResult};
 
 type IrType = crate::ir::ir::Type;

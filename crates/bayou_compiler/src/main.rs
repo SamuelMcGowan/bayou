@@ -8,6 +8,7 @@ mod parser;
 mod passes;
 mod platform;
 mod resolver;
+mod session;
 mod symbols;
 
 mod cli;
@@ -20,8 +21,9 @@ use std::str::FromStr;
 
 use clap::Parser as _;
 use cli::{Cli, Command};
-use compiler::{PackageCompilation, Session};
+use compiler::PackageCompilation;
 use platform::{LinkerError, Platform, PlatformError};
+use session::Session;
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;

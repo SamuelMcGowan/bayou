@@ -1,17 +1,16 @@
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
-use bayou_diagnostic::DiagnosticKind;
 use cranelift_object::ObjectProduct;
 use target_lexicon::Triple;
 
 use crate::codegen::Codegen;
-use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
+use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::Module;
-use crate::ir::Interner;
 use crate::parser::Parser;
 use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
 use crate::resolver::Resolver;
-use crate::sourcemap::{Source, SourceId, SourceMap};
+use crate::session::Session;
+use crate::sourcemap::{Source, SourceId};
 use crate::symbols::Symbols;
 use crate::utils::keyvec::{declare_key_type, KeyVec};
 use crate::{CompilerError, CompilerResult};
@@ -22,62 +21,6 @@ impl ModuleId {
     pub fn root() -> Self {
         use crate::utils::keyvec::Key;
         Self::from_usize(0)
-    }
-}
-
-/// Session shared between multiple package compilations.
-pub struct Session<D: DiagnosticEmitter> {
-    pub sources: SourceMap,
-    pub interner: Interner,
-    pub diagnostics: D,
-}
-
-impl<D: DiagnosticEmitter> Session<D> {
-    pub fn new(diagnostics: D) -> Self {
-        Self {
-            sources: SourceMap::default(),
-            interner: Interner::new(),
-            diagnostics,
-        }
-    }
-
-    // TODO: don't take module contexts
-
-    pub fn report(
-        &mut self,
-        diagnostic: impl IntoDiagnostic,
-        module_cx: &ModuleCx,
-    ) -> CompilerResult<()> {
-        let diagnostic = diagnostic.into_diagnostic(module_cx.source_id, &self.interner);
-        let kind = diagnostic.kind;
-
-        self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
-
-        if kind < DiagnosticKind::Error {
-            Ok(())
-        } else {
-            Err(CompilerError::HadErrors)
-        }
-    }
-
-    pub fn report_all<I>(&mut self, diagnostics: I, module_cx: &ModuleCx) -> CompilerResult<()>
-    where
-        I: IntoIterator,
-        I::Item: IntoDiagnostic,
-    {
-        let mut had_error = false;
-
-        for diagnostic in diagnostics {
-            let diagnostic = diagnostic.into_diagnostic(module_cx.source_id, &self.interner);
-            had_error |= diagnostic.kind >= DiagnosticKind::Error;
-            self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
-        }
-
-        if !had_error {
-            Ok(())
-        } else {
-            Err(CompilerError::HadErrors)
-        }
     }
 }
 
@@ -123,7 +66,7 @@ impl PackageCompilation {
             symbols: Symbols::default(),
         };
 
-        session.report_all(parse_errors, &module_cx)?;
+        session.report_all(parse_errors, module_cx.source_id)?;
 
         let mut module_irs = KeyVec::new();
         let mut module_cxs = KeyVec::new();
@@ -133,7 +76,7 @@ impl PackageCompilation {
         let ir = match resolver.run(ast) {
             Ok(ir) => ir,
             Err(errors) => {
-                let _ = session.report_all(errors, &module_cx);
+                let _ = session.report_all(errors, module_cx.source_id);
                 return Err(CompilerError::HadErrors);
             }
         };
@@ -160,13 +103,13 @@ impl PackageCompilation {
             let type_checker = TypeChecker::new(module_cx);
             let type_errors = type_checker.run(ir);
 
-            session.report_all(type_errors, module_cx)?;
+            session.report_all(type_errors, module_cx.source_id)?;
         }
 
         if let Err(err) = check_entrypoint(&self, &session.interner) {
             let module_cx = &self.module_cxs[ModuleId::root()];
 
-            let _ = session.report(err, module_cx);
+            let _ = session.report(err, module_cx.source_id);
             return Err(CompilerError::HadErrors);
         }
 
