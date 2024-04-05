@@ -3,16 +3,16 @@ use target_lexicon::Triple;
 use crate::compiler::{PackageCompilation, Session};
 
 fn test_compiles(source: &str, should_compile: bool) {
-    let mut sess = Session::new(vec![], Triple::host());
+    let mut session = Session::new(vec![]);
 
-    let compiled = PackageCompilation::parse(&mut sess, "tests", source)
-        .and_then(|pkg| pkg.compile(&mut sess))
+    let compiled = PackageCompilation::parse(&mut session, "tests", source)
+        .and_then(|pkg| pkg.compile(&mut session, &Triple::host()))
         .is_ok();
 
     match (compiled, should_compile) {
         (false, true) => panic!(
             "failed to compile: {source:?}, diagnostics: {:?}",
-            sess.diagnostics
+            session.diagnostics
         ),
         (true, false) => panic!("unexpectedly compiled: {source:?}"),
         _ => {}

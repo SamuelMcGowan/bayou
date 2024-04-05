@@ -70,13 +70,13 @@ fn run() -> CompilerResult<()> {
             output,
             target,
         } => {
-            // get session
+            let mut session = Session::new(PrettyDiagnosticEmitter::default());
+
             let target = match target {
                 Some(s) => Triple::from_str(&s).map_err(PlatformError::ParseError)?,
                 None => Triple::host(),
             };
             let linker = Linker::detect(&target).ok_or(PlatformError::NoLinker)?;
-            let mut sess = Session::new(PrettyDiagnosticEmitter::default(), target);
 
             let (name, name_stem, source) = if source {
                 ("unnamed".to_owned(), "unnamed".to_owned(), input)
@@ -97,8 +97,8 @@ fn run() -> CompilerResult<()> {
             let object = {
                 println!("compiling project `{name}`");
 
-                let pkg = PackageCompilation::parse(&mut sess, &name, source)?;
-                pkg.compile(&mut sess)?
+                let pkg = PackageCompilation::parse(&mut session, &name, source)?;
+                pkg.compile(&mut session, &target)?
             };
 
             // emit and link objects

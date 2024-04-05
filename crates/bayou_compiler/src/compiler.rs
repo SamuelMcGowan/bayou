@@ -25,42 +25,54 @@ impl ModuleId {
     }
 }
 
+/// Session shared between multiple package compilations.
 pub struct Session<D: DiagnosticEmitter> {
     pub sources: SourceMap,
     pub diagnostics: D,
-    pub target: Triple,
 }
 
 impl<D: DiagnosticEmitter> Session<D> {
-    pub fn new(diagnostics: D, target: Triple) -> Self {
+    pub fn new(diagnostics: D) -> Self {
         Self {
             sources: SourceMap::default(),
             diagnostics,
-            target,
         }
     }
 
-    pub fn report_all<Errs>(
+    pub fn report(
         &mut self,
-        diagnostics: Errs,
+        diagnostic: impl IntoDiagnostic,
         module_cx: &ModuleCx,
-    ) -> CompilerResult<()>
+    ) -> CompilerResult<()> {
+        let diagnostic = diagnostic.into_diagnostic(module_cx);
+        let kind = diagnostic.kind;
+
+        self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
+
+        if kind < DiagnosticKind::Error {
+            Ok(())
+        } else {
+            Err(CompilerError::HadErrors)
+        }
+    }
+
+    pub fn report_all<I>(&mut self, diagnostics: I, module_cx: &ModuleCx) -> CompilerResult<()>
     where
-        Errs: IntoIterator,
-        Errs::Item: IntoDiagnostic,
+        I: IntoIterator,
+        I::Item: IntoDiagnostic,
     {
-        let mut had_errors = false;
+        let mut had_error = false;
 
         for diagnostic in diagnostics {
             let diagnostic = diagnostic.into_diagnostic(module_cx);
-            had_errors |= diagnostic.kind >= DiagnosticKind::Error;
+            had_error |= diagnostic.kind >= DiagnosticKind::Error;
             self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
         }
 
-        if had_errors {
-            Err(CompilerError::HadErrors)
-        } else {
+        if !had_error {
             Ok(())
+        } else {
+            Err(CompilerError::HadErrors)
         }
     }
 }
@@ -84,6 +96,7 @@ pub struct PackageCompilation {
 impl PackageCompilation {
     pub fn parse<D>(
         session: &mut Session<D>,
+
         name: impl Into<String>,
         source: impl Into<String>,
     ) -> CompilerResult<Self>
@@ -132,20 +145,25 @@ impl PackageCompilation {
 
     pub fn compile<D: DiagnosticEmitter>(
         mut self,
+
         session: &mut Session<D>,
+        target: &Triple,
     ) -> CompilerResult<ObjectProduct> {
-        let mut codegen = Codegen::new(session.target.clone(), &self.name)?;
+        let mut codegen = Codegen::new(target.clone(), &self.name)?;
 
         // type checking
         for (ir, module_cx) in self.irs.iter_mut().zip(&mut self.module_cxs) {
             let type_checker = TypeChecker::new(module_cx);
             let type_errors = type_checker.run(ir);
+
             session.report_all(type_errors, module_cx)?;
         }
 
         if let Err(err) = check_entrypoint(&self) {
             let module_cx = &self.module_cxs[ModuleId::root()];
-            session.report_all([err], module_cx)?;
+
+            let _ = session.report(err, module_cx);
+            return Err(CompilerError::HadErrors);
         }
 
         // codegen

@@ -47,6 +47,12 @@ pub trait IntoDiagnostic {
     fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic;
 }
 
+impl IntoDiagnostic for Diagnostic {
+    fn into_diagnostic(self, _module_context: &ModuleCx) -> Diagnostic {
+        self
+    }
+}
+
 impl IntoDiagnostic for ParseError {
     fn into_diagnostic(self, module_context: &ModuleCx) -> Diagnostic {
         match self {
