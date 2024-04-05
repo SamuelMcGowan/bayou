@@ -2,7 +2,7 @@
 extern crate macro_rules_attribute;
 
 mod codegen;
-mod compiler;
+mod compilation;
 mod ir;
 mod parser;
 mod passes;
@@ -21,7 +21,7 @@ use std::str::FromStr;
 
 use clap::Parser as _;
 use cli::{Cli, Command};
-use compiler::PackageCompilation;
+use compilation::PackageCompilation;
 use platform::{Linker, LinkerError, PlatformError};
 use session::Session;
 use target_lexicon::Triple;

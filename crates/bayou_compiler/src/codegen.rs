@@ -5,7 +5,7 @@ use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
-use crate::compiler::ModuleCompilation;
+use crate::compilation::ModuleCompilation;
 use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};

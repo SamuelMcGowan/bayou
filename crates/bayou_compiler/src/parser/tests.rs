@@ -1,6 +1,6 @@
 use target_lexicon::Triple;
 
-use crate::compiler::PackageCompilation;
+use crate::compilation::PackageCompilation;
 use crate::session::Session;
 
 fn test_compiles(source: &str, should_compile: bool) {

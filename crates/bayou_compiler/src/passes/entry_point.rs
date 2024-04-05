@@ -1,4 +1,4 @@
-use crate::compiler::{ModuleId, PackageCompilation};
+use crate::compilation::{ModuleId, PackageCompilation};
 use crate::ir::ir::Type;
 use crate::ir::Interner;
 use crate::symbols::GlobalId;

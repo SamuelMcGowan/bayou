@@ -1,4 +1,4 @@
-use crate::compiler::ModuleCompilation;
+use crate::compilation::ModuleCompilation;
 use crate::ir::ir::Type;
 use crate::ir::{ast, ir, Ident, InternedStr};
 use crate::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};

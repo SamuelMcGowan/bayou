@@ -1,6 +1,6 @@
 use bayou_diagnostic::span::Span;
 
-use crate::compiler::ModuleCompilation;
+use crate::compilation::ModuleCompilation;
 use crate::ir::ir::*;
 use crate::ir::{BinOp, UnOp};
 
