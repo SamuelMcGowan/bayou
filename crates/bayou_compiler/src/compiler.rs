@@ -81,27 +81,28 @@ impl<D: DiagnosticEmitter> Session<D> {
     }
 }
 
+// TODO: rename
 pub struct ModuleCx {
     pub source_id: SourceId,
     pub symbols: Symbols,
 }
 
 /// A package that is being compiled.
-pub struct PackageCompilation<'sess, D: DiagnosticEmitter> {
-    // FIXME: make these private
-
-    // TODO: should this be in here? maybe not
-    pub session: &'sess mut Session<D>,
-
+pub struct PackageCompilation {
     pub name: String,
+    pub target: Triple,
 
-    pub irs: KeyVec<ModuleId, Module>,
+    // These are separate so that info about other modules
+    // can be accessed while mutating a module.
+    pub module_irs: KeyVec<ModuleId, Module>,
     pub module_cxs: KeyVec<ModuleId, ModuleCx>,
 }
 
-impl<'sess, D: DiagnosticEmitter> PackageCompilation<'sess, D> {
-    pub fn parse(
-        session: &'sess mut Session<D>,
+impl PackageCompilation {
+    /// Parse all modules and resolve names.
+    pub fn start<D>(
+        session: &mut Session<D>,
+        target: Triple,
 
         name: impl Into<String>,
         source: impl Into<String>,
@@ -124,7 +125,7 @@ impl<'sess, D: DiagnosticEmitter> PackageCompilation<'sess, D> {
 
         session.report_all(parse_errors, &module_cx)?;
 
-        let mut irs = KeyVec::new();
+        let mut module_irs = KeyVec::new();
         let mut module_cxs = KeyVec::new();
 
         // name resolution
@@ -138,38 +139,40 @@ impl<'sess, D: DiagnosticEmitter> PackageCompilation<'sess, D> {
         };
 
         // will have root id
-        let _ = irs.insert(ir);
+        let _ = module_irs.insert(ir);
         let _ = module_cxs.insert(module_cx);
 
-        Ok(PackageCompilation {
-            session,
-
+        Ok(Self {
             name,
+            target,
 
-            irs,
+            module_irs,
             module_cxs,
         })
     }
 
-    pub fn compile(mut self, target: &Triple) -> CompilerResult<ObjectProduct> {
+    pub fn compile<D: DiagnosticEmitter>(
+        mut self,
+        session: &mut Session<D>,
+    ) -> CompilerResult<ObjectProduct> {
         // type checking
-        for (ir, module_cx) in self.irs.iter_mut().zip(&mut self.module_cxs) {
+        for (ir, module_cx) in self.module_irs.iter_mut().zip(&mut self.module_cxs) {
             let type_checker = TypeChecker::new(module_cx);
             let type_errors = type_checker.run(ir);
 
-            self.session.report_all(type_errors, module_cx)?;
+            session.report_all(type_errors, module_cx)?;
         }
 
-        if let Err(err) = check_entrypoint(&self) {
+        if let Err(err) = check_entrypoint(&self, &session.interner) {
             let module_cx = &self.module_cxs[ModuleId::root()];
 
-            let _ = self.session.report(err, module_cx);
+            let _ = session.report(err, module_cx);
             return Err(CompilerError::HadErrors);
         }
 
         // codegen
-        let mut codegen = Codegen::new(self.session, target.clone(), &self.name)?;
-        for (ir, module_cx) in self.irs.iter().zip(&self.module_cxs) {
+        let mut codegen = Codegen::new(session, self.target, &self.name)?;
+        for (ir, module_cx) in self.module_irs.iter().zip(&self.module_cxs) {
             codegen.compile_module(ir, module_cx)?;
         }
 

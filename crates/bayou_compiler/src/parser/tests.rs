@@ -5,8 +5,8 @@ use crate::compiler::{PackageCompilation, Session};
 fn test_compiles(source: &str, should_compile: bool) {
     let mut session = Session::new(vec![]);
 
-    let compiled = PackageCompilation::parse(&mut session, "tests", source)
-        .and_then(|pkg| pkg.compile(&Triple::host()))
+    let compiled = PackageCompilation::start(&mut session, Triple::host(), "tests", source)
+        .and_then(|pkg| pkg.compile(&mut session))
         .is_ok();
 
     match (compiled, should_compile) {

@@ -97,8 +97,13 @@ fn run() -> CompilerResult<()> {
             let object = {
                 println!("compiling project `{name}`");
 
-                let pkg = PackageCompilation::parse(&mut session, &name, source)?;
-                pkg.compile(&platform.target)?
+                let pkg = PackageCompilation::start(
+                    &mut session,
+                    platform.target.clone(),
+                    &name,
+                    source,
+                )?;
+                pkg.compile(&mut session)?
             };
 
             // emit and link objects

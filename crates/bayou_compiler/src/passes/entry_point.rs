@@ -1,6 +1,6 @@
 use crate::compiler::{ModuleId, PackageCompilation};
-use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::Type;
+use crate::ir::Interner;
 use crate::symbols::GlobalId;
 
 // TODO: store spans
@@ -9,16 +9,13 @@ pub enum EntrypointError {
     WrongSignature { expected: Type, found: Type },
 }
 
-pub fn check_entrypoint<D: DiagnosticEmitter>(
-    pkg: &PackageCompilation<D>,
+pub fn check_entrypoint(
+    pkg: &PackageCompilation,
+    interner: &Interner,
 ) -> Result<(), EntrypointError> {
     let root_module_cx = &pkg.module_cxs[ModuleId::root()];
 
-    let main_ident = pkg
-        .session
-        .interner
-        .get("main")
-        .ok_or(EntrypointError::Missing)?;
+    let main_ident = interner.get("main").ok_or(EntrypointError::Missing)?;
 
     let main_func_id = root_module_cx
         .symbols
