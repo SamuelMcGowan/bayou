@@ -44,7 +44,6 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
 }
 
 pub trait IntoDiagnostic {
-    // TODO: take reference to source context
     fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic;
 }
 
