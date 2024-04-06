@@ -1,0 +1,55 @@
+---
+source: crates/bayou_compiler/src/lexer/tests.rs
+info: "func main()->int{return 0;}"
+---
+- - kind:
+      Keyword: Func
+    span:
+      start: 0
+      end: 4
+  - kind:
+      Identifier: 1
+    span:
+      start: 5
+      end: 9
+  - kind: LParen
+    span:
+      start: 9
+      end: 10
+  - kind: RParen
+    span:
+      start: 10
+      end: 11
+  - kind: Arrow
+    span:
+      start: 11
+      end: 13
+  - kind:
+      Keyword: Int
+    span:
+      start: 13
+      end: 16
+  - kind: LBrace
+    span:
+      start: 16
+      end: 17
+  - kind:
+      Keyword: Return
+    span:
+      start: 17
+      end: 23
+  - kind:
+      Integer: 0
+    span:
+      start: 24
+      end: 25
+  - kind: Semicolon
+    span:
+      start: 25
+      end: 26
+  - kind: RBrace
+    span:
+      start: 26
+      end: 27
+- []
+

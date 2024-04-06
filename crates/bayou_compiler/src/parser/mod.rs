@@ -12,6 +12,7 @@ use crate::ir::{Ident, Spanned};
 use crate::lexer::TokenIter;
 use crate::utils::peek::Peek;
 
+#[derive(serde::Serialize)]
 pub struct ParseError {
     pub expected: String,
     pub span: Span,

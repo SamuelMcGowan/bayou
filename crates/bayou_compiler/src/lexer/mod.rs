@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod tests;
+
 use std::str::Chars;
 
 use bayou_diagnostic::span::Span;
@@ -6,12 +9,13 @@ use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
 use crate::utils::peek::Peek;
 
+#[derive(serde::Serialize)]
 pub struct LexerError {
     pub kind: LexerErrorKind,
     pub span: Span,
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(serde::Serialize, thiserror::Error, Debug)]
 pub enum LexerErrorKind {
     #[error("unexpected character {0:?}")]
     UnexpectedChar(char),

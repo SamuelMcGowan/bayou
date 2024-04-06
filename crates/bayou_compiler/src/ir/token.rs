@@ -1,14 +1,15 @@
 use bayou_diagnostic::span::Span;
 
+use super::NodeCopy;
 use crate::ir::InternedStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(NodeCopy!)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(NodeCopy!)]
 pub enum TokenKind {
     Keyword(Keyword),
     Identifier(InternedStr),
@@ -50,7 +51,7 @@ pub enum TokenKind {
     BitwiseInvert,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(NodeCopy!)]
 pub enum Keyword {
     Func,
     Return,

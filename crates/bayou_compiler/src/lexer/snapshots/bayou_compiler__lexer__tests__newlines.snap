@@ -1,0 +1,55 @@
+---
+source: crates/bayou_compiler/src/lexer/tests.rs
+info: "\nfunc\nmain\n(\n)\n->\nint\n{\nreturn\n0\n;\n}"
+---
+- - kind:
+      Keyword: Func
+    span:
+      start: 1
+      end: 5
+  - kind:
+      Identifier: 1
+    span:
+      start: 6
+      end: 10
+  - kind: LParen
+    span:
+      start: 11
+      end: 12
+  - kind: RParen
+    span:
+      start: 13
+      end: 14
+  - kind: Arrow
+    span:
+      start: 15
+      end: 17
+  - kind:
+      Keyword: Int
+    span:
+      start: 18
+      end: 21
+  - kind: LBrace
+    span:
+      start: 22
+      end: 23
+  - kind:
+      Keyword: Return
+    span:
+      start: 24
+      end: 30
+  - kind:
+      Integer: 0
+    span:
+      start: 31
+      end: 32
+  - kind: Semicolon
+    span:
+      start: 33
+      end: 34
+  - kind: RBrace
+    span:
+      start: 35
+      end: 36
+- []
+

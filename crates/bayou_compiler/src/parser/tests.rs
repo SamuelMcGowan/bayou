@@ -1,84 +1,59 @@
-use target_lexicon::Triple;
+use super::{ParseError, Parser};
+use crate::ir::ast::Module;
+use crate::ir::Interner;
+use crate::lexer::Lexer;
+use crate::utils::assert_yaml_snapshot_with_source;
 
-use crate::compilation::compile_package;
-use crate::session::Session;
-use crate::sourcemap::Source;
+fn parse(source: &str) -> (Module, Vec<ParseError>) {
+    let mut interner = Interner::new();
 
-fn test_compiles(source: &str, should_compile: bool) {
-    let mut session = Session::new(Triple::host(), vec![]);
-    let source_id = session.sources.insert(Source {
-        name: "tests".to_owned(),
-        source: source.to_owned(),
-    });
+    let lexer = Lexer::new(source, &mut interner);
+    let (tokens, lexer_errors) = lexer.lex();
 
-    let compiled = compile_package(&mut session, "tests", source_id).is_ok();
+    assert!(lexer_errors.is_empty(), "lexer errors in parser tests");
 
-    match (compiled, should_compile) {
-        (false, true) => panic!(
-            "failed to compile: {source:?}, diagnostics: {:?}",
-            session.diagnostics
-        ),
-        (true, false) => panic!("unexpectedly compiled: {source:?}"),
-        _ => {}
-    }
+    let parser = Parser::new(tokens);
+    parser.parse()
+}
+
+macro_rules! assert_parse {
+    ($source:expr) => {{
+        let source = $source;
+        assert_yaml_snapshot_with_source!(source => parse(source));
+    }};
 }
 
 #[test]
-fn multi_digit() {
-    test_compiles("func main() -> int { return 100; }", true);
-}
-
-#[test]
-fn newlines() {
-    test_compiles("\nfunc\nmain\n(\n)\n->\nint\n{\nreturn\n0\n;\n}", true);
-}
-
-#[test]
-fn no_newlines() {
-    test_compiles("func main()->int{return 0;}", true);
-}
-
-#[test]
-fn spaces() {
-    test_compiles("  func  main  (  )  ->  int  {  return  0  ;  }", true);
-}
-
-#[test]
-fn return_0() {
-    test_compiles("func main() -> int { return 0; }", true);
-}
-
-#[test]
-fn return_2() {
-    test_compiles("func main() -> int { return 2; }", true);
+fn return_integer() {
+    assert_parse!("func main() -> int { return 0; }");
 }
 
 #[test]
 fn missing_paren() {
-    test_compiles("func main( { return 0; }", false);
+    assert_parse!("func main( { return 0; }");
 }
 
 #[test]
-fn missing_retval() {
-    test_compiles("func main() { return; }", false);
+fn no_return_value() {
+    assert_parse!("func main() { return; }");
 }
 
 #[test]
 fn no_brace() {
-    test_compiles("func main() -> int { return 0;", false);
+    assert_parse!("func main() -> int { return 0;");
 }
 
 #[test]
 fn no_semicolon() {
-    test_compiles("func main() -> int { return 0 }", false);
+    assert_parse!("func main() -> int { return 0 }");
 }
 
 #[test]
 fn no_space() {
-    test_compiles("func main() -> int { return0; }", false);
+    assert_parse!("func main() -> int { return0; }");
 }
 
 #[test]
 fn wrong_case() {
-    test_compiles("func main() -> int { RETURN 0; }", false);
+    assert_parse!("func main() -> int { RETURN 0; }");
 }

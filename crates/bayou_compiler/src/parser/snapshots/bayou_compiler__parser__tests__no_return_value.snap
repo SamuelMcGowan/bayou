@@ -1,0 +1,20 @@
+---
+source: crates/bayou_compiler/src/parser/tests.rs
+info: "func main() { return; }"
+---
+- items:
+    - FuncDecl:
+        name:
+          ident: 1
+          span:
+            start: 5
+            end: 9
+        ret_ty: Void
+        statements:
+          - Return:
+              kind: Void
+              span:
+                start: 14
+                end: 20
+- []
+
