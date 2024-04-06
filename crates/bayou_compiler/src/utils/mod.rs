@@ -1,4 +1,5 @@
 pub mod keyvec;
+pub mod peek;
 
 macro_rules! assert_yaml_snapshot_with_source {
     ($test_name:expr; $source:expr => $output:expr) => {{

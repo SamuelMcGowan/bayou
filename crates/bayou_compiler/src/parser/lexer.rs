@@ -4,6 +4,7 @@ use bayou_diagnostic::span::Span;
 
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
+use crate::utils::peek::Peek;
 
 pub struct LexerError {
     pub kind: LexerErrorKind,
@@ -211,6 +212,12 @@ impl<T: Tokens> Tokens for &mut T {
     }
 }
 
+impl Peek for Lexer<'_> {
+    fn peek(&self) -> Option<Self::Item> {
+        self.current
+    }
+}
+
 impl Tokens for Lexer<'_> {
     fn peek_span(&self) -> Span {
         self.peek()
@@ -224,45 +231,6 @@ impl Tokens for Lexer<'_> {
 
     fn eof_span(&self) -> Span {
         Span::empty(self.all.len())
-    }
-}
-
-pub trait Peek: Iterator {
-    fn peek(&self) -> Option<Self::Item>;
-
-    fn eat<P>(&mut self, pat: P) -> bool
-    where
-        Self::Item: PartialEq<P>,
-    {
-        match self.peek() {
-            Some(item) if item == pat => {
-                self.next();
-                true
-            }
-            _ => false,
-        }
-    }
-
-    fn at_end(&self) -> bool {
-        self.peek().is_none()
-    }
-}
-
-impl<P: Peek> Peek for &mut P {
-    fn peek(&self) -> Option<Self::Item> {
-        (**self).peek()
-    }
-}
-
-impl Peek for Lexer<'_> {
-    fn peek(&self) -> Option<Self::Item> {
-        self.current
-    }
-}
-
-impl Peek for Chars<'_> {
-    fn peek(&self) -> Option<Self::Item> {
-        self.clone().next()
     }
 }
 
