@@ -49,6 +49,11 @@ fn no_semicolon() {
 }
 
 #[test]
+fn no_semicolon_or_return_value() {
+    assert_parse!("func main() -> int { return }");
+}
+
+#[test]
 fn no_space() {
     assert_parse!("func main() -> int { return0; }");
 }

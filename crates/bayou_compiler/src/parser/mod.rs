@@ -64,8 +64,8 @@ impl Parser {
     fn parse_func_decl(&mut self) -> ParseResult<FuncDecl> {
         let name = self.parse_ident()?;
 
-        self.expect(TokenKind::LParen)?;
-        self.expect(TokenKind::RParen)?;
+        self.expect_or_recover(TokenKind::LParen);
+        self.expect_or_recover(TokenKind::RParen); // TODO: change when parsing parameters?
 
         let ret_ty = if self.eat_kind(TokenKind::Arrow) {
             self.parse_or_recover(Self::parse_type, |parser, _| {
@@ -134,9 +134,27 @@ impl Parser {
                         token.span,
                     )
                 } else {
-                    let expr = self.parse_expr()?;
-                    self.expect(TokenKind::Semicolon)?;
-                    expr
+                    match self.tokens.peek() {
+                        // handle case of `return }`
+                        Some(brace_token) if brace_token.kind == TokenKind::RBrace => {
+                            self.report(
+                                self.error_expected_kind(TokenKind::Semicolon, Some(brace_token)),
+                            );
+
+                            Expr::new(
+                                ExprKind::Void,
+                                // `return` span
+                                token.span,
+                            )
+                        }
+
+                        _ => {
+                            let expr = self.parse_expr()?;
+
+                            self.expect_or_recover(TokenKind::Semicolon);
+                            expr
+                        }
+                    }
                 };
 
                 Ok(Stmt::Return(expr))
@@ -146,7 +164,7 @@ impl Parser {
                 let ident = self.parse_ident()?;
                 self.expect(TokenKind::Assign)?;
                 let expr = self.parse_expr()?;
-                self.expect(TokenKind::Semicolon)?;
+                self.expect_or_recover(TokenKind::Semicolon);
                 Ok(Stmt::Assign { ident, expr })
             }
 
@@ -196,6 +214,12 @@ impl Parser {
             }
 
             other => Err(self.error_expected_kind(kind, other)),
+        }
+    }
+
+    fn expect_or_recover(&mut self, kind: TokenKind) {
+        if let Err(error) = self.expect(kind) {
+            self.report(error);
         }
     }
 
