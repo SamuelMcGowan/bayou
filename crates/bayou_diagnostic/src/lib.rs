@@ -2,6 +2,8 @@ mod render;
 pub mod sources;
 pub mod span;
 
+use std::fmt;
+
 use derive_where::derive_where;
 #[cfg(feature = "serialize")]
 use serde::Serialize;
@@ -15,7 +17,7 @@ use self::span::Span;
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[derive_where(Debug; S::SourceId)]
 pub struct Diagnostic<S: SourceMap> {
-    pub kind: DiagnosticKind,
+    pub severity: Severity,
 
     pub message: Option<String>,
     pub id: Option<String>,
@@ -28,9 +30,9 @@ pub struct Diagnostic<S: SourceMap> {
 }
 
 impl<S: SourceMap> Diagnostic<S> {
-    pub fn new(kind: DiagnosticKind) -> Self {
+    pub fn new(kind: Severity) -> Self {
         Self {
-            kind,
+            severity: kind,
             message: None,
             id: None,
             snippets: vec![],
@@ -38,11 +40,11 @@ impl<S: SourceMap> Diagnostic<S> {
     }
 
     pub fn warning() -> Self {
-        Self::new(DiagnosticKind::Warning)
+        Self::new(Severity::Warning)
     }
 
     pub fn error() -> Self {
-        Self::new(DiagnosticKind::Error)
+        Self::new(Severity::Error)
     }
 
     pub fn with_message(mut self, message: impl Into<String>) -> Self {
@@ -68,9 +70,19 @@ impl<S: SourceMap> Diagnostic<S> {
 
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum DiagnosticKind {
+pub enum Severity {
     Warning,
     Error,
+}
+
+impl fmt::Display for Severity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Self::Warning => "Warning",
+            Self::Error => "Error",
+        };
+        write!(f, "{s}")
+    }
 }
 
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]

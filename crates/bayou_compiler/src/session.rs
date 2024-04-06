@@ -1,4 +1,4 @@
-use bayou_diagnostic::DiagnosticKind;
+use bayou_diagnostic::Severity;
 use target_lexicon::Triple;
 
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
@@ -34,11 +34,11 @@ impl<D: DiagnosticEmitter> Session<D> {
         source_id: SourceId,
     ) -> CompilerResult<()> {
         let diagnostic = diagnostic.into_diagnostic(source_id, &self.interner);
-        let kind = diagnostic.kind;
+        let kind = diagnostic.severity;
 
         self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
 
-        if kind < DiagnosticKind::Error {
+        if kind < Severity::Error {
             Ok(())
         } else {
             Err(CompilerError::HadErrors)
@@ -54,7 +54,7 @@ impl<D: DiagnosticEmitter> Session<D> {
 
         for diagnostic in diagnostics {
             let diagnostic = diagnostic.into_diagnostic(source_id, &self.interner);
-            had_error |= diagnostic.kind >= DiagnosticKind::Error;
+            had_error |= diagnostic.severity >= Severity::Error;
             self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
         }
 

@@ -6,7 +6,7 @@ use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, SourceMap};
 // use super::span2::Span;
-use super::{Config, Diagnostic, DiagnosticKind, SnippetKind};
+use super::{Config, Diagnostic, Severity, SnippetKind};
 use crate::span::Span;
 
 const TAB: &str = "    ";
@@ -67,8 +67,7 @@ impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
             write!(self.stream, "[{id}] ")?;
         }
 
-        let kind_str = self.get_kind_str();
-        write!(self.stream, "{kind_str}:")?;
+        write!(self.stream, "{}:", self.diagnostic.severity)?;
 
         self.stream.set_color(&self.config.emphasis)?;
 
@@ -301,18 +300,10 @@ impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
         source_datas
     }
 
-    // TODO: make this a method on `DiagnosticKind`.
-    fn get_kind_str(&self) -> &'static str {
-        match self.diagnostic.kind {
-            DiagnosticKind::Warning => "Warning",
-            DiagnosticKind::Error => "Error",
-        }
-    }
-
     fn get_primary_color(&self) -> &'a ColorSpec {
-        match self.diagnostic.kind {
-            DiagnosticKind::Warning => &self.config.warning_color,
-            DiagnosticKind::Error => &self.config.error_color,
+        match self.diagnostic.severity {
+            Severity::Warning => &self.config.warning_color,
+            Severity::Error => &self.config.error_color,
         }
     }
 
