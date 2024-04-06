@@ -29,27 +29,41 @@ pub struct ModuleCompilation {
     pub symbols: Symbols,
 }
 
-/// A package that is being compiled.
-pub struct PackageCompilation {
-    pub name: String,
+pub fn compile_package<D: DiagnosticEmitter>(
+    session: &mut Session<D>,
+    name: impl Into<String>,
+    root_source_id: SourceId,
+) -> CompilerResult<ObjectProduct> {
+    let mut compilation = PackageCompilation {
+        name: name.into(),
+
+        module_irs: KeyVec::new(),
+        module_compilations: KeyVec::new(),
+    };
+
+    compilation.parse_module_and_submodules(session, root_source_id)?;
+    compilation.compile(session)
+}
+
+struct PackageCompilation {
+    name: String,
 
     // These are separate so that info about other modules
     // can be accessed while mutating a module.
-    pub module_irs: KeyVec<ModuleId, Module>,
-    pub module_compilations: KeyVec<ModuleId, ModuleCompilation>,
+    module_irs: KeyVec<ModuleId, Module>,
+    module_compilations: KeyVec<ModuleId, ModuleCompilation>,
 }
 
 impl PackageCompilation {
-    /// Parse all modules and resolve names.
-    pub fn start<D>(session: &mut Session<D>, source_id: SourceId) -> CompilerResult<Self>
-    where
-        D: DiagnosticEmitter,
-    {
+    fn parse_module_and_submodules<D: DiagnosticEmitter>(
+        &mut self,
+        session: &mut Session<D>,
+        source_id: SourceId,
+    ) -> CompilerResult<ModuleId> {
         let source = session
             .sources
             .get_source(source_id)
             .expect("source id not in sources");
-        let name = source.name_str().to_owned();
 
         let mut had_errors = false;
 
@@ -67,9 +81,6 @@ impl PackageCompilation {
             symbols: Symbols::default(),
         };
 
-        let mut module_irs = KeyVec::new();
-        let mut module_compilations = KeyVec::new();
-
         // name resolution
         let resolver = Resolver::new(&mut module_compilation);
         let ir = match resolver.run(ast) {
@@ -84,19 +95,13 @@ impl PackageCompilation {
             return Err(CompilerError::HadErrors);
         }
 
-        // will have root id
-        let _ = module_irs.insert(ir);
-        let _ = module_compilations.insert(module_compilation);
+        let module_id = self.module_irs.insert(ir);
+        let _ = self.module_compilations.insert(module_compilation);
 
-        Ok(Self {
-            name,
-
-            module_irs,
-            module_compilations,
-        })
+        Ok(module_id)
     }
 
-    pub fn compile<D: DiagnosticEmitter>(
+    fn compile<D: DiagnosticEmitter>(
         mut self,
         session: &mut Session<D>,
     ) -> CompilerResult<ObjectProduct> {
@@ -112,7 +117,8 @@ impl PackageCompilation {
             session.report_all(type_errors, compilation.source_id)?;
         }
 
-        if let Err(err) = check_entrypoint(&self, &session.interner) {
+        let root_compilation = &self.module_compilations[ModuleId::root()];
+        if let Err(err) = check_entrypoint(root_compilation, &session.interner) {
             let source_id = self.module_compilations[ModuleId::root()].source_id;
 
             let _ = session.report(err, source_id);

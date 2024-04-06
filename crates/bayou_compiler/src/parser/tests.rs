@@ -1,6 +1,6 @@
 use target_lexicon::Triple;
 
-use crate::compilation::PackageCompilation;
+use crate::compilation::compile_package;
 use crate::session::Session;
 use crate::sourcemap::Source;
 
@@ -11,9 +11,7 @@ fn test_compiles(source: &str, should_compile: bool) {
         source: source.to_owned(),
     });
 
-    let compiled = PackageCompilation::start(&mut session, source_id)
-        .and_then(|pkg| pkg.compile(&mut session))
-        .is_ok();
+    let compiled = compile_package(&mut session, "tests", source_id).is_ok();
 
     match (compiled, should_compile) {
         (false, true) => panic!(

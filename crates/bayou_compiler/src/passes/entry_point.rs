@@ -1,4 +1,4 @@
-use crate::compilation::{ModuleId, PackageCompilation};
+use crate::compilation::ModuleCompilation;
 use crate::ir::ir::Type;
 use crate::ir::Interner;
 use crate::symbols::GlobalId;
@@ -10,11 +10,9 @@ pub enum EntrypointError {
 }
 
 pub fn check_entrypoint(
-    pkg: &PackageCompilation,
+    root_module_compilation: &ModuleCompilation,
     interner: &Interner,
 ) -> Result<(), EntrypointError> {
-    let root_module_compilation = &pkg.module_compilations[ModuleId::root()];
-
     let main_ident = interner.get("main").ok_or(EntrypointError::Missing)?;
 
     let main_func_id = root_module_compilation

@@ -22,7 +22,6 @@ use std::str::FromStr;
 
 use clap::Parser as _;
 use cli::{Cli, Command};
-use compilation::PackageCompilation;
 use platform::{Linker, LinkerError, PlatformError};
 use session::Session;
 use sourcemap::Source;
@@ -30,6 +29,7 @@ use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
 
+use crate::compilation::compile_package;
 use crate::diagnostics::PrettyDiagnosticEmitter;
 
 #[derive(thiserror::Error, Debug)]
@@ -103,8 +103,7 @@ fn run() -> CompilerResult<()> {
 
                 let source_id = session.sources.insert(Source { name, source });
 
-                let pkg = PackageCompilation::start(&mut session, source_id)?;
-                pkg.compile(&mut session)?
+                compile_package(&mut session, name_stem.clone(), source_id)?
             };
 
             // emit and link objects
