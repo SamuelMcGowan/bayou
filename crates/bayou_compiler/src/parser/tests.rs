@@ -2,11 +2,16 @@ use target_lexicon::Triple;
 
 use crate::compilation::PackageCompilation;
 use crate::session::Session;
+use crate::sourcemap::Source;
 
 fn test_compiles(source: &str, should_compile: bool) {
     let mut session = Session::new(Triple::host(), vec![]);
+    let source_id = session.sources.insert(Source {
+        name: "tests".to_owned(),
+        source: source.to_owned(),
+    });
 
-    let compiled = PackageCompilation::start(&mut session, "tests", source)
+    let compiled = PackageCompilation::start(&mut session, source_id)
         .and_then(|pkg| pkg.compile(&mut session))
         .is_ok();
 

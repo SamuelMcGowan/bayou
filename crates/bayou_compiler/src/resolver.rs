@@ -44,7 +44,7 @@ impl<'m> Resolver<'m> {
 
                     ret_ty: func_decl.ret_ty,
                 }),
-                ast::Item::ParseError => unreachable!(),
+                ast::Item::ParseError => {}
             }
         }
     }
@@ -81,7 +81,7 @@ impl<'m> Resolver<'m> {
                         items_resolved.push(ir::Item::FuncDecl(func_decl));
                     }
                 }
-                ast::Item::ParseError => unreachable!(),
+                ast::Item::ParseError => {}
             }
         }
 
@@ -116,7 +116,7 @@ impl<'m> Resolver<'m> {
                     }
                 }
 
-                ast::Stmt::ParseError => unreachable!(),
+                ast::Stmt::ParseError => {}
             }
         }
 
@@ -158,7 +158,7 @@ impl<'m> Resolver<'m> {
 
             ast::ExprKind::Void => ir::ExprKind::Void,
 
-            ast::ExprKind::ParseError => unreachable!(),
+            ast::ExprKind::ParseError => return None,
         };
 
         Some(ir::Expr {

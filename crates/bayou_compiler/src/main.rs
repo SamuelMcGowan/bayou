@@ -25,6 +25,7 @@ use cli::{Cli, Command};
 use compilation::PackageCompilation;
 use platform::{Linker, LinkerError, PlatformError};
 use session::Session;
+use sourcemap::Source;
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
@@ -100,7 +101,9 @@ fn run() -> CompilerResult<()> {
             let object = {
                 println!("compiling project `{name}`");
 
-                let pkg = PackageCompilation::start(&mut session, &name, source)?;
+                let source_id = session.sources.insert(Source { name, source });
+
+                let pkg = PackageCompilation::start(&mut session, source_id)?;
                 pkg.compile(&mut session)?
             };
 

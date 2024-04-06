@@ -10,7 +10,7 @@ use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
 use crate::resolver::Resolver;
 use crate::session::Session;
-use crate::sourcemap::{Source, SourceId};
+use crate::sourcemap::SourceId;
 use crate::symbols::Symbols;
 use crate::utils::keyvec::{declare_key_type, KeyVec};
 use crate::{CompilerError, CompilerResult};
@@ -41,27 +41,26 @@ pub struct PackageCompilation {
 
 impl PackageCompilation {
     /// Parse all modules and resolve names.
-    pub fn start<D>(
-        session: &mut Session<D>,
-
-        name: impl Into<String>,
-        source: impl Into<String>,
-    ) -> CompilerResult<Self>
+    pub fn start<D>(session: &mut Session<D>, source_id: SourceId) -> CompilerResult<Self>
     where
         D: DiagnosticEmitter,
     {
-        let name = name.into();
+        let source = session
+            .sources
+            .get_source(source_id)
+            .expect("source id not in sources");
+        let name = source.name_str().to_owned();
 
-        let source_id = session.sources.insert(Source::new(&name, source));
-        let source = session.sources.get_source(source_id).unwrap();
+        let mut had_errors = false;
 
         let lexer = Lexer::new(source.source_str(), &mut session.interner);
         let (tokens, lexer_errors) = lexer.lex();
-        session.report_all(lexer_errors, source_id)?;
 
         let parser = Parser::new(tokens);
         let (ast, parse_errors) = parser.parse();
-        session.report_all(parse_errors, source_id)?;
+
+        had_errors |= session.report_all(lexer_errors, source_id).is_err();
+        had_errors |= session.report_all(parse_errors, source_id).is_err();
 
         let mut module_compilation = ModuleCompilation {
             source_id,
@@ -80,6 +79,10 @@ impl PackageCompilation {
                 return Err(CompilerError::HadErrors);
             }
         };
+
+        if had_errors {
+            return Err(CompilerError::HadErrors);
+        }
 
         // will have root id
         let _ = module_irs.insert(ir);
