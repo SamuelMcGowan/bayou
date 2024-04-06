@@ -1,7 +1,8 @@
-use super::{ParseResult, Parser, Tokens};
+use super::{ParseResult, Parser};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{BinOp, Ident, UnOp};
+use crate::utils::peek::Peek;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Prec {
@@ -55,7 +56,7 @@ impl BinOp {
     }
 }
 
-impl<Toks: Tokens> Parser<Toks> {
+impl Parser {
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
         self.parse_prec(Prec::Lowest)
     }

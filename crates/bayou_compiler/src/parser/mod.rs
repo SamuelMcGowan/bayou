@@ -6,11 +6,12 @@ pub mod lexer;
 
 use bayou_diagnostic::span::Span;
 
-use self::lexer::Tokens;
+use self::lexer::TokenIter;
 use crate::ir::ast::*;
 use crate::ir::ir::Type;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{Ident, Spanned};
+use crate::utils::peek::Peek;
 
 // TODO: make into struct
 pub struct ParseError {
@@ -20,13 +21,13 @@ pub struct ParseError {
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
-pub struct Parser<Toks> {
-    tokens: Toks,
+pub struct Parser {
+    tokens: TokenIter,
     errors: Vec<ParseError>,
 }
 
-impl<Toks: Tokens> Parser<Toks> {
-    pub fn new(tokens: Toks) -> Self {
+impl Parser {
+    pub fn new(tokens: TokenIter) -> Self {
         Self {
             tokens,
             errors: vec![],

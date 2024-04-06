@@ -55,13 +55,12 @@ impl PackageCompilation {
         let source_id = session.sources.insert(Source::new(&name, source));
         let source = session.sources.get_source(source_id).unwrap();
 
-        let mut lexer = Lexer::new(source.source_str(), &mut session.interner);
-
-        let parser = Parser::new(&mut lexer);
-        let (ast, parse_errors) = parser.parse();
-        let lexer_errors = lexer.finish();
-
+        let lexer = Lexer::new(source.source_str(), &mut session.interner);
+        let (tokens, lexer_errors) = lexer.lex();
         session.report_all(lexer_errors, source_id)?;
+
+        let parser = Parser::new(tokens);
+        let (ast, parse_errors) = parser.parse();
         session.report_all(parse_errors, source_id)?;
 
         let mut module_compilation = ModuleCompilation {

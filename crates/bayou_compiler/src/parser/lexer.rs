@@ -33,14 +33,11 @@ pub struct Lexer<'sess> {
     chars: Chars<'sess>,
 
     token_start: usize,
-
-    prev_span: Span,
-    current: Option<Token>,
 }
 
 impl<'sess> Lexer<'sess> {
     pub fn new(source: &'sess str, interner: &'sess mut Interner) -> Self {
-        let mut lexer = Self {
+        Self {
             interner,
             errors: vec![],
 
@@ -48,19 +45,25 @@ impl<'sess> Lexer<'sess> {
             chars: source.chars(),
 
             token_start: 0,
+        }
+    }
 
-            prev_span: Span::new(0, 0),
-            current: None,
+    pub fn lex(mut self) -> (TokenIter, Vec<LexerError>) {
+        let mut tokens = vec![];
+        while let Some(token) = self.lex_token() {
+            tokens.push(token);
+        }
+
+        let iter = TokenIter {
+            tokens: tokens.into_iter(),
+            prev_span: Span::empty(0),
+            eof_span: Span::empty(self.chars.as_str().len()),
         };
-        lexer.current = lexer.lex_token();
-        lexer
+
+        (iter, self.errors)
     }
 
-    pub fn finish(self) -> Vec<LexerError> {
-        self.errors
-    }
-
-    pub fn lex_token(&mut self) -> Option<Token> {
+    fn lex_token(&mut self) -> Option<Token> {
         loop {
             macro_rules! try_lex {
                 ($e:expr) => {{
@@ -181,63 +184,46 @@ impl<'sess> Lexer<'sess> {
     }
 }
 
-impl Iterator for Lexer<'_> {
-    type Item = Token;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let token = self.current.take()?;
-        self.prev_span = token.span;
-        self.current = self.lex_token();
-        Some(token)
-    }
-}
-
-pub trait Tokens: Peek<Item = Token> {
-    fn peek_span(&self) -> Span;
-    fn prev_span(&self) -> Span;
-    fn eof_span(&self) -> Span;
-}
-
-impl<T: Tokens> Tokens for &mut T {
-    fn peek_span(&self) -> Span {
-        (**self).peek_span()
-    }
-
-    fn prev_span(&self) -> Span {
-        (**self).prev_span()
-    }
-
-    fn eof_span(&self) -> Span {
-        (**self).eof_span()
-    }
-}
-
-impl Peek for Lexer<'_> {
-    fn peek(&self) -> Option<Self::Item> {
-        self.current
-    }
-}
-
-impl Tokens for Lexer<'_> {
-    fn peek_span(&self) -> Span {
-        self.peek()
-            .map(|t| t.span)
-            .unwrap_or_else(|| self.eof_span())
-    }
-
-    fn prev_span(&self) -> Span {
-        self.prev_span
-    }
-
-    fn eof_span(&self) -> Span {
-        Span::empty(self.all.len())
-    }
-}
-
 fn is_ident_start(ch: char) -> bool {
     ch.is_ascii_alphabetic() || ch == '_'
 }
 
 fn is_ident(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
+}
+
+pub struct TokenIter {
+    tokens: std::vec::IntoIter<Token>,
+    prev_span: Span,
+    eof_span: Span,
+}
+
+impl TokenIter {
+    pub fn prev_span(&self) -> Span {
+        self.prev_span
+    }
+
+    pub fn peek_span(&self) -> Span {
+        self.peek().map(|t| t.span).unwrap_or(self.eof_span)
+    }
+
+    pub fn eof_span(&self) -> Span {
+        self.eof_span
+    }
+}
+
+impl Iterator for TokenIter {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let token = self.tokens.next()?;
+        self.prev_span = token.span;
+        Some(token)
+    }
+}
+
+impl Peek for TokenIter {
+    fn peek(&self) -> Option<Self::Item> {
+        self.tokens.as_slice().first().copied()
+    }
 }
