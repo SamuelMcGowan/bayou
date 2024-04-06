@@ -4,6 +4,7 @@ use cranelift_object::ObjectProduct;
 use crate::codegen::Codegen;
 use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::Module;
+use crate::parser::lexer::Lexer;
 use crate::parser::Parser;
 use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
@@ -54,15 +55,19 @@ impl PackageCompilation {
         let source_id = session.sources.insert(Source::new(&name, source));
         let source = session.sources.get_source(source_id).unwrap();
 
-        let parser = Parser::new(source.source_str(), &mut session.interner);
+        let mut lexer = Lexer::new(source.source_str(), &mut session.interner);
+
+        let parser = Parser::new(&mut lexer);
         let (ast, parse_errors) = parser.parse();
+        let lexer_errors = lexer.finish();
+
+        session.report_all(lexer_errors, source_id)?;
+        session.report_all(parse_errors, source_id)?;
 
         let mut module_compilation = ModuleCompilation {
             source_id,
             symbols: Symbols::default(),
         };
-
-        session.report_all(parse_errors, source_id)?;
 
         let mut module_irs = KeyVec::new();
         let mut module_compilations = KeyVec::new();

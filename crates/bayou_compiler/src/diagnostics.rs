@@ -2,6 +2,7 @@ use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Snippet};
 
 use crate::ir::Interner;
+use crate::parser::lexer::LexerError;
 use crate::parser::ParseError;
 use crate::passes::entry_point::EntrypointError;
 use crate::passes::type_check::TypeError;
@@ -53,25 +54,27 @@ impl IntoDiagnostic for Diagnostic {
     }
 }
 
+impl IntoDiagnostic for LexerError {
+    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
+        Diagnostic::error()
+            .with_message("syntax error")
+            .with_snippet(Snippet::primary(
+                self.kind.to_string(),
+                source_id,
+                self.span,
+            ))
+    }
+}
+
 impl IntoDiagnostic for ParseError {
     fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
-        match self {
-            ParseError::Expected { expected, span } => Diagnostic::error()
-                .with_message("syntax error")
-                .with_snippet(Snippet::primary(
-                    format!("expected {expected} here"),
-                    source_id,
-                    span,
-                )),
-
-            ParseError::Lexer(error) => Diagnostic::error()
-                .with_message("syntax error")
-                .with_snippet(Snippet::primary(
-                    error.kind.to_string(),
-                    source_id,
-                    error.span,
-                )),
-        }
+        Diagnostic::error()
+            .with_message("syntax error")
+            .with_snippet(Snippet::primary(
+                format!("expected {} here", self.expected),
+                source_id,
+                self.span,
+            ))
     }
 }
 

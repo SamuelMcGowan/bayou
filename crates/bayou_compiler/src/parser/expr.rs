@@ -1,5 +1,4 @@
-use super::lexer::Peek;
-use super::{ParseResult, Parser};
+use super::{ParseResult, Parser, Tokens};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{BinOp, Ident, UnOp};
@@ -56,7 +55,7 @@ impl BinOp {
     }
 }
 
-impl Parser<'_> {
+impl<Toks: Tokens> Parser<Toks> {
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
         self.parse_prec(Prec::Lowest)
     }
@@ -68,7 +67,7 @@ impl Parser<'_> {
             // `get_op` doesn't consume a token because
             // some (as of yet unimplemented) operations need to consume
             // the token themselves
-            self.lexer.next();
+            self.tokens.next();
 
             let rhs = self.parse_prec(op.prec())?;
 
@@ -87,12 +86,12 @@ impl Parser<'_> {
     }
 
     fn parse_lhs(&mut self) -> ParseResult<Expr> {
-        match self.lexer.peek() {
+        match self.tokens.peek() {
             Some(Token {
                 kind: TokenKind::Integer(n),
                 span,
             }) => {
-                self.lexer.next();
+                self.tokens.next();
                 Ok(Expr::new(ExprKind::Constant(n), span))
             }
 
@@ -100,18 +99,18 @@ impl Parser<'_> {
                 kind: TokenKind::Identifier(ident),
                 span,
             }) => {
-                self.lexer.next();
+                self.tokens.next();
                 // TODO: rely on expression span instead of storing in ident??
                 Ok(Expr::new(ExprKind::Var(Ident { ident, span }), span))
             }
 
             Some(t) if t.kind == TokenKind::Keyword(Keyword::Void) => {
-                self.lexer.next();
+                self.tokens.next();
                 Ok(Expr::new(ExprKind::Void, t.span))
             }
 
             Some(t) if t.kind == TokenKind::Sub => {
-                self.lexer.next();
+                self.tokens.next();
 
                 let expr = self.parse_prec(Prec::Unary)?;
                 Ok(Expr::new(
@@ -124,7 +123,7 @@ impl Parser<'_> {
             }
 
             Some(t) if t.kind == TokenKind::BitwiseInvert => {
-                self.lexer.next();
+                self.tokens.next();
 
                 let expr = self.parse_prec(Prec::Unary)?;
                 Ok(Expr::new(
@@ -137,7 +136,7 @@ impl Parser<'_> {
             }
 
             Some(t) if t.kind == TokenKind::LParen => {
-                self.lexer.next();
+                self.tokens.next();
 
                 let expr = self.parse_or_recover(Self::parse_expr, |parser, span| {
                     parser.seek(TokenKind::RParen);
@@ -154,7 +153,7 @@ impl Parser<'_> {
     }
 
     fn peek_bin_op(&self, prec: Prec) -> Option<BinOp> {
-        let op = match self.lexer.peek().map(|t| t.kind)? {
+        let op = match self.tokens.peek().map(|t| t.kind)? {
             TokenKind::Add => BinOp::Add,
             TokenKind::Sub => BinOp::Sub,
             TokenKind::Mul => BinOp::Mul,

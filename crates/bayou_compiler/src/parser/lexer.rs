@@ -55,20 +55,6 @@ impl<'sess> Lexer<'sess> {
         lexer
     }
 
-    pub fn peek_span(&self) -> Span {
-        self.peek()
-            .map(|t| t.span)
-            .unwrap_or_else(|| self.eof_span())
-    }
-
-    pub fn prev_span(&self) -> Span {
-        self.prev_span
-    }
-
-    pub fn eof_span(&self) -> Span {
-        Span::new(self.all.len(), self.all.len())
-    }
-
     pub fn finish(self) -> Vec<LexerError> {
         self.errors
     }
@@ -205,9 +191,39 @@ impl Iterator for Lexer<'_> {
     }
 }
 
-impl Peek for Lexer<'_> {
-    fn peek(&self) -> Option<Self::Item> {
-        self.current
+pub trait Tokens: Peek<Item = Token> {
+    fn peek_span(&self) -> Span;
+    fn prev_span(&self) -> Span;
+    fn eof_span(&self) -> Span;
+}
+
+impl<T: Tokens> Tokens for &mut T {
+    fn peek_span(&self) -> Span {
+        (**self).peek_span()
+    }
+
+    fn prev_span(&self) -> Span {
+        (**self).prev_span()
+    }
+
+    fn eof_span(&self) -> Span {
+        (**self).eof_span()
+    }
+}
+
+impl Tokens for Lexer<'_> {
+    fn peek_span(&self) -> Span {
+        self.peek()
+            .map(|t| t.span)
+            .unwrap_or_else(|| self.eof_span())
+    }
+
+    fn prev_span(&self) -> Span {
+        self.prev_span
+    }
+
+    fn eof_span(&self) -> Span {
+        Span::empty(self.all.len())
     }
 }
 
@@ -229,6 +245,18 @@ pub trait Peek: Iterator {
 
     fn at_end(&self) -> bool {
         self.peek().is_none()
+    }
+}
+
+impl<P: Peek> Peek for &mut P {
+    fn peek(&self) -> Option<Self::Item> {
+        (**self).peek()
+    }
+}
+
+impl Peek for Lexer<'_> {
+    fn peek(&self) -> Option<Self::Item> {
+        self.current
     }
 }
 
