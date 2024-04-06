@@ -4,7 +4,7 @@ use cranelift_object::ObjectProduct;
 use crate::codegen::Codegen;
 use crate::diagnostics::DiagnosticEmitter;
 use crate::ir::ir::Module;
-use crate::parser::lexer::Lexer;
+use crate::lexer::Lexer;
 use crate::parser::Parser;
 use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;

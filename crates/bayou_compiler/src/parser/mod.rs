@@ -2,15 +2,14 @@
 mod tests;
 
 mod expr;
-pub mod lexer;
 
 use bayou_diagnostic::span::Span;
 
-use self::lexer::TokenIter;
 use crate::ir::ast::*;
 use crate::ir::ir::Type;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{Ident, Spanned};
+use crate::lexer::TokenIter;
 use crate::utils::peek::Peek;
 
 // TODO: make into struct

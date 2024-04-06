@@ -4,6 +4,7 @@ extern crate macro_rules_attribute;
 mod codegen;
 mod compilation;
 mod ir;
+mod lexer;
 mod parser;
 mod passes;
 mod platform;
