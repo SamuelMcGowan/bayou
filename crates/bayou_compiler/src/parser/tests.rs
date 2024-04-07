@@ -25,7 +25,7 @@ macro_rules! assert_parse {
 
 #[test]
 fn return_integer() {
-    assert_parse!("func main() -> int { return 0; }");
+    assert_parse!("func main() -> i64 { return 0; }");
 }
 
 #[test]
@@ -40,25 +40,25 @@ fn no_return_value() {
 
 #[test]
 fn no_brace() {
-    assert_parse!("func main() -> int { return 0;");
+    assert_parse!("func main() -> i64 { return 0;");
 }
 
 #[test]
 fn no_semicolon() {
-    assert_parse!("func main() -> int { return 0 }");
+    assert_parse!("func main() -> i64 { return 0 }");
 }
 
 #[test]
 fn no_semicolon_or_return_value() {
-    assert_parse!("func main() -> int { return }");
+    assert_parse!("func main() -> i64 { return }");
 }
 
 #[test]
 fn no_space() {
-    assert_parse!("func main() -> int { return0; }");
+    assert_parse!("func main() -> i64 { return0; }");
 }
 
 #[test]
 fn wrong_case() {
-    assert_parse!("func main() -> int { RETURN 0; }");
+    assert_parse!("func main() -> i64 { RETURN 0; }");
 }

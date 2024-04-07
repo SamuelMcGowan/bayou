@@ -99,7 +99,7 @@ impl Parser {
 
     fn parse_type(&mut self) -> ParseResult<Type> {
         match self.tokens.peek() {
-            Some(t) if t.kind == TokenKind::Keyword(Keyword::Int) => {
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::I64) => {
                 self.tokens.next();
                 Ok(Type::I64)
             }

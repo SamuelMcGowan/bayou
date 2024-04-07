@@ -1,6 +1,6 @@
 ---
 source: crates/bayou_compiler/src/lexer/tests.rs
-info: "\nfunc\nmain\n(\n)\n->\nint\n{\nreturn\n0\n;\n}"
+info: "\nfunc\nmain\n(\n)\n->\ni64\n{\nreturn\n0\n;\n}"
 ---
 - - kind:
       Keyword: Func
@@ -25,7 +25,7 @@ info: "\nfunc\nmain\n(\n)\n->\nint\n{\nreturn\n0\n;\n}"
       start: 15
       end: 17
   - kind:
-      Keyword: Int
+      Keyword: I64
     span:
       start: 18
       end: 21

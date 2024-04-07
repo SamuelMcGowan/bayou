@@ -59,7 +59,7 @@ pub enum Keyword {
     Let,
 
     Void,
-    Int,
+    I64,
 }
 
 impl TokenKind {
@@ -69,7 +69,7 @@ impl TokenKind {
                 Keyword::Func => "keyword `func`",
                 Keyword::Return => "keyword `return`",
                 Keyword::Let => "keyword `let`",
-                Keyword::Int => "keyword `int`",
+                Keyword::I64 => "keyword `i64`",
                 Keyword::Void => "keyword `void`",
             },
             TokenKind::Identifier(_) => "identifier",

@@ -1,6 +1,6 @@
 ---
 source: crates/bayou_compiler/src/lexer/tests.rs
-info: "  func  main  (  )  ->  int  {  return  0  ;  }"
+info: "  func  main  (  )  ->  i64  {  return  0  ;  }"
 ---
 - - kind:
       Keyword: Func
@@ -25,7 +25,7 @@ info: "  func  main  (  )  ->  int  {  return  0  ;  }"
       start: 20
       end: 22
   - kind:
-      Keyword: Int
+      Keyword: I64
     span:
       start: 24
       end: 27

@@ -31,15 +31,15 @@ fn integer_overflow() {
 
 #[test]
 fn newlines() {
-    assert_lex!("\nfunc\nmain\n(\n)\n->\nint\n{\nreturn\n0\n;\n}");
+    assert_lex!("\nfunc\nmain\n(\n)\n->\ni64\n{\nreturn\n0\n;\n}");
 }
 
 #[test]
 fn no_newlines() {
-    assert_lex!("func main()->int{return 0;}");
+    assert_lex!("func main()->i64{return 0;}");
 }
 
 #[test]
 fn spaces() {
-    assert_lex!("  func  main  (  )  ->  int  {  return  0  ;  }");
+    assert_lex!("  func  main  (  )  ->  i64  {  return  0  ;  }");
 }
