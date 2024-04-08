@@ -109,7 +109,7 @@ fn run() -> CompilerResult<()> {
                     .build()?;
 
                 println!("writing object");
-                let object_data = object.emit()?;
+                let object_data = object.write()?;
                 std::fs::write(tmp_file.path(), object_data)?;
 
                 println!("linking");

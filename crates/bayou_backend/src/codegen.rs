@@ -6,7 +6,8 @@ use cranelift::codegen::ir::types::I64;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
-use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
+use cranelift_object::object::write::Object;
+use cranelift_object::{ObjectBuilder, ObjectModule};
 use target_lexicon::Triple;
 
 use crate::{BackendError, BackendResult};
@@ -64,8 +65,8 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         Ok(())
     }
 
-    pub fn finish(self) -> BackendResult<ObjectProduct> {
-        Ok(self.module.finish())
+    pub fn finish(self) -> BackendResult<Object<'static>> {
+        Ok(self.module.finish().object)
     }
 
     fn gen_func_decl(

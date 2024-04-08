@@ -5,7 +5,7 @@ pub mod linker;
 
 // Re-exporting here instead of using workspace dependencies
 // so that we stay in sync with the version that cranelift uses.
-pub use cranelift_object::{object, ObjectProduct};
+pub use cranelift_object::object;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BackendError {

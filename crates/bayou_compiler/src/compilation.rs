@@ -1,5 +1,5 @@
 use bayou_backend::codegen::Codegen;
-use bayou_backend::ObjectProduct;
+use bayou_backend::object::write::Object;
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_frontend::lexer::Lexer;
 use bayou_frontend::parser::Parser;
@@ -28,7 +28,7 @@ pub fn compile_package<D: DiagnosticEmitter>(
     session: &mut Session<D>,
     name: impl Into<String>,
     root_source_id: SourceId,
-) -> CompilerResult<ObjectProduct> {
+) -> CompilerResult<Object<'static>> {
     let mut compilation = PackageCompilation {
         name: name.into(),
 
@@ -99,7 +99,7 @@ impl PackageCompilation {
     fn compile<D: DiagnosticEmitter>(
         mut self,
         session: &mut Session<D>,
-    ) -> CompilerResult<ObjectProduct> {
+    ) -> CompilerResult<Object<'static>> {
         // type checking
         for (ir, cx) in self.module_irs.iter_mut().zip(&mut self.module_contexts) {
             let type_checker = TypeChecker::new(cx);
