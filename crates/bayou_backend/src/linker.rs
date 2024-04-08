@@ -3,31 +3,19 @@ use std::process::Command;
 
 use target_lexicon::{Environment, Triple};
 
-#[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
-pub enum PlatformError {
-    #[error(transparent)]
-    ParseError(target_lexicon::ParseError),
-
-    #[error("No known linker for given target and host")]
-    NoLinker,
-
-    #[error("{0} target unsupported")]
-    ArchUnsupported(target_lexicon::Architecture),
-}
-
 #[derive(thiserror::Error, Debug)]
 pub enum LinkerError {
     #[error("couldn't run linker: {0}")]
     Io(#[from] std::io::Error),
 
     #[error(
-        "linker exited with code {code} and stderr output {}",
+        "linker exited with code {code} and stderr output:\n{}",
         String::from_utf8_lossy(.stderr)
     )]
     Exited { code: i32, stderr: Vec<u8> },
 
     #[error(
-        "linker terminated with stderr output {}",
+        "linker terminated with stderr output:\n{}",
         String::from_utf8_lossy(.stderr))
     ]
     Terminated { stderr: Vec<u8> },

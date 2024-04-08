@@ -1,16 +1,15 @@
 use bayou_ir::ir::*;
 use bayou_ir::{BinOp, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
-use bayou_session::platform::PlatformError;
+use bayou_session::target_lexicon::Triple;
 use bayou_session::Session;
 use cranelift::codegen::ir::types::I64;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
-use target_lexicon::Triple;
 
-use crate::{CompilerError, CompilerResult};
+use crate::{BackendError, BackendResult};
 
 type IrType = bayou_ir::Type;
 
@@ -23,7 +22,7 @@ pub struct Codegen<'sess, D: DiagnosticEmitter> {
 }
 
 impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
-    pub fn new(session: &'sess mut Session<D>, target: Triple, name: &str) -> CompilerResult<Self> {
+    pub fn new(session: &'sess mut Session<D>, target: Triple, name: &str) -> BackendResult<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("is_pic", "true").unwrap();
         flag_builder.set("opt_level", "speed").unwrap();
@@ -33,9 +32,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         let isa = match isa::lookup(target.clone()) {
             Ok(isa_builder) => isa_builder.finish(flags)?,
             Err(_) => {
-                return Err(CompilerError::UnsupportedTarget(
-                    PlatformError::ArchUnsupported(target.architecture),
-                ));
+                return Err(BackendError::UnsupportedArch(target.architecture));
             }
         };
 
@@ -57,7 +54,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         &mut self,
         module: &Module,
         module_cx: &ModuleContext,
-    ) -> CompilerResult<()> {
+    ) -> BackendResult<()> {
         for item in &module.items {
             match item {
                 Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, module_cx)?,
@@ -67,7 +64,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         Ok(())
     }
 
-    pub fn finish(self) -> CompilerResult<ObjectProduct> {
+    pub fn finish(self) -> BackendResult<ObjectProduct> {
         Ok(self.module.finish())
     }
 
@@ -75,7 +72,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         &mut self,
         func_decl: &FuncDecl,
         module_cx: &ModuleContext,
-    ) -> CompilerResult<()> {
+    ) -> BackendResult<()> {
         self.module.clear_context(&mut self.ctx);
 
         match func_decl.ret_ty {

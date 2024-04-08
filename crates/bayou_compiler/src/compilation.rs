@@ -1,3 +1,4 @@
+use bayou_backend::codegen::Codegen;
 use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_frontend::lexer::Lexer;
@@ -12,7 +13,6 @@ use bayou_session::sourcemap::SourceId;
 use bayou_session::Session;
 use cranelift_object::ObjectProduct;
 
-use crate::codegen::Codegen;
 use crate::{CompilerError, CompilerResult};
 
 declare_key_type! { pub struct ModuleId; }

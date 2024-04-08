@@ -75,6 +75,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d5a26814d8dcb93b0e5a0ff3c6d80a8843bafb21b39e8e18a6f05471870e110"
 
 [[package]]
+name = "bayou_backend"
+version = "0.1.0"
+dependencies = [
+ "bayou_ir",
+ "bayou_session",
+ "cranelift",
+ "cranelift-module",
+ "cranelift-object",
+ "target-lexicon",
+ "thiserror",
+]
+
+[[package]]
 name = "bayou_common"
 version = "0.1.0"
 
@@ -82,6 +95,7 @@ version = "0.1.0"
 name = "bayou_compiler"
 version = "0.1.0"
 dependencies = [
+ "bayou_backend",
  "bayou_common",
  "bayou_diagnostic",
  "bayou_frontend",
