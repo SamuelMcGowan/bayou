@@ -1,0 +1,10 @@
+[package]
+name = "bayou_middle"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bayou_common = { path = "../bayou_common" }
+bayou_frontend = { path = "../bayou_frontend" }
+bayou_ir = { path = "../bayou_ir" }
+bayou_session = { path = "../bayou_session" }

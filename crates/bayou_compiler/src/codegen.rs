@@ -1,5 +1,6 @@
 use bayou_ir::ir::*;
 use bayou_ir::{BinOp, UnOp};
+use bayou_middle::ModuleCompilation;
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::platform::PlatformError;
 use bayou_session::Session;
@@ -10,7 +11,6 @@ use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
-use crate::compilation::ModuleCompilation;
 use crate::{CompilerError, CompilerResult};
 
 type IrType = bayou_ir::Type;

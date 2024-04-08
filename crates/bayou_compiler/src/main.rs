@@ -1,7 +1,5 @@
 mod codegen;
 mod compilation;
-mod passes;
-mod resolver;
 
 mod cli;
 

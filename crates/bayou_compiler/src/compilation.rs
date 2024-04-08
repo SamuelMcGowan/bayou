@@ -4,15 +4,16 @@ use bayou_frontend::lexer::Lexer;
 use bayou_frontend::parser::Parser;
 use bayou_ir::ir::Module;
 use bayou_ir::symbols::Symbols;
+use bayou_middle::passes::entry_point::check_entrypoint;
+use bayou_middle::passes::type_check::TypeChecker;
+use bayou_middle::resolver::Resolver;
+use bayou_middle::ModuleCompilation;
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::sourcemap::SourceId;
 use bayou_session::Session;
 use cranelift_object::ObjectProduct;
 
 use crate::codegen::Codegen;
-use crate::passes::entry_point::check_entrypoint;
-use crate::passes::type_check::TypeChecker;
-use crate::resolver::Resolver;
 use crate::{CompilerError, CompilerResult};
 
 declare_key_type! { pub struct ModuleId; }
@@ -22,11 +23,6 @@ impl ModuleId {
         use bayou_common::keyvec::Key;
         Self::from_usize(0)
     }
-}
-
-pub struct ModuleCompilation {
-    pub source_id: SourceId,
-    pub symbols: Symbols,
 }
 
 pub fn compile_package<D: DiagnosticEmitter>(

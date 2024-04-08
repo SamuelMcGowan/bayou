@@ -3,7 +3,7 @@ use bayou_ir::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
 use bayou_ir::{ir, Ident, Type};
 use bayou_session::diagnostics::prelude::*;
 
-use crate::compilation::ModuleCompilation;
+use crate::ModuleCompilation;
 
 pub enum ResolverError {
     LocalUndefined(Ident),

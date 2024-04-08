@@ -2,7 +2,7 @@ use bayou_ir::ir::*;
 use bayou_ir::{BinOp, Type, UnOp};
 use bayou_session::diagnostics::prelude::*;
 
-use crate::compilation::ModuleCompilation;
+use crate::ModuleCompilation;
 
 // TODO: make `Spanned` type
 pub enum TypeError {

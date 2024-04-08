@@ -1,5 +1,5 @@
-pub mod type_check;
 pub mod entry_point;
+pub mod type_check;
 
 // use std::ops::ControlFlow;
 

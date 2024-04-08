@@ -2,7 +2,7 @@ use bayou_ir::symbols::GlobalId;
 use bayou_ir::Type;
 use bayou_session::diagnostics::prelude::*;
 
-use crate::compilation::ModuleCompilation;
+use crate::ModuleCompilation;
 
 // TODO: store spans
 pub enum EntrypointError {
