@@ -1,7 +1,7 @@
 use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
 use bayou_diagnostic::{Config, Snippet};
+use bayou_ir::Interner;
 
-use crate::ir::Interner;
 use crate::lexer::LexerError;
 use crate::parser::ParseError;
 use crate::passes::entry_point::EntrypointError;

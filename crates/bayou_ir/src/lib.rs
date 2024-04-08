@@ -1,17 +1,21 @@
-use bayou_diagnostic::span::Span;
+#[macro_use]
+extern crate macro_rules_attribute;
 
 pub mod ast;
-#[allow(clippy::module_inception)]
 pub mod ir;
+pub mod symbols;
 pub mod token;
-
-pub type InternedStr = lasso::Spur;
-pub type Interner = lasso::Rodeo;
 
 derive_alias! {
     #[derive(Node!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];
     #[derive(NodeCopy!)] = #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)];
 }
+
+use bayou_diagnostic::span::Span;
+pub use lasso;
+
+pub type InternedStr = lasso::Spur;
+pub type Interner = lasso::Rodeo;
 
 #[derive(Node!, Copy)]
 pub struct Ident {
@@ -43,6 +47,13 @@ pub enum BinOp {
 pub enum UnOp {
     Negate,
     BitwiseInvert,
+}
+
+#[derive(NodeCopy!)]
+pub enum Type {
+    I64,
+    Void,
+    Never,
 }
 
 #[derive(NodeCopy!)]

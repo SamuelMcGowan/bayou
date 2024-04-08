@@ -1,7 +1,6 @@
 use bayou_diagnostic::span::Span;
 
-use super::NodeCopy;
-use crate::ir::InternedStr;
+use crate::{InternedStr, NodeCopy};
 
 #[derive(NodeCopy!)]
 pub struct Token {

@@ -1,0 +1,12 @@
+[package]
+name = "bayou_ir"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bayou_common = { path = "../bayou_common" }
+bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
+
+lasso = { version = "0.7.2", features = ["serialize"] }
+macro_rules_attribute = "0.2.0"
+serde = { workspace = true }

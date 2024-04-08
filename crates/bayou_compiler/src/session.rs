@@ -1,8 +1,8 @@
 use bayou_diagnostic::Severity;
+use bayou_ir::Interner;
 use target_lexicon::Triple;
 
 use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
-use crate::ir::Interner;
 use crate::sourcemap::{SourceId, SourceMap};
 use crate::{CompilerError, CompilerResult};
 

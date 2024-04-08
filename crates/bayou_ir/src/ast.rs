@@ -1,7 +1,6 @@
 use bayou_diagnostic::span::Span;
 
-use super::ir::Type;
-use super::{BinOp, Ident, Node, UnOp};
+use crate::{BinOp, Ident, Node, Type, UnOp};
 
 #[derive(Node!)]
 pub struct Module {

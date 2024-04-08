@@ -1,16 +1,11 @@
-#[macro_use]
-extern crate macro_rules_attribute;
-
 mod codegen;
 mod compilation;
-mod ir;
 mod lexer;
 mod parser;
 mod passes;
 mod platform;
 mod resolver;
 mod session;
-mod symbols;
 
 mod cli;
 mod diagnostics;

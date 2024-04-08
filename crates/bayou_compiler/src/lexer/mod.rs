@@ -5,9 +5,8 @@ use std::str::Chars;
 
 use bayou_common::peek::Peek;
 use bayou_diagnostic::span::Span;
-
-use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::ir::Interner;
+use bayou_ir::token::{Keyword, Token, TokenKind};
+use bayou_ir::Interner;
 
 #[derive(serde::Serialize)]
 pub struct LexerError {

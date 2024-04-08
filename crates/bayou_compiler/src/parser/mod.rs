@@ -5,11 +5,10 @@ mod expr;
 
 use bayou_common::peek::Peek;
 use bayou_diagnostic::span::Span;
+use bayou_ir::ast::*;
+use bayou_ir::token::{Keyword, Token, TokenKind};
+use bayou_ir::{Ident, Spanned, Type};
 
-use crate::ir::ast::*;
-use crate::ir::ir::Type;
-use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::ir::{Ident, Spanned};
 use crate::lexer::TokenIter;
 
 #[derive(serde::Serialize)]

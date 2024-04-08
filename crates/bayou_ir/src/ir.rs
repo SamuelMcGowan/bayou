@@ -2,6 +2,7 @@ use bayou_diagnostic::span::Span;
 
 use super::{BinOp, Ident, Node, NodeCopy, UnOp};
 use crate::symbols::LocalId;
+use crate::Type;
 
 #[derive(Node!)]
 pub struct Module {
@@ -60,11 +61,4 @@ impl Constant {
             Self::I64(_) => Type::I64,
         }
     }
-}
-
-#[derive(NodeCopy!)]
-pub enum Type {
-    I64,
-    Void,
-    Never,
 }

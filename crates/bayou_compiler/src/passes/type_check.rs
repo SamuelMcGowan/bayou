@@ -1,8 +1,8 @@
 use bayou_diagnostic::span::Span;
+use bayou_ir::ir::*;
+use bayou_ir::{BinOp, Type, UnOp};
 
 use crate::compilation::ModuleCompilation;
-use crate::ir::ir::*;
-use crate::ir::{BinOp, UnOp};
 
 // TODO: make `Spanned` type
 pub enum TypeError {
@@ -75,7 +75,7 @@ impl<'a> TypeChecker<'a> {
         // If the function needs to return a value, ensure that the final statement returns.
         // Return *types* are already checked.
         if func_decl.ret_ty != Type::Void
-            && !matches!(func_decl.statements.last(), Some(stmt) if stmt.always_returns())
+            && !matches!(func_decl.statements.last(), Some(stmt) if stmt_always_returns(stmt))
         {
             // FIXME: use function return type span
             self.errors.push(TypeError::MissingReturn {
@@ -162,11 +162,9 @@ impl<'a> TypeChecker<'a> {
     }
 }
 
-impl Stmt {
-    fn always_returns(&self) -> bool {
-        match self {
-            Self::Return(_) => true,
-            Self::Assign { .. } => false,
-        }
+fn stmt_always_returns(stmt: &Stmt) -> bool {
+    match stmt {
+        Stmt::Return(_) => true,
+        Stmt::Assign { .. } => false,
     }
 }

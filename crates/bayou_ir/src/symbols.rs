@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::span::Span;
 
-use crate::ir::ir::Type;
-use crate::ir::{Ident, InternedStr};
+use crate::{Ident, InternedStr, Type};
 
 #[derive(Default, Debug, Clone)]
 pub struct Symbols {

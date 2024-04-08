@@ -1,3 +1,5 @@
+use bayou_ir::ir::*;
+use bayou_ir::{BinOp, UnOp};
 use cranelift::codegen::ir::types::I64;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
@@ -7,13 +9,11 @@ use target_lexicon::Triple;
 
 use crate::compilation::ModuleCompilation;
 use crate::diagnostics::DiagnosticEmitter;
-use crate::ir::ir::*;
-use crate::ir::{BinOp, UnOp};
 use crate::platform::PlatformError;
 use crate::session::Session;
 use crate::{CompilerError, CompilerResult};
 
-type IrType = crate::ir::ir::Type;
+type IrType = bayou_ir::Type;
 
 pub struct Codegen<'sess, D: DiagnosticEmitter> {
     session: &'sess mut Session<D>,

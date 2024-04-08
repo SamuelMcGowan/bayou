@@ -1,9 +1,9 @@
 use bayou_common::peek::Peek;
+use bayou_ir::ast::*;
+use bayou_ir::token::{Keyword, Token, TokenKind};
+use bayou_ir::{BinOp, Ident, UnOp};
 
 use super::{ParseResult, Parser};
-use crate::ir::ast::*;
-use crate::ir::token::{Keyword, Token, TokenKind};
-use crate::ir::{BinOp, Ident, UnOp};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Prec {
@@ -27,34 +27,32 @@ enum Prec {
     // Call,
 }
 
-impl BinOp {
-    fn should_parse_in_prec(&self, in_prec: Prec) -> bool {
-        let prec = self.prec();
-        prec > in_prec || self.r_assoc() && prec == in_prec
+fn should_parse_binop_in_prec(binop: &BinOp, in_prec: Prec) -> bool {
+    let prec = binop_prec(binop);
+    prec > in_prec || binop_is_r_assoc(binop) && prec == in_prec
+}
+
+fn binop_prec(binop: &BinOp) -> Prec {
+    match binop {
+        // BinOp::LogicalOr => Prec::LogicalOr,
+        // BinOp::LogicalAnd => Prec::LogicalAnd,
+
+        // BinOp::Equal | BinOp::NotEqual => Prec::Equality,
+        // BinOp::Gt | BinOp::Lt | BinOp::GtEq | BinOp::LtEq => Prec::Comparison,
+        BinOp::BitwiseAnd => Prec::BitwiseAnd,
+        BinOp::BitwiseXor => Prec::BitwiseXor,
+        BinOp::BitwiseOr => Prec::BitwiseOr,
+
+        BinOp::Add | BinOp::Sub => Prec::Term,
+        BinOp::Mul | BinOp::Div | BinOp::Mod => Prec::Factor,
+        // BinOp::Field => Prec::Field,
+        // BinOp::Call | BinOp::Index => Prec::Call,
     }
+}
 
-    fn prec(&self) -> Prec {
-        match self {
-            // Self::LogicalOr => Prec::LogicalOr,
-            // Self::LogicalAnd => Prec::LogicalAnd,
-
-            // Self::Equal | Self::NotEqual => Prec::Equality,
-            // Self::Gt | Self::Lt | Self::GtEq | Self::LtEq => Prec::Comparison,
-            Self::BitwiseAnd => Prec::BitwiseAnd,
-            Self::BitwiseXor => Prec::BitwiseXor,
-            Self::BitwiseOr => Prec::BitwiseOr,
-
-            Self::Add | Self::Sub => Prec::Term,
-            Self::Mul | Self::Div | Self::Mod => Prec::Factor,
-            // Self::Field => Prec::Field,
-            // Self::Call | Self::Index => Prec::Call,
-        }
-    }
-
-    fn r_assoc(&self) -> bool {
-        // nothing for now, but best to keep the framework in place
-        false
-    }
+fn binop_is_r_assoc(_binop: &BinOp) -> bool {
+    // nothing for now, but best to keep the framework in place
+    false
 }
 
 impl Parser {
@@ -71,7 +69,7 @@ impl Parser {
             // the token themselves
             self.tokens.next();
 
-            let rhs = self.parse_prec(op.prec())?;
+            let rhs = self.parse_prec(binop_prec(&op))?;
 
             let span = expr.span.union(rhs.span);
             expr = Expr::new(
@@ -169,6 +167,6 @@ impl Parser {
             _ => return None,
         };
 
-        op.should_parse_in_prec(prec).then_some(op)
+        should_parse_binop_in_prec(&op, prec).then_some(op)
     }
 }

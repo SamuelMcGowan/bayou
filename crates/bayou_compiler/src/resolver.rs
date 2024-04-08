@@ -1,7 +1,7 @@
+use bayou_ir::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
+use bayou_ir::{ast, ir, Ident, InternedStr, Type};
+
 use crate::compilation::ModuleCompilation;
-use crate::ir::ir::Type;
-use crate::ir::{ast, ir, Ident, InternedStr};
-use crate::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
 
 pub enum ResolverError {
     LocalUndefined(Ident),

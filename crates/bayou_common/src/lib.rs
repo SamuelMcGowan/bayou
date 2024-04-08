@@ -12,8 +12,3 @@ macro_rules! assert_yaml_snapshot_with_source {
         })
     }};
 }
-
-pub mod reexport {
-    #[cfg(test)]
-    pub use insta;
-}
