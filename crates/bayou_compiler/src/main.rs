@@ -15,7 +15,6 @@ mod symbols;
 mod cli;
 mod diagnostics;
 mod sourcemap;
-mod utils;
 
 use std::path::Path;
 use std::str::FromStr;

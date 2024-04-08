@@ -1,3 +1,4 @@
+use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use cranelift_object::ObjectProduct;
 
@@ -12,14 +13,13 @@ use crate::resolver::Resolver;
 use crate::session::Session;
 use crate::sourcemap::SourceId;
 use crate::symbols::Symbols;
-use crate::utils::keyvec::{declare_key_type, KeyVec};
 use crate::{CompilerError, CompilerResult};
 
 declare_key_type! { pub struct ModuleId; }
 
 impl ModuleId {
     pub fn root() -> Self {
-        use crate::utils::keyvec::Key;
+        use bayou_common::keyvec::Key;
         Self::from_usize(0)
     }
 }

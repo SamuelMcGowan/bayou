@@ -1,8 +1,9 @@
+use bayou_common::peek::Peek;
+
 use super::{ParseResult, Parser};
 use crate::ir::ast::*;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{BinOp, Ident, UnOp};
-use crate::utils::peek::Peek;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Prec {

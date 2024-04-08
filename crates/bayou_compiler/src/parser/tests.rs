@@ -1,8 +1,9 @@
+use bayou_common::assert_yaml_snapshot_with_source;
+
 use super::{ParseError, Parser};
 use crate::ir::ast::Module;
 use crate::ir::Interner;
 use crate::lexer::Lexer;
-use crate::utils::assert_yaml_snapshot_with_source;
 
 fn parse(source: &str) -> (Module, Vec<ParseError>) {
     let mut interner = Interner::new();

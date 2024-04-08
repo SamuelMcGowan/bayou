@@ -3,11 +3,11 @@ mod tests;
 
 use std::str::Chars;
 
+use bayou_common::peek::Peek;
 use bayou_diagnostic::span::Span;
 
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::Interner;
-use crate::utils::peek::Peek;
 
 #[derive(serde::Serialize)]
 pub struct LexerError {

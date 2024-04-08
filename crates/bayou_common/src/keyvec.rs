@@ -123,22 +123,22 @@ pub trait Key: Copy {
     fn as_usize(&self) -> usize;
 }
 
+#[macro_export]
 macro_rules! declare_key_type {
-(
-    $v:vis struct $i:ident;
-) => {
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
-    $v struct $i(pub usize);
+    ($v:vis struct $i:ident;) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
+        $v struct $i(pub usize);
 
-    impl $crate::utils::keyvec::Key for $i {
-        fn from_usize(n: usize) -> Self {
-            Self(n)
-        }
+        impl $crate::keyvec::Key for $i {
+            fn from_usize(n: usize) -> Self {
+                Self(n)
+            }
 
-        fn as_usize(&self) -> usize {
-            self.0
+            fn as_usize(&self) -> usize {
+                self.0
+            }
         }
-    }
-};
+    };
 }
-pub(crate) use declare_key_type;
+
+pub use crate::declare_key_type;

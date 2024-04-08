@@ -3,6 +3,7 @@ mod tests;
 
 mod expr;
 
+use bayou_common::peek::Peek;
 use bayou_diagnostic::span::Span;
 
 use crate::ir::ast::*;
@@ -10,7 +11,6 @@ use crate::ir::ir::Type;
 use crate::ir::token::{Keyword, Token, TokenKind};
 use crate::ir::{Ident, Spanned};
 use crate::lexer::TokenIter;
-use crate::utils::peek::Peek;
 
 #[derive(serde::Serialize)]
 pub struct ParseError {
