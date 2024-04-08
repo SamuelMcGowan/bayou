@@ -1,5 +1,5 @@
 ---
-source: crates/bayou_compiler/src/parser/tests.rs
+source: crates/bayou_frontend/src/parser/tests.rs
 info: "func main() { return; }"
 ---
 - items:

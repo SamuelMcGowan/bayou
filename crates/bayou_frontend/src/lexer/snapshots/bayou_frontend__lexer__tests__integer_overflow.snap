@@ -1,5 +1,5 @@
 ---
-source: crates/bayou_compiler/src/lexer/tests.rs
+source: crates/bayou_frontend/src/lexer/tests.rs
 info: "100000000000000000000"
 ---
 - []

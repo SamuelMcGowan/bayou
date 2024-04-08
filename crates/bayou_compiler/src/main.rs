@@ -1,7 +1,5 @@
 mod codegen;
 mod compilation;
-mod lexer;
-mod parser;
 mod passes;
 mod platform;
 mod resolver;

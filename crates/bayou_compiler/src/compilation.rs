@@ -1,13 +1,13 @@
 use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
+use bayou_frontend::lexer::Lexer;
+use bayou_frontend::parser::Parser;
 use bayou_ir::ir::Module;
 use bayou_ir::symbols::Symbols;
 use cranelift_object::ObjectProduct;
 
 use crate::codegen::Codegen;
 use crate::diagnostics::DiagnosticEmitter;
-use crate::lexer::Lexer;
-use crate::parser::Parser;
 use crate::passes::entry_point::check_entrypoint;
 use crate::passes::type_check::TypeChecker;
 use crate::resolver::Resolver;

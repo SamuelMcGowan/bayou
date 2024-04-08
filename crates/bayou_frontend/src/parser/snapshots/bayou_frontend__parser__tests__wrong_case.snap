@@ -1,6 +1,6 @@
 ---
-source: crates/bayou_compiler/src/parser/tests.rs
-info: "func main() -> int { RETURN 0; }"
+source: crates/bayou_frontend/src/parser/tests.rs
+info: "func main() -> i64 { RETURN 0; }"
 ---
 - items:
     - FuncDecl:

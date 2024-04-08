@@ -1,0 +1,13 @@
+[package]
+name = "bayou_frontend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bayou_common = { path = "../bayou_common" }
+bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
+bayou_ir = { path = "../bayou_ir" }
+
+insta = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }

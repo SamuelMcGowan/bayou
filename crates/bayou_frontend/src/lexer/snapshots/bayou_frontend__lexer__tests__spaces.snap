@@ -1,5 +1,5 @@
 ---
-source: crates/bayou_compiler/src/lexer/tests.rs
+source: crates/bayou_frontend/src/lexer/tests.rs
 info: "  func  main  (  )  ->  i64  {  return  0  ;  }"
 ---
 - - kind:

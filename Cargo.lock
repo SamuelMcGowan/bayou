@@ -84,6 +84,7 @@ version = "0.1.0"
 dependencies = [
  "bayou_common",
  "bayou_diagnostic",
+ "bayou_frontend",
  "bayou_ir",
  "clap",
  "cranelift",
@@ -106,6 +107,18 @@ dependencies = [
  "serde",
  "termcolor",
  "unicode-width",
+]
+
+[[package]]
+name = "bayou_frontend"
+version = "0.1.0"
+dependencies = [
+ "bayou_common",
+ "bayou_diagnostic",
+ "bayou_ir",
+ "insta",
+ "serde",
+ "thiserror",
 ]
 
 [[package]]

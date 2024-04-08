@@ -1,6 +1,6 @@
 ---
-source: crates/bayou_compiler/src/parser/tests.rs
-info: "func main() -> int { return 0; }"
+source: crates/bayou_frontend/src/parser/tests.rs
+info: "func main( { return 0; }"
 ---
 - items:
     - FuncDecl:
@@ -9,13 +9,16 @@ info: "func main() -> int { return 0; }"
           span:
             start: 5
             end: 9
-        ret_ty: I64
+        ret_ty: Void
         statements:
           - Return:
               kind:
                 Constant: 0
               span:
-                start: 28
-                end: 29
-- []
+                start: 20
+                end: 21
+- - expected: "`)`"
+    span:
+      start: 11
+      end: 12
 

@@ -1,5 +1,5 @@
 ---
-source: crates/bayou_compiler/src/lexer/tests.rs
+source: crates/bayou_frontend/src/lexer/tests.rs
 info: "\nfunc\nmain\n(\n)\n->\ni64\n{\nreturn\n0\n;\n}"
 ---
 - - kind:
