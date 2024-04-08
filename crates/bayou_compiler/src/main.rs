@@ -1,7 +1,6 @@
 mod codegen;
 mod compilation;
 mod passes;
-mod platform;
 mod resolver;
 
 mod cli;
@@ -10,11 +9,11 @@ use std::path::Path;
 use std::str::FromStr;
 
 use bayou_session::diagnostics::PrettyDiagnosticEmitter;
+use bayou_session::platform::{Linker, LinkerError, PlatformError};
 use bayou_session::sourcemap::Source;
 use bayou_session::Session;
 use clap::Parser as _;
 use cli::{Cli, Command};
-use platform::{Linker, LinkerError, PlatformError};
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;

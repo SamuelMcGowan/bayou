@@ -1,4 +1,5 @@
 pub mod diagnostics;
+pub mod platform;
 pub mod sourcemap;
 
 use diagnostics::prelude::*;
