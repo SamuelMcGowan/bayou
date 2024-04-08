@@ -143,6 +143,8 @@ dependencies = [
  "bayou_diagnostic",
  "lasso",
  "serde",
+ "target-lexicon",
+ "thiserror",
 ]
 
 [[package]]

@@ -3,7 +3,6 @@ mod compilation;
 mod passes;
 mod platform;
 mod resolver;
-mod session;
 
 mod cli;
 
@@ -12,10 +11,10 @@ use std::str::FromStr;
 
 use bayou_session::diagnostics::PrettyDiagnosticEmitter;
 use bayou_session::sourcemap::Source;
+use bayou_session::Session;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use platform::{Linker, LinkerError, PlatformError};
-use session::Session;
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
@@ -44,6 +43,12 @@ enum CompilerError {
 
     #[error("errors while compiling")]
     HadErrors,
+}
+
+impl From<bayou_session::HadErrors> for CompilerError {
+    fn from(_: bayou_session::HadErrors) -> Self {
+        Self::HadErrors
+    }
 }
 
 type CompilerResult<T> = Result<T, CompilerError>;
