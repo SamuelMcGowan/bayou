@@ -83,7 +83,6 @@ dependencies = [
  "cranelift",
  "cranelift-module",
  "cranelift-object",
- "target-lexicon",
  "thiserror",
 ]
 

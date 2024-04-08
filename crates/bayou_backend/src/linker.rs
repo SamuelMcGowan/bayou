@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use std::process::Command;
 
-use target_lexicon::{Environment, Triple};
+use bayou_session::target_lexicon::{Environment, Triple};
 
 #[derive(thiserror::Error, Debug)]
 pub enum LinkerError {
