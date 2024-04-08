@@ -1,9 +1,9 @@
 use bayou_common::peek::Peek;
-use bayou_ir::ast::*;
-use bayou_ir::token::{Keyword, Token, TokenKind};
 use bayou_ir::{BinOp, Ident, UnOp};
 
 use super::{ParseResult, Parser};
+use crate::ast::*;
+use crate::token::*;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Prec {

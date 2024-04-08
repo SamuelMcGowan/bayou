@@ -1,8 +1,8 @@
 use bayou_common::assert_yaml_snapshot_with_source;
-use bayou_ir::ast::Module;
 use bayou_ir::Interner;
 
 use super::{ParseError, Parser};
+use crate::ast::Module;
 use crate::lexer::Lexer;
 
 fn parse(source: &str) -> (Module, Vec<ParseError>) {

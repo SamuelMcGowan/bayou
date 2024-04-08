@@ -3,10 +3,8 @@
 #[macro_use]
 extern crate macro_rules_attribute;
 
-pub mod ast;
 pub mod ir;
 pub mod symbols;
-pub mod token;
 
 derive_alias! {
     #[derive(Node!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];

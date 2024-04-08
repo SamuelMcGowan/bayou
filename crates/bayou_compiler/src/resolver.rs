@@ -1,5 +1,6 @@
+use bayou_frontend::ast;
 use bayou_ir::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
-use bayou_ir::{ast, ir, Ident, InternedStr, Type};
+use bayou_ir::{ir, Ident, InternedStr, Type};
 
 use crate::compilation::ModuleCompilation;
 

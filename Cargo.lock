@@ -117,6 +117,7 @@ dependencies = [
  "bayou_diagnostic",
  "bayou_ir",
  "insta",
+ "macro_rules_attribute",
  "serde",
  "thiserror",
 ]

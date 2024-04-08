@@ -8,5 +8,5 @@ bayou_common = { path = "../bayou_common" }
 bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
 
 lasso = { version = "0.7.2", features = ["serialize"] }
-macro_rules_attribute = "0.2.0"
+macro_rules_attribute = { workspace = true }
 serde = { workspace = true }

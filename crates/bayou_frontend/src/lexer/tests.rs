@@ -1,8 +1,8 @@
 use bayou_common::assert_yaml_snapshot_with_source;
-use bayou_ir::token::Token;
 use bayou_ir::Interner;
 
 use super::{Lexer, LexerError};
+use crate::token::Token;
 
 fn lex(source: &str) -> (Vec<Token>, Vec<LexerError>) {
     let mut interner = Interner::new();

@@ -9,5 +9,6 @@ bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
 bayou_ir = { path = "../bayou_ir" }
 
 insta = { workspace = true }
+macro_rules_attribute = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
