@@ -1,3 +1,5 @@
+//! Types for representing the program throughout the compilation pipeline.
+
 #[macro_use]
 extern crate macro_rules_attribute;
 
