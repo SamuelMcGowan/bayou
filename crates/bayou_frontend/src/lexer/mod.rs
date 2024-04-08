@@ -3,8 +3,8 @@ mod tests;
 
 use std::str::Chars;
 
-use bayou_common::peek::Peek;
 use bayou_session::diagnostics::prelude::*;
+use bayou_utils::peek::Peek;
 
 use crate::token::*;
 

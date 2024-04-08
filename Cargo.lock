@@ -88,20 +88,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "bayou_common"
-version = "0.1.0"
-
-[[package]]
 name = "bayou_compiler"
 version = "0.1.0"
 dependencies = [
  "bayou_backend",
- "bayou_common",
  "bayou_diagnostic",
  "bayou_frontend",
  "bayou_ir",
  "bayou_middle",
  "bayou_session",
+ "bayou_utils",
  "clap",
  "insta",
  "serde",
@@ -125,10 +121,10 @@ dependencies = [
 name = "bayou_frontend"
 version = "0.1.0"
 dependencies = [
- "bayou_common",
  "bayou_diagnostic",
  "bayou_ir",
  "bayou_session",
+ "bayou_utils",
  "insta",
  "macro_rules_attribute",
  "serde",
@@ -139,9 +135,9 @@ dependencies = [
 name = "bayou_ir"
 version = "0.1.0"
 dependencies = [
- "bayou_common",
  "bayou_diagnostic",
  "bayou_session",
+ "bayou_utils",
  "macro_rules_attribute",
  "serde",
 ]
@@ -150,23 +146,27 @@ dependencies = [
 name = "bayou_middle"
 version = "0.1.0"
 dependencies = [
- "bayou_common",
  "bayou_frontend",
  "bayou_ir",
  "bayou_session",
+ "bayou_utils",
 ]
 
 [[package]]
 name = "bayou_session"
 version = "0.1.0"
 dependencies = [
- "bayou_common",
  "bayou_diagnostic",
+ "bayou_utils",
  "lasso",
  "serde",
  "target-lexicon",
  "thiserror",
 ]
+
+[[package]]
+name = "bayou_utils"
+version = "0.1.0"
 
 [[package]]
 name = "bumpalo"

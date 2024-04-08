@@ -3,10 +3,10 @@ mod tests;
 
 mod expr;
 
-use bayou_common::peek::Peek;
 use bayou_diagnostic::span::Span;
 use bayou_ir::{Ident, Spanned, Type};
 use bayou_session::diagnostics::prelude::*;
+use bayou_utils::peek::Peek;
 
 use crate::ast::*;
 use crate::lexer::TokenIter;

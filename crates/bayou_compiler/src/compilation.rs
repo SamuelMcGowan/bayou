@@ -1,6 +1,5 @@
 use bayou_backend::codegen::Codegen;
 use bayou_backend::ObjectProduct;
-use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_frontend::lexer::Lexer;
 use bayou_frontend::parser::Parser;
@@ -12,6 +11,7 @@ use bayou_middle::resolver::Resolver;
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::sourcemap::SourceId;
 use bayou_session::Session;
+use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
 use crate::{CompilerError, CompilerResult};
 
@@ -19,7 +19,7 @@ declare_key_type! { pub struct ModuleId; }
 
 impl ModuleId {
     pub fn root() -> Self {
-        use bayou_common::keyvec::Key;
+        use bayou_utils::keyvec::Key;
         Self::from_usize(0)
     }
 }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::span::Span;
+use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
 use crate::{Ident, InternedStr, Type};
 

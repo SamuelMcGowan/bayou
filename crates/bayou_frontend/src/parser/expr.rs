@@ -1,5 +1,5 @@
-use bayou_common::peek::Peek;
 use bayou_ir::{BinOp, Ident, UnOp};
+use bayou_utils::peek::Peek;
 
 use super::{ParseResult, Parser};
 use crate::ast::*;

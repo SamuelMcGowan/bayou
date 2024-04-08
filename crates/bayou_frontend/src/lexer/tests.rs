@@ -1,5 +1,5 @@
-use bayou_common::assert_yaml_snapshot_with_source;
 use bayou_session::Interner;
+use bayou_utils::assert_yaml_snapshot_with_source;
 
 use super::{Lexer, LexerError};
 use crate::token::Token;

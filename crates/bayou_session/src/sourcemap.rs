@@ -1,5 +1,5 @@
-use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::sources::Cached;
+use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
 declare_key_type! { pub struct SourceId; }
 
