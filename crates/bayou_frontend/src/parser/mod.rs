@@ -6,6 +6,7 @@ mod expr;
 use bayou_common::peek::Peek;
 use bayou_diagnostic::span::Span;
 use bayou_ir::{Ident, Spanned, Type};
+use bayou_session::diagnostics::prelude::*;
 
 use crate::ast::*;
 use crate::lexer::TokenIter;
@@ -15,6 +16,18 @@ use crate::token::{Keyword, Token, TokenKind};
 pub struct ParseError {
     pub expected: String,
     pub span: Span,
+}
+
+impl IntoDiagnostic for ParseError {
+    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
+        Diagnostic::error()
+            .with_message("syntax error")
+            .with_snippet(Snippet::primary(
+                format!("expected {} here", self.expected),
+                source_id,
+                self.span,
+            ))
+    }
 }
 
 pub type ParseResult<T> = Result<T, ParseError>;

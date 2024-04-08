@@ -6,16 +6,13 @@ extern crate macro_rules_attribute;
 pub mod ir;
 pub mod symbols;
 
+use bayou_diagnostic::span::Span;
+use bayou_session::InternedStr;
+
 derive_alias! {
     #[derive(Node!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];
     #[derive(NodeCopy!)] = #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)];
 }
-
-use bayou_diagnostic::span::Span;
-pub use lasso;
-
-pub type InternedStr = lasso::Spur;
-pub type Interner = lasso::Rodeo;
 
 #[derive(Node!, Copy)]
 pub struct Ident {

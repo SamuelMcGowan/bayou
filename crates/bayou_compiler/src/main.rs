@@ -6,23 +6,21 @@ mod resolver;
 mod session;
 
 mod cli;
-mod diagnostics;
-mod sourcemap;
 
 use std::path::Path;
 use std::str::FromStr;
 
+use bayou_session::diagnostics::PrettyDiagnosticEmitter;
+use bayou_session::sourcemap::Source;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use platform::{Linker, LinkerError, PlatformError};
 use session::Session;
-use sourcemap::Source;
 use target_lexicon::Triple;
 use temp_dir::TempDir;
 use temp_file::TempFileBuilder;
 
 use crate::compilation::compile_package;
-use crate::diagnostics::PrettyDiagnosticEmitter;
 
 #[derive(thiserror::Error, Debug)]
 enum CompilerError {

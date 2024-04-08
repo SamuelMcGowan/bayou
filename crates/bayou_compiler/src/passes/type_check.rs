@@ -1,6 +1,6 @@
-use bayou_diagnostic::span::Span;
 use bayou_ir::ir::*;
 use bayou_ir::{BinOp, Type, UnOp};
+use bayou_session::diagnostics::prelude::*;
 
 use crate::compilation::ModuleCompilation;
 
@@ -18,6 +18,43 @@ pub enum TypeError {
         ty: Type,
         span: Span,
     },
+}
+
+impl IntoDiagnostic for TypeError {
+    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
+        match self {
+            TypeError::TypeMismatch {
+                expected,
+                expected_span,
+                found,
+                found_span,
+            } => {
+                let mut diagnostic = Diagnostic::error()
+                    .with_message(format!("expected type {expected:?}, found type {found:?}"))
+                    .with_snippet(Snippet::primary("unexpected type", source_id, found_span));
+
+                if let Some(expected_span) = expected_span {
+                    diagnostic = diagnostic.with_snippet(Snippet::secondary(
+                        "expected due to this type",
+                        source_id,
+                        expected_span,
+                    ));
+                }
+
+                diagnostic
+            }
+
+            TypeError::MissingReturn { ty, span } => Diagnostic::error()
+                .with_message(format!(
+                    "missing return statement in function that returns type {ty:?}"
+                ))
+                .with_snippet(Snippet::primary(
+                    "expected due to this return type",
+                    source_id,
+                    span,
+                )),
+        }
+    }
 }
 
 pub struct TypeChecker<'m> {

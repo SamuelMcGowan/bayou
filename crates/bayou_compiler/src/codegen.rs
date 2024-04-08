@@ -1,5 +1,6 @@
 use bayou_ir::ir::*;
 use bayou_ir::{BinOp, UnOp};
+use bayou_session::diagnostics::DiagnosticEmitter;
 use cranelift::codegen::ir::types::I64;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
@@ -8,7 +9,6 @@ use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
 use crate::compilation::ModuleCompilation;
-use crate::diagnostics::DiagnosticEmitter;
 use crate::platform::PlatformError;
 use crate::session::Session;
 use crate::{CompilerError, CompilerResult};

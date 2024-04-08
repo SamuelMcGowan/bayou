@@ -1,9 +1,9 @@
 use bayou_diagnostic::Severity;
-use bayou_ir::Interner;
+use bayou_session::diagnostics::prelude::*;
+use bayou_session::diagnostics::DiagnosticEmitter;
+use bayou_session::sourcemap::{SourceId, SourceMap};
 use target_lexicon::Triple;
 
-use crate::diagnostics::{DiagnosticEmitter, IntoDiagnostic};
-use crate::sourcemap::{SourceId, SourceMap};
 use crate::{CompilerError, CompilerResult};
 
 /// Session shared between multiple package compilations.

@@ -1,12 +1,46 @@
 use bayou_frontend::ast;
 use bayou_ir::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
-use bayou_ir::{ir, Ident, InternedStr, Type};
+use bayou_ir::{ir, Ident, Type};
+use bayou_session::diagnostics::prelude::*;
 
 use crate::compilation::ModuleCompilation;
 
 pub enum ResolverError {
     LocalUndefined(Ident),
     DuplicateGlobal { first: Ident, second: Ident },
+}
+
+impl IntoDiagnostic for ResolverError {
+    fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic {
+        match self {
+            ResolverError::DuplicateGlobal { first, second } => {
+                let name_str = interner.resolve(&first.ident);
+                Diagnostic::error()
+                    .with_message(format!("duplicate global `{name_str}`"))
+                    .with_snippet(Snippet::secondary(
+                        "first definition",
+                        source_id,
+                        first.span,
+                    ))
+                    .with_snippet(Snippet::primary(
+                        "second definition",
+                        source_id,
+                        second.span,
+                    ))
+            }
+
+            ResolverError::LocalUndefined(ident) => {
+                let name_str = interner.resolve(&ident.ident);
+                Diagnostic::error()
+                    .with_message(format!("undefined variable `{name_str}`"))
+                    .with_snippet(Snippet::primary(
+                        "undefined variable here",
+                        source_id,
+                        ident.span,
+                    ))
+            }
+        }
+    }
 }
 
 pub struct Resolver<'m> {

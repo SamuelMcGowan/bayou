@@ -1,5 +1,5 @@
 use bayou_common::assert_yaml_snapshot_with_source;
-use bayou_ir::Interner;
+use bayou_session::Interner;
 
 use super::{ParseError, Parser};
 use crate::ast::Module;

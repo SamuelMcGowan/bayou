@@ -4,8 +4,7 @@ mod tests;
 use std::str::Chars;
 
 use bayou_common::peek::Peek;
-use bayou_diagnostic::span::Span;
-use bayou_ir::Interner;
+use bayou_session::diagnostics::prelude::*;
 
 use crate::token::*;
 
@@ -25,6 +24,18 @@ pub enum LexerErrorKind {
 
     #[error("digit {digit:?} is invalid for base {base}")]
     IntegerDigitWrongBase { base: u32, digit: char },
+}
+
+impl IntoDiagnostic for LexerError {
+    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
+        Diagnostic::error()
+            .with_message("syntax error")
+            .with_snippet(Snippet::primary(
+                self.kind.to_string(),
+                source_id,
+                self.span,
+            ))
+    }
 }
 
 pub type LexerResult<T> = Result<T, LexerErrorKind>;

@@ -7,6 +7,7 @@ edition = "2021"
 bayou_common = { path = "../bayou_common" }
 bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
 bayou_ir = { path = "../bayou_ir" }
+bayou_session = { path = "../bayou_session" }
 
 bayou_frontend = { path = "../bayou_frontend" }
 

@@ -86,6 +86,7 @@ dependencies = [
  "bayou_diagnostic",
  "bayou_frontend",
  "bayou_ir",
+ "bayou_session",
  "clap",
  "cranelift",
  "cranelift-module",
@@ -116,6 +117,7 @@ dependencies = [
  "bayou_common",
  "bayou_diagnostic",
  "bayou_ir",
+ "bayou_session",
  "insta",
  "macro_rules_attribute",
  "serde",
@@ -128,8 +130,18 @@ version = "0.1.0"
 dependencies = [
  "bayou_common",
  "bayou_diagnostic",
- "lasso",
+ "bayou_session",
  "macro_rules_attribute",
+ "serde",
+]
+
+[[package]]
+name = "bayou_session"
+version = "0.1.0"
+dependencies = [
+ "bayou_common",
+ "bayou_diagnostic",
+ "lasso",
  "serde",
 ]
 

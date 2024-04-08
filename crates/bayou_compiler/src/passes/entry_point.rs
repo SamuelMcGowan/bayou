@@ -1,5 +1,6 @@
 use bayou_ir::symbols::GlobalId;
-use bayou_ir::{Interner, Type};
+use bayou_ir::Type;
+use bayou_session::diagnostics::prelude::*;
 
 use crate::compilation::ModuleCompilation;
 
@@ -7,6 +8,18 @@ use crate::compilation::ModuleCompilation;
 pub enum EntrypointError {
     Missing,
     WrongSignature { expected: Type, found: Type },
+}
+
+impl IntoDiagnostic for EntrypointError {
+    fn into_diagnostic(self, _source_id: SourceId, _interner: &Interner) -> Diagnostic {
+        match self {
+            EntrypointError::Missing => Diagnostic::error().with_message("`main` function missing"),
+            EntrypointError::WrongSignature { expected, found } => Diagnostic::error()
+                .with_message(format!(
+                    "expected main function with return type {expected:?}, but it returned type {found:?}"
+                )),
+        }
+    }
 }
 
 pub fn check_entrypoint(
