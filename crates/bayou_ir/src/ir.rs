@@ -1,12 +1,21 @@
 use bayou_diagnostic::span::Span;
+use bayou_session::sourcemap::SourceId;
 
 use super::{BinOp, Ident, Node, NodeCopy, UnOp};
-use crate::symbols::LocalId;
+use crate::symbols::{LocalId, Symbols};
 use crate::Type;
 
 #[derive(Node!)]
 pub struct Module {
     pub items: Vec<Item>,
+}
+
+// TODO: revisit borrowing issues
+/// Additional information about a module that can't be stored in the [`Module`] type due
+/// to borrowing issues.
+pub struct ModuleContext {
+    pub source_id: SourceId,
+    pub symbols: Symbols,
 }
 
 #[derive(Node!)]

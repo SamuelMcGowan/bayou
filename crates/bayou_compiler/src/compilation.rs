@@ -2,12 +2,11 @@ use bayou_common::keyvec::{declare_key_type, KeyVec};
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_frontend::lexer::Lexer;
 use bayou_frontend::parser::Parser;
-use bayou_ir::ir::Module;
+use bayou_ir::ir::{Module, ModuleContext};
 use bayou_ir::symbols::Symbols;
 use bayou_middle::passes::entry_point::check_entrypoint;
 use bayou_middle::passes::type_check::TypeChecker;
 use bayou_middle::resolver::Resolver;
-use bayou_middle::ModuleCompilation;
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::sourcemap::SourceId;
 use bayou_session::Session;
@@ -34,7 +33,7 @@ pub fn compile_package<D: DiagnosticEmitter>(
         name: name.into(),
 
         module_irs: KeyVec::new(),
-        module_compilations: KeyVec::new(),
+        module_contexts: KeyVec::new(),
     };
 
     compilation.parse_module_and_submodules(session, root_source_id)?;
@@ -47,7 +46,7 @@ struct PackageCompilation {
     // These are separate so that info about other modules
     // can be accessed while mutating a module.
     module_irs: KeyVec<ModuleId, Module>,
-    module_compilations: KeyVec<ModuleId, ModuleCompilation>,
+    module_contexts: KeyVec<ModuleId, ModuleContext>,
 }
 
 impl PackageCompilation {
@@ -72,13 +71,13 @@ impl PackageCompilation {
         had_errors |= session.report_all(lexer_errors, source_id).is_err();
         had_errors |= session.report_all(parse_errors, source_id).is_err();
 
-        let mut module_compilation = ModuleCompilation {
+        let mut module_cx = ModuleContext {
             source_id,
             symbols: Symbols::default(),
         };
 
         // name resolution
-        let resolver = Resolver::new(&mut module_compilation);
+        let resolver = Resolver::new(&mut module_cx);
         let ir = match resolver.run(ast) {
             Ok(ir) => ir,
             Err(errors) => {
@@ -92,7 +91,7 @@ impl PackageCompilation {
         }
 
         let module_id = self.module_irs.insert(ir);
-        let _ = self.module_compilations.insert(module_compilation);
+        let _ = self.module_contexts.insert(module_cx);
 
         Ok(module_id)
     }
@@ -102,20 +101,16 @@ impl PackageCompilation {
         session: &mut Session<D>,
     ) -> CompilerResult<ObjectProduct> {
         // type checking
-        for (ir, compilation) in self
-            .module_irs
-            .iter_mut()
-            .zip(&mut self.module_compilations)
-        {
-            let type_checker = TypeChecker::new(compilation);
+        for (ir, cx) in self.module_irs.iter_mut().zip(&mut self.module_contexts) {
+            let type_checker = TypeChecker::new(cx);
             let type_errors = type_checker.run(ir);
 
-            session.report_all(type_errors, compilation.source_id)?;
+            session.report_all(type_errors, cx.source_id)?;
         }
 
-        let root_compilation = &self.module_compilations[ModuleId::root()];
-        if let Err(err) = check_entrypoint(root_compilation, &session.interner) {
-            let source_id = self.module_compilations[ModuleId::root()].source_id;
+        let root_cx = &self.module_contexts[ModuleId::root()];
+        if let Err(err) = check_entrypoint(root_cx, &session.interner) {
+            let source_id = self.module_contexts[ModuleId::root()].source_id;
 
             let _ = session.report(err, source_id);
             return Err(CompilerError::HadErrors);
@@ -123,8 +118,8 @@ impl PackageCompilation {
 
         // codegen
         let mut codegen = Codegen::new(session, session.target.clone(), &self.name)?;
-        for (ir, compilation) in self.module_irs.iter().zip(&self.module_compilations) {
-            codegen.compile_module(ir, compilation)?;
+        for (ir, cx) in self.module_irs.iter().zip(&self.module_contexts) {
+            codegen.compile_module(ir, cx)?;
         }
 
         let object = codegen.finish()?;

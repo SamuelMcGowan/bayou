@@ -1,8 +1,7 @@
+use bayou_ir::ir::ModuleContext;
 use bayou_ir::symbols::GlobalId;
 use bayou_ir::Type;
 use bayou_session::diagnostics::prelude::*;
-
-use crate::ModuleCompilation;
 
 // TODO: store spans
 pub enum EntrypointError {
@@ -23,18 +22,18 @@ impl IntoDiagnostic for EntrypointError {
 }
 
 pub fn check_entrypoint(
-    root_module_compilation: &ModuleCompilation,
+    root_module_cx: &ModuleContext,
     interner: &Interner,
 ) -> Result<(), EntrypointError> {
     let main_ident = interner.get("main").ok_or(EntrypointError::Missing)?;
 
-    let main_func_id = root_module_compilation
+    let main_func_id = root_module_cx
         .symbols
         .lookup_global(main_ident)
         .and_then(GlobalId::as_func)
         .ok_or(EntrypointError::Missing)?;
 
-    let func = &root_module_compilation.symbols.funcs[main_func_id];
+    let func = &root_module_cx.symbols.funcs[main_func_id];
 
     if func.ret_ty != Type::I64 {
         return Err(EntrypointError::WrongSignature {

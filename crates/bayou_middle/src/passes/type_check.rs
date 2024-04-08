@@ -2,8 +2,6 @@ use bayou_ir::ir::*;
 use bayou_ir::{BinOp, Type, UnOp};
 use bayou_session::diagnostics::prelude::*;
 
-use crate::ModuleCompilation;
-
 // TODO: make `Spanned` type
 pub enum TypeError {
     TypeMismatch {
@@ -58,14 +56,14 @@ impl IntoDiagnostic for TypeError {
 }
 
 pub struct TypeChecker<'m> {
-    compilation: &'m mut ModuleCompilation,
+    module_cx: &'m mut ModuleContext,
     errors: Vec<TypeError>,
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(compilation: &'a mut ModuleCompilation) -> Self {
+    pub fn new(module_cx: &'a mut ModuleContext) -> Self {
         Self {
-            compilation,
+            module_cx,
             errors: vec![],
         }
     }
@@ -88,7 +86,7 @@ impl<'a> TypeChecker<'a> {
                 Stmt::Assign { local, expr } => {
                     self.check_expr(expr);
 
-                    let local = &self.compilation.symbols.locals[*local];
+                    let local = &self.module_cx.symbols.locals[*local];
                     if let Some(ty) = expr.ty {
                         self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
                     }
@@ -126,7 +124,7 @@ impl<'a> TypeChecker<'a> {
         expr.ty = match &mut expr.kind {
             ExprKind::Constant(constant) => Some(constant.ty()),
 
-            ExprKind::Var(local) => Some(self.compilation.symbols.locals[*local].ty),
+            ExprKind::Var(local) => Some(self.module_cx.symbols.locals[*local].ty),
 
             ExprKind::UnOp { op, expr } => {
                 self.check_expr(expr);

@@ -1,9 +1,8 @@
 use bayou_frontend::ast;
+use bayou_ir::ir::ModuleContext;
 use bayou_ir::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
 use bayou_ir::{ir, Ident, Type};
 use bayou_session::diagnostics::prelude::*;
-
-use crate::ModuleCompilation;
 
 pub enum ResolverError {
     LocalUndefined(Ident),
@@ -44,16 +43,16 @@ impl IntoDiagnostic for ResolverError {
 }
 
 pub struct Resolver<'m> {
-    compilation: &'m mut ModuleCompilation,
+    module_cx: &'m mut ModuleContext,
     errors: Vec<ResolverError>,
 
     local_stack: Vec<LocalEntry>,
 }
 
 impl<'m> Resolver<'m> {
-    pub fn new(compilation: &'m mut ModuleCompilation) -> Self {
+    pub fn new(module_cx: &'m mut ModuleContext) -> Self {
         Self {
-            compilation,
+            module_cx,
             errors: vec![],
 
             local_stack: vec![],
@@ -87,17 +86,17 @@ impl<'m> Resolver<'m> {
     fn declare_global_func(&mut self, symbol: FunctionSymbol) {
         let ident = symbol.ident;
 
-        let func_id = self.compilation.symbols.funcs.insert(symbol);
+        let func_id = self.module_cx.symbols.funcs.insert(symbol);
 
         if let Some(first_symbol) = self
-            .compilation
+            .module_cx
             .symbols
             .global_lookup
             .insert(ident.ident, GlobalId::Func(func_id))
         {
             self.errors.push(ResolverError::DuplicateGlobal {
                 first: self
-                    .compilation
+                    .module_cx
                     .symbols
                     .get_global_ident(first_symbol)
                     .unwrap(),
@@ -218,7 +217,7 @@ impl<'m> Resolver<'m> {
 
     #[must_use]
     fn declare_local(&mut self, ident: Ident, ty: Type) -> LocalId {
-        let id = self.compilation.symbols.locals.insert(LocalSymbol {
+        let id = self.module_cx.symbols.locals.insert(LocalSymbol {
             ident,
             ty,
             // FIXME: use variable type span

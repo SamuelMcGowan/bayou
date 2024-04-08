@@ -1,6 +1,5 @@
 use bayou_ir::ir::*;
 use bayou_ir::{BinOp, UnOp};
-use bayou_middle::ModuleCompilation;
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::platform::PlatformError;
 use bayou_session::Session;
@@ -57,11 +56,11 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
     pub fn compile_module(
         &mut self,
         module: &Module,
-        compilation: &ModuleCompilation,
+        module_cx: &ModuleContext,
     ) -> CompilerResult<()> {
         for item in &module.items {
             match item {
-                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, compilation)?,
+                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, module_cx)?,
             }
         }
 
@@ -75,7 +74,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
     fn gen_func_decl(
         &mut self,
         func_decl: &FuncDecl,
-        compilation: &ModuleCompilation,
+        module_cx: &ModuleContext,
     ) -> CompilerResult<()> {
         self.module.clear_context(&mut self.ctx);
 
@@ -97,7 +96,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         let mut func_codegen = FuncCodegen {
             builder,
             module: &mut self.module,
-            compilation,
+            module_cx,
         };
 
         for stmt in &func_decl.statements {
@@ -122,7 +121,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
 struct FuncCodegen<'a> {
     builder: FunctionBuilder<'a>,
     module: &'a mut ObjectModule,
-    compilation: &'a ModuleCompilation,
+    module_cx: &'a ModuleContext,
 }
 
 impl FuncCodegen<'_> {
@@ -163,7 +162,7 @@ impl FuncCodegen<'_> {
             },
 
             ExprKind::Var(local) => {
-                let local_ty = self.compilation.symbols.locals[*local].ty;
+                let local_ty = self.module_cx.symbols.locals[*local].ty;
 
                 // Void typed variables don't emit expressions.
                 if local_ty == IrType::Void {
