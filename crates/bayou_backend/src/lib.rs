@@ -1,9 +1,11 @@
-use bayou_session::target_lexicon::Architecture;
+use target_lexicon::Architecture;
 
 pub mod codegen;
 pub mod linker;
 
-pub use cranelift_object::object;
+// Re-exporting here instead of using workspace dependencies
+// so that we stay in sync with the version that cranelift uses.
+pub use cranelift_object::{object, ObjectProduct};
 
 #[derive(thiserror::Error, Debug)]
 pub enum BackendError {

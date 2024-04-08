@@ -3,9 +3,9 @@ pub mod sourcemap;
 
 use diagnostics::prelude::*;
 use diagnostics::DiagnosticEmitter;
+pub use lasso;
 use sourcemap::SourceMap;
 use target_lexicon::Triple;
-pub use {lasso, target_lexicon};
 
 pub type InternedStr = lasso::Spur;
 pub type Interner = lasso::Rodeo;

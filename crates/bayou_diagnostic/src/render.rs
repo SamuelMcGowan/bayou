@@ -5,7 +5,6 @@ use termcolor::{ColorSpec, WriteColor};
 use unicode_width::UnicodeWidthStr;
 
 use super::sources::{Cached, Source, SourceMap};
-// use super::span2::Span;
 use super::{Config, Diagnostic, Severity, SnippetKind};
 use crate::span::Span;
 

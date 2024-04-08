@@ -1,13 +1,13 @@
 use bayou_ir::ir::*;
 use bayou_ir::{BinOp, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
-use bayou_session::target_lexicon::Triple;
 use bayou_session::Session;
 use cranelift::codegen::ir::types::I64;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
+use target_lexicon::Triple;
 
 use crate::{BackendError, BackendResult};
 

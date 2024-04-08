@@ -26,7 +26,7 @@ enum CompilerError {
     BackendError(#[from] bayou_backend::BackendError),
 
     #[error(transparent)]
-    InvalidTarget(#[from] bayou_session::target_lexicon::ParseError),
+    InvalidTarget(#[from] target_lexicon::ParseError),
 
     #[error("error writing object: {0}")]
     ObjectError(#[from] bayou_backend::object::write::Error),

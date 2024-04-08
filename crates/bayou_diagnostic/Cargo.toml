@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 termcolor = "1.4.1"
 unicode-width = "0.1.11"
-serde = { version = "1.0.196", features = ["derive"], optional = true }
+serde = { workspace = true, optional = true }
 derive-where = "1.2.7"
 
 [features]
