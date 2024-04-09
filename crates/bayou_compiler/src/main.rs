@@ -5,7 +5,7 @@ mod cli;
 use std::path::Path;
 use std::str::FromStr;
 
-use bayou_backend::linker::Linker;
+use bayou_backend::Linker;
 use bayou_session::diagnostics::PrettyDiagnosticEmitter;
 use bayou_session::sourcemap::Source;
 use bayou_session::Session;
@@ -35,7 +35,7 @@ enum CompilerError {
     NoLinker,
 
     #[error(transparent)]
-    LinkerError(#[from] bayou_backend::linker::LinkerError),
+    LinkerError(#[from] bayou_backend::LinkerError),
 
     #[error("errors while compiling")]
     HadErrors,

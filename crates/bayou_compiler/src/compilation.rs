@@ -1,4 +1,3 @@
-use bayou_backend::codegen::Codegen;
 use bayou_backend::object::write::Object;
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_ir::ir::{Module, ModuleContext};
@@ -114,12 +113,12 @@ impl PackageCompilation {
         }
 
         // codegen
-        let mut codegen = Codegen::new(session, session.target.clone(), &self.name)?;
-        for (ir, cx) in self.module_irs.iter().zip(&self.module_contexts) {
-            codegen.compile_module(ir, cx)?;
-        }
-
-        let object = codegen.finish()?;
+        let object = bayou_backend::run_codegen(
+            session,
+            &self.name,
+            session.target.clone(),
+            self.module_irs.iter().zip(self.module_contexts.iter()),
+        )?;
 
         Ok(object)
     }

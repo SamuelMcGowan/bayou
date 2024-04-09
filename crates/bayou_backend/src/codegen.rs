@@ -6,8 +6,7 @@ use cranelift::codegen::ir::types::I64;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
-use cranelift_object::object::write::Object;
-use cranelift_object::{ObjectBuilder, ObjectModule};
+use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
 use crate::{BackendError, BackendResult};
@@ -23,7 +22,11 @@ pub struct Codegen<'sess, D: DiagnosticEmitter> {
 }
 
 impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
-    pub fn new(session: &'sess mut Session<D>, target: Triple, name: &str) -> BackendResult<Self> {
+    pub fn new(
+        session: &'sess mut Session<D>,
+        target: Triple,
+        package_name: &str,
+    ) -> BackendResult<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("is_pic", "true").unwrap();
         flag_builder.set("opt_level", "speed").unwrap();
@@ -38,7 +41,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         };
 
         let module_builder =
-            ObjectBuilder::new(isa, name, cranelift_module::default_libcall_names())?;
+            ObjectBuilder::new(isa, package_name, cranelift_module::default_libcall_names())?;
 
         let module = ObjectModule::new(module_builder);
 
@@ -65,8 +68,8 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         Ok(())
     }
 
-    pub fn finish(self) -> BackendResult<Object<'static>> {
-        Ok(self.module.finish().object)
+    pub fn finish(self) -> BackendResult<ObjectProduct> {
+        Ok(self.module.finish())
     }
 
     fn gen_func_decl(
