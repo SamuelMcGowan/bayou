@@ -161,7 +161,6 @@ dependencies = [
  "lasso",
  "serde",
  "target-lexicon",
- "thiserror",
 ]
 
 [[package]]

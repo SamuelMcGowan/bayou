@@ -10,4 +10,3 @@ bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
 lasso = { version = "0.7.2", features = ["serialize"] }
 serde = { workspace = true }
 target-lexicon = { workspace = true }
-thiserror = { workspace = true }

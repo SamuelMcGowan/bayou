@@ -5,7 +5,7 @@ mod cli;
 use std::path::Path;
 use std::str::FromStr;
 
-use bayou_backend::linker::{Linker, LinkerError};
+use bayou_backend::linker::Linker;
 use bayou_session::diagnostics::PrettyDiagnosticEmitter;
 use bayou_session::sourcemap::Source;
 use bayou_session::Session;
@@ -22,11 +22,11 @@ enum CompilerError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
-    #[error("backend error: {0}")]
-    BackendError(#[from] bayou_backend::BackendError),
-
     #[error(transparent)]
     InvalidTarget(#[from] target_lexicon::ParseError),
+
+    #[error("backend error: {0}")]
+    BackendError(#[from] bayou_backend::BackendError),
 
     #[error("error writing object: {0}")]
     ObjectError(#[from] bayou_backend::object::write::Error),
@@ -34,15 +34,15 @@ enum CompilerError {
     #[error("no linker found for given target and host")]
     NoLinker,
 
-    #[error("linker error: {0}")]
-    LinkerError(#[from] LinkerError),
+    #[error(transparent)]
+    LinkerError(#[from] bayou_backend::linker::LinkerError),
 
     #[error("errors while compiling")]
     HadErrors,
 }
 
-impl From<bayou_session::HadErrors> for CompilerError {
-    fn from(_: bayou_session::HadErrors) -> Self {
+impl From<bayou_session::ErrorsEmitted> for CompilerError {
+    fn from(_: bayou_session::ErrorsEmitted) -> Self {
         Self::HadErrors
     }
 }

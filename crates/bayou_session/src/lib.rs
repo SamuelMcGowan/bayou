@@ -16,9 +16,7 @@ pub struct Ident {
     pub span: Span,
 }
 
-#[derive(thiserror::Error, Debug)]
-#[error("had errors")]
-pub struct HadErrors;
+pub struct ErrorsEmitted;
 
 /// Session shared between multiple package compilations.
 pub struct Session<D: DiagnosticEmitter> {
@@ -46,7 +44,7 @@ impl<D: DiagnosticEmitter> Session<D> {
         &mut self,
         diagnostic: impl IntoDiagnostic,
         source_id: SourceId,
-    ) -> Result<(), HadErrors> {
+    ) -> Result<(), ErrorsEmitted> {
         let diagnostic = diagnostic.into_diagnostic(source_id, &self.interner);
         let kind = diagnostic.severity;
 
@@ -55,11 +53,15 @@ impl<D: DiagnosticEmitter> Session<D> {
         if kind < Severity::Error {
             Ok(())
         } else {
-            Err(HadErrors)
+            Err(ErrorsEmitted)
         }
     }
 
-    pub fn report_all<I>(&mut self, diagnostics: I, source_id: SourceId) -> Result<(), HadErrors>
+    pub fn report_all<I>(
+        &mut self,
+        diagnostics: I,
+        source_id: SourceId,
+    ) -> Result<(), ErrorsEmitted>
     where
         I: IntoIterator,
         I::Item: IntoDiagnostic,
@@ -75,7 +77,7 @@ impl<D: DiagnosticEmitter> Session<D> {
         if !had_error {
             Ok(())
         } else {
-            Err(HadErrors)
+            Err(ErrorsEmitted)
         }
     }
 }
