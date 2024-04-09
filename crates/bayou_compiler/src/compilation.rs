@@ -1,8 +1,6 @@
 use bayou_backend::codegen::Codegen;
 use bayou_backend::object::write::Object;
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
-use bayou_frontend::lexer::Lexer;
-use bayou_frontend::parser::Parser;
 use bayou_ir::ir::{Module, ModuleContext};
 use bayou_ir::symbols::Symbols;
 use bayou_middle::passes::entry_point::check_entrypoint;
@@ -62,11 +60,10 @@ impl PackageCompilation {
 
         let mut had_errors = false;
 
-        let lexer = Lexer::new(source.source_str(), &mut session.interner);
-        let (tokens, lexer_errors) = lexer.lex();
+        let (tokens, lexer_errors) =
+            bayou_frontend::lex(source.source_str(), &mut session.interner);
 
-        let parser = Parser::new(tokens);
-        let (ast, parse_errors) = parser.parse();
+        let (ast, parse_errors) = bayou_frontend::parse(tokens);
 
         had_errors |= session.report_all(lexer_errors, source_id).is_err();
         had_errors |= session.report_all(parse_errors, source_id).is_err();
