@@ -25,11 +25,11 @@ pub fn check_entrypoint(
     root_module_cx: &ModuleContext,
     interner: &Interner,
 ) -> Result<(), EntrypointError> {
-    let main_ident = interner.get("main").ok_or(EntrypointError::Missing)?;
+    let main_ident_str = interner.get("main").ok_or(EntrypointError::Missing)?;
 
     let main_func_id = root_module_cx
         .symbols
-        .lookup_global(main_ident)
+        .lookup_global(main_ident_str)
         .and_then(GlobalId::as_func)
         .ok_or(EntrypointError::Missing)?;
 

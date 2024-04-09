@@ -1,5 +1,6 @@
 use bayou_diagnostic::span::Span;
-use bayou_ir::{BinOp, Ident, Type, UnOp};
+use bayou_ir::{BinOp, Type, UnOp};
+use bayou_session::Ident;
 
 use crate::Node;
 
@@ -16,7 +17,7 @@ pub enum Item {
 
 #[derive(Node!)]
 pub struct FuncDecl {
-    pub name: Ident,
+    pub ident: Ident,
     pub ret_ty: Type,
     pub statements: Vec<Stmt>,
 }

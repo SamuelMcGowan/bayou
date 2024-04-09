@@ -10,6 +10,12 @@ use target_lexicon::Triple;
 pub type InternedStr = lasso::Spur;
 pub type Interner = lasso::Rodeo;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
+pub struct Ident {
+    pub ident_str: InternedStr,
+    pub span: Span,
+}
+
 #[derive(thiserror::Error, Debug)]
 #[error("had errors")]
 pub struct HadErrors;

@@ -95,13 +95,9 @@ impl<'a> TypeChecker<'a> {
                 Stmt::Return(expr) => {
                     self.check_expr(expr);
                     if let Some(ty) = expr.ty {
-                        self.check_types_match(
-                            func_decl.ret_ty,
-                            // FIXME: use return type span
-                            Some(func_decl.name.span),
-                            ty,
-                            expr.span,
-                        );
+                        // FIXME: use return type span
+                        let name_span = self.module_cx.symbols.funcs[func_decl.id].ident.span;
+                        self.check_types_match(func_decl.ret_ty, Some(name_span), ty, expr.span);
                     }
                 }
             }
@@ -112,10 +108,12 @@ impl<'a> TypeChecker<'a> {
         if func_decl.ret_ty != Type::Void
             && !matches!(func_decl.statements.last(), Some(stmt) if stmt_always_returns(stmt))
         {
-            // FIXME: use function return type span
+            // FIXME: use return type span
+            let name_span = self.module_cx.symbols.funcs[func_decl.id].ident.span;
+
             self.errors.push(TypeError::MissingReturn {
                 ty: func_decl.ret_ty,
-                span: func_decl.name.span,
+                span: name_span,
             });
         }
     }

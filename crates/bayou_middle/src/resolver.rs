@@ -1,8 +1,9 @@
 use bayou_frontend::ast;
 use bayou_ir::ir::ModuleContext;
 use bayou_ir::symbols::{FunctionSymbol, GlobalId, LocalId, LocalSymbol};
-use bayou_ir::{ir, Ident, Type};
+use bayou_ir::{ir, Type};
 use bayou_session::diagnostics::prelude::*;
+use bayou_session::Ident;
 
 pub enum ResolverError {
     LocalUndefined(Ident),
@@ -13,9 +14,9 @@ impl IntoDiagnostic for ResolverError {
     fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic {
         match self {
             ResolverError::DuplicateGlobal { first, second } => {
-                let name_str = interner.resolve(&first.ident);
+                let ident_str = interner.resolve(&first.ident_str);
                 Diagnostic::error()
-                    .with_message(format!("duplicate global `{name_str}`"))
+                    .with_message(format!("duplicate global `{ident_str}`"))
                     .with_snippet(Snippet::secondary(
                         "first definition",
                         source_id,
@@ -29,9 +30,9 @@ impl IntoDiagnostic for ResolverError {
             }
 
             ResolverError::LocalUndefined(ident) => {
-                let name_str = interner.resolve(&ident.ident);
+                let ident_str = interner.resolve(&ident.ident_str);
                 Diagnostic::error()
-                    .with_message(format!("undefined variable `{name_str}`"))
+                    .with_message(format!("undefined variable `{ident_str}`"))
                     .with_snippet(Snippet::primary(
                         "undefined variable here",
                         source_id,
@@ -74,8 +75,7 @@ impl<'m> Resolver<'m> {
         for item in items {
             match item {
                 ast::Item::FuncDecl(func_decl) => self.declare_global_func(FunctionSymbol {
-                    ident: func_decl.name,
-
+                    ident: func_decl.ident,
                     ret_ty: func_decl.ret_ty,
                 }),
                 ast::Item::ParseError => {}
@@ -92,7 +92,7 @@ impl<'m> Resolver<'m> {
             .module_cx
             .symbols
             .global_lookup
-            .insert(ident.ident, GlobalId::Func(func_id))
+            .insert(ident.ident_str, GlobalId::Func(func_id))
         {
             self.errors.push(ResolverError::DuplicateGlobal {
                 first: self
@@ -154,8 +154,13 @@ impl<'m> Resolver<'m> {
             }
         }
 
+        // TODO: is this lookup necessary
+        let id = self.module_cx.symbols.global_lookup[&func_decl.ident.ident_str]
+            .as_func()
+            .unwrap();
+
         Some(ir::FuncDecl {
-            name: func_decl.name,
+            id,
             ret_ty: func_decl.ret_ty,
             statements: resolved_stmts,
         })
@@ -225,7 +230,7 @@ impl<'m> Resolver<'m> {
         });
 
         self.local_stack.push(LocalEntry {
-            ident: ident.ident,
+            ident_str: ident.ident_str,
             id,
         });
 
@@ -237,7 +242,7 @@ impl<'m> Resolver<'m> {
             .local_stack
             .iter()
             .rev()
-            .find_map(|entry| (entry.ident == ident.ident).then_some(entry.id));
+            .find_map(|entry| (entry.ident_str == ident.ident_str).then_some(entry.id));
 
         if id.is_none() {
             self.errors.push(ResolverError::LocalUndefined(ident));
@@ -248,6 +253,6 @@ impl<'m> Resolver<'m> {
 }
 
 struct LocalEntry {
-    ident: InternedStr,
+    ident_str: InternedStr,
     id: LocalId,
 }

@@ -14,12 +14,6 @@ derive_alias! {
     #[derive(NodeCopy!)] = #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)];
 }
 
-#[derive(Node!, Copy)]
-pub struct Ident {
-    pub ident: InternedStr,
-    pub span: Span,
-}
-
 #[derive(NodeCopy!)]
 pub enum BinOp {
     Add,

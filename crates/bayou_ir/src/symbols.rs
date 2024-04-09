@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use bayou_diagnostic::span::Span;
+use bayou_session::Ident;
 use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
-use crate::{Ident, InternedStr, Type};
+use crate::{InternedStr, Type};
 
 #[derive(Default, Debug, Clone)]
 pub struct Symbols {

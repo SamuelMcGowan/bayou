@@ -4,8 +4,9 @@ mod tests;
 mod expr;
 
 use bayou_diagnostic::span::Span;
-use bayou_ir::{Ident, Spanned, Type};
+use bayou_ir::{Spanned, Type};
 use bayou_session::diagnostics::prelude::*;
+use bayou_session::Ident;
 use bayou_utils::peek::Peek;
 
 use crate::ast::*;
@@ -74,7 +75,7 @@ impl Parser {
     }
 
     fn parse_func_decl(&mut self) -> ParseResult<FuncDecl> {
-        let name = self.parse_ident()?;
+        let ident = self.parse_ident()?;
 
         self.expect_or_recover(TokenKind::LParen);
         self.expect_or_recover(TokenKind::RParen); // TODO: change when parsing parameters?
@@ -103,7 +104,7 @@ impl Parser {
         self.expect(TokenKind::RBrace)?;
 
         Ok(FuncDecl {
-            name,
+            ident,
             ret_ty,
             statements,
         })
@@ -187,9 +188,10 @@ impl Parser {
     fn parse_ident(&mut self) -> ParseResult<Ident> {
         match self.tokens.next() {
             Some(Token {
-                kind: TokenKind::Identifier(ident),
+                kind: TokenKind::Identifier(ident_str),
                 span,
-            }) => Ok(Ident { ident, span }),
+            }) => Ok(Ident { ident_str, span }),
+
             other => Err(self.error_expected("an identifier", other)),
         }
     }

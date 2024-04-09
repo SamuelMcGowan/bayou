@@ -1,8 +1,8 @@
 use bayou_diagnostic::span::Span;
 use bayou_session::sourcemap::SourceId;
 
-use super::{BinOp, Ident, Node, NodeCopy, UnOp};
-use crate::symbols::{LocalId, Symbols};
+use super::{BinOp, Node, NodeCopy, UnOp};
+use crate::symbols::{FuncId, LocalId, Symbols};
 use crate::Type;
 
 #[derive(Node!)]
@@ -25,7 +25,7 @@ pub enum Item {
 
 #[derive(Node!)]
 pub struct FuncDecl {
-    pub name: Ident,
+    pub id: FuncId,
     pub ret_ty: Type,
     pub statements: Vec<Stmt>,
 }
