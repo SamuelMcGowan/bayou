@@ -4,8 +4,8 @@ info: "func main() -> i64 { return }"
 ---
 - items:
     - FuncDecl:
-        name:
-          ident: 1
+        ident:
+          ident_str: 1
           span:
             start: 5
             end: 9
