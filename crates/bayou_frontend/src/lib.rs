@@ -6,12 +6,14 @@ use lexer::Lexer;
 extern crate macro_rules_attribute;
 
 mod lexer;
+mod lower;
 mod parser;
 
 pub mod ast;
 pub mod token;
 
 pub use lexer::{LexerError, LexerErrorKind, LexerResult, TokenIter};
+pub use lower::NameError;
 pub use parser::ParseError;
 use parser::Parser;
 
@@ -21,11 +23,15 @@ derive_alias! {
 }
 
 pub fn lex(source: &str, interner: &mut Interner) -> (TokenIter, Vec<LexerError>) {
-    let lexer = Lexer::new(source, interner);
-    lexer.lex()
+    Lexer::new(source, interner).lex()
 }
 
 pub fn parse(tokens: TokenIter) -> (Module, Vec<ParseError>) {
-    let parser = Parser::new(tokens);
-    parser.parse()
+    Parser::new(tokens).parse()
+}
+
+pub fn lower(
+    ast: ast::Module,
+) -> Result<(bayou_ir::ir::Module, bayou_ir::symbols::Symbols), Vec<NameError>> {
+    lower::Lowerer::new().run(ast)
 }

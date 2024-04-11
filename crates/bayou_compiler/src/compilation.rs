@@ -1,10 +1,8 @@
 use bayou_backend::object::write::Object;
 use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_ir::ir::{Module, ModuleContext};
-use bayou_ir::symbols::Symbols;
-use bayou_middle::passes::entry_point::check_entrypoint;
-use bayou_middle::passes::type_check::TypeChecker;
-use bayou_middle::resolver::Resolver;
+use bayou_middle::entry_point::check_entrypoint;
+use bayou_middle::type_check::TypeChecker;
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::sourcemap::SourceId;
 use bayou_session::Session;
@@ -67,15 +65,8 @@ impl PackageCompilation {
         had_errors |= session.report_all(lexer_errors, source_id).is_err();
         had_errors |= session.report_all(parse_errors, source_id).is_err();
 
-        let mut module_cx = ModuleContext {
-            source_id,
-            symbols: Symbols::default(),
-        };
-
-        // name resolution
-        let resolver = Resolver::new(&mut module_cx);
-        let ir = match resolver.run(ast) {
-            Ok(ir) => ir,
+        let (ir, symbols) = match bayou_frontend::lower(ast) {
+            Ok(res) => res,
             Err(errors) => {
                 let _ = session.report_all(errors, source_id);
                 return Err(CompilerError::HadErrors);
@@ -87,7 +78,10 @@ impl PackageCompilation {
         }
 
         let module_id = self.module_irs.insert(ir);
-        let _ = self.module_contexts.insert(module_cx);
+
+        let _ = self
+            .module_contexts
+            .insert(ModuleContext { source_id, symbols });
 
         Ok(module_id)
     }
