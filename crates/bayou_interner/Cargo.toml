@@ -1,0 +1,13 @@
+[package]
+name = "bayou_interner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ahash = "0.8.11"
+hashbrown = "0.14.5"
+
+[dependencies.serde]
+workspace = true
+optional = true
+features = ["derive"]
