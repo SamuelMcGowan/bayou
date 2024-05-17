@@ -1,6 +1,5 @@
-use std::borrow::Borrow;
-use std::hash::Hash;
-use std::num::NonZeroUsize;
+use std::num::NonZeroU32;
+use std::ops::Range;
 
 use ahash::RandomState;
 use hashbrown::hash_table::Entry;
@@ -8,55 +7,61 @@ use hashbrown::HashTable;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Interned(NonZeroUsize);
-
-pub struct Interner<T> {
-    random_state: RandomState,
-    lookup: HashTable<Index>,
-
-    interned_entries: Vec<T>,
+pub struct Interned {
+    index: NonZeroU32,
+    len: u32,
 }
 
-impl<T> Interner<T> {
-    pub fn intern<Q>(&mut self, key: &Q) -> Interned
-    where
-        Q: ToOwned<Owned = T> + Hash + Eq + ?Sized,
-        T: Borrow<Q>,
-    {
+impl Interned {
+    #[inline]
+    fn as_range(&self) -> Range<usize> {
+        let start = self.index.get() as usize - 1;
+        start..(self.len as usize)
+    }
+}
+
+pub struct Interner {
+    random_state: RandomState,
+    lookup: HashTable<Metadata>,
+    data: String,
+}
+
+impl Interner {
+    pub fn intern<Q>(&mut self, key: &str) -> Option<Interned> {
         let hash = self.random_state.hash_one(key);
 
         let entry = self.lookup.entry(
             hash,
-            |&index| self.interned_entries[index.index].borrow() == key,
+            |&index| self.data.get(index.interned.as_range()) == Some(key),
             |&index| index.hash,
         );
 
         let index = match entry {
-            Entry::Occupied(entry) => *entry.get(),
+            Entry::Occupied(entry) => entry.get().interned,
             Entry::Vacant(entry) => {
-                let index = Index {
-                    index: self.interned_entries.len(),
-                    hash,
+                let interned = Interned {
+                    index: NonZeroU32::new((self.data.len() + 1).try_into().ok()?)?,
+                    len: key.len().try_into().ok()?,
                 };
 
-                self.interned_entries.push(key.to_owned());
-                entry.insert(index);
+                self.data.push_str(key);
+                entry.insert(Metadata { interned, hash });
 
-                index
+                interned
             }
         };
 
-        Interned(NonZeroUsize::new(index.index.wrapping_add(1)).unwrap())
+        Some(index)
     }
 
     #[inline]
-    pub fn get(&self, interned: Interned) -> Option<&T> {
-        self.interned_entries.get(interned.0.get() - 1)
+    pub fn get(&self, interned: Interned) -> Option<&str> {
+        self.data.get(interned.as_range())
     }
 }
 
 #[derive(Clone, Copy)]
-struct Index {
-    index: usize,
+struct Metadata {
+    interned: Interned,
     hash: u64,
 }
