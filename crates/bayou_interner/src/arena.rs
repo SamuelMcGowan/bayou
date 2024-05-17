@@ -1,5 +1,6 @@
 use bumpalo::Bump;
 
+#[derive(Default)]
 pub struct InternerArena {
     vec: Vec<*const str>,
     alloc: Bump,

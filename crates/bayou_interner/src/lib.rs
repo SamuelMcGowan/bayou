@@ -31,6 +31,7 @@ struct Metadata {
     hash: u64,
 }
 
+#[derive(Default)]
 pub struct Interner {
     random_state: RandomState,
     lookup: HashTable<Metadata>,
@@ -39,7 +40,17 @@ pub struct Interner {
 }
 
 impl Interner {
-    pub fn intern(&mut self, key: &str) -> Option<Interned> {
+    #[inline]
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    #[inline]
+    pub fn intern(&mut self, key: &str) -> Interned {
+        self.try_intern(key).expect("Too many interned strings")
+    }
+
+    pub fn try_intern(&mut self, key: &str) -> Option<Interned> {
         let hash = self.random_state.hash_one(key);
 
         let entry = self.lookup.entry(
@@ -52,7 +63,7 @@ impl Interner {
             Entry::Occupied(entry) => entry.get().interned,
             Entry::Vacant(entry) => {
                 let index = self.arena.push_str(key);
-                let interned = Interned::from_index(index).expect("Too many interned strings");
+                let interned = Interned::from_index(index)?;
 
                 entry.insert(Metadata { interned, hash });
 
@@ -66,5 +77,20 @@ impl Interner {
     #[inline]
     pub fn get(&self, interned: Interned) -> Option<&str> {
         self.arena.get(interned.to_index())
+    }
+}
+
+#[test]
+fn test_interner() {
+    let mut interner = Interner::new();
+
+    for n in 0..100 {
+        let s = n.to_string();
+
+        let a = interner.intern(&s);
+        let b = interner.intern(&s);
+
+        assert_eq!(a, b);
+        assert_eq!(interner.get(a), Some(s.as_str()));
     }
 }
