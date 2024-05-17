@@ -12,9 +12,9 @@ pub struct Interned(NonZeroUsize);
 
 pub struct Interner<T> {
     random_state: RandomState,
-    lookup: HashTable<usize>,
+    lookup: HashTable<Index>,
 
-    interned_entries: Vec<InternedEntry<T>>,
+    interned_entries: Vec<T>,
 }
 
 impl<T> Interner<T> {
@@ -27,37 +27,36 @@ impl<T> Interner<T> {
 
         let entry = self.lookup.entry(
             hash,
-            |&index| self.interned_entries[index].value.borrow() == key,
-            |&index| self.interned_entries[index].hash,
+            |&index| self.interned_entries[index.index].borrow() == key,
+            |&index| index.hash,
         );
 
         let index = match entry {
             Entry::Occupied(entry) => *entry.get(),
             Entry::Vacant(entry) => {
-                let index = self.interned_entries.len();
-
-                self.interned_entries.push(InternedEntry {
-                    value: key.to_owned(),
+                let index = Index {
+                    index: self.interned_entries.len(),
                     hash,
-                });
+                };
+
+                self.interned_entries.push(key.to_owned());
                 entry.insert(index);
 
                 index
             }
         };
 
-        Interned(NonZeroUsize::new(index.wrapping_add(1)).unwrap())
+        Interned(NonZeroUsize::new(index.index.wrapping_add(1)).unwrap())
     }
 
     #[inline]
     pub fn get(&self, interned: Interned) -> Option<&T> {
-        self.interned_entries
-            .get(interned.0.get() - 1)
-            .map(|e| &e.value)
+        self.interned_entries.get(interned.0.get() - 1)
     }
 }
 
-struct InternedEntry<T> {
-    value: T,
+#[derive(Clone, Copy)]
+struct Index {
+    index: usize,
     hash: u64,
 }
