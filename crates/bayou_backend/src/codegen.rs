@@ -110,7 +110,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
 
         // declare and define in module (not final)
         let ident = module_cx.symbols.funcs[func_decl.id].ident;
-        let name = self.session.interner.resolve(&ident.ident_str);
+        let name = self.session.interner.get(ident.ident_str);
         let id = self
             .module
             .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;

@@ -1,14 +1,14 @@
 pub mod diagnostics;
 pub mod sourcemap;
 
+pub use bayou_interner;
 use diagnostics::prelude::*;
 use diagnostics::DiagnosticEmitter;
-pub use lasso;
 use sourcemap::SourceMap;
 use target_lexicon::Triple;
 
-pub type InternedStr = lasso::Spur;
-pub type Interner = lasso::Rodeo;
+pub type InternedStr = bayou_interner::Interned;
+pub type Interner = bayou_interner::Interner;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct Ident {

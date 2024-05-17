@@ -183,7 +183,7 @@ impl<'sess> Lexer<'sess> {
             "i64" => TokenKind::Keyword(Keyword::I64),
             "void" => TokenKind::Keyword(Keyword::Void),
             _ => {
-                let interned = self.interner.get_or_intern(s);
+                let interned = self.interner.intern(s);
                 TokenKind::Identifier(interned)
             }
         }

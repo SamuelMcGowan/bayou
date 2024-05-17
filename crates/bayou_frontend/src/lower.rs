@@ -14,7 +14,7 @@ impl IntoDiagnostic for NameError {
     fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic {
         match self {
             Self::DuplicateGlobal { first, second } => {
-                let ident_str = interner.resolve(&first.ident_str);
+                let ident_str = interner.get(first.ident_str);
                 Diagnostic::error()
                     .with_message(format!("duplicate global `{ident_str}`"))
                     .with_snippet(Snippet::secondary(
@@ -30,7 +30,7 @@ impl IntoDiagnostic for NameError {
             }
 
             Self::LocalUndefined(ident) => {
-                let ident_str = interner.resolve(&ident.ident_str);
+                let ident_str = interner.get(ident.ident_str);
                 Diagnostic::error()
                     .with_message(format!("undefined variable `{ident_str}`"))
                     .with_snippet(Snippet::primary(

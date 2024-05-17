@@ -174,8 +174,8 @@ name = "bayou_session"
 version = "0.1.0"
 dependencies = [
  "bayou_diagnostic",
+ "bayou_interner",
  "bayou_utils",
- "lasso",
  "serde",
  "target-lexicon",
 ]
@@ -435,7 +435,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
  "ahash",
- "serde",
 ]
 
 [[package]]
@@ -476,16 +475,6 @@ dependencies = [
  "serde",
  "similar",
  "yaml-rust",
-]
-
-[[package]]
-name = "lasso"
-version = "0.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4644821e1c3d7a560fe13d842d13f587c07348a1a05d3a797152d41c90c56df2"
-dependencies = [
- "hashbrown 0.13.2",
- "serde",
 ]
 
 [[package]]

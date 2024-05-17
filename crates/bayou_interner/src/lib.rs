@@ -7,7 +7,7 @@ use arena::InternerArena;
 use hashbrown::hash_table::Entry;
 use hashbrown::HashTable;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Interned(NonZeroU32);
 
@@ -55,8 +55,8 @@ impl Interner {
 
         let entry = self.lookup.entry(
             hash,
-            |&metadata| self.arena.get(metadata.interned.to_index()) == Some(key),
-            |&metadata| metadata.hash,
+            |metadata| self.arena.get(metadata.interned.to_index()) == Some(key),
+            |metadata| metadata.hash,
         );
 
         let interned = match entry {
@@ -74,8 +74,24 @@ impl Interner {
         Some(interned)
     }
 
+    /// Get an interned string if it is present.
+    pub fn get_str(&self, key: &str) -> Option<Interned> {
+        let hash = self.random_state.hash_one(key);
+
+        self.lookup
+            .find(hash, |metadata| {
+                self.arena.get(metadata.interned.to_index()) == Some(key)
+            })
+            .map(|metadata| metadata.interned)
+    }
+
     #[inline]
-    pub fn get(&self, interned: Interned) -> Option<&str> {
+    pub fn get(&self, interned: Interned) -> &str {
+        self.try_get(interned).expect("String not in interner")
+    }
+
+    #[inline]
+    pub fn try_get(&self, interned: Interned) -> Option<&str> {
         self.arena.get(interned.to_index())
     }
 }
@@ -91,6 +107,6 @@ fn test_interner() {
         let b = interner.intern(&s);
 
         assert_eq!(a, b);
-        assert_eq!(interner.get(a), Some(s.as_str()));
+        assert_eq!(interner.get(a), s.as_str());
     }
 }
