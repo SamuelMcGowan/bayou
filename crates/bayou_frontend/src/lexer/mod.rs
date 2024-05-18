@@ -107,6 +107,10 @@ impl<'sess> Lexer<'sess> {
                 '}' => TokenKind::RBrace,
                 '(' => TokenKind::LParen,
                 ')' => TokenKind::RParen,
+
+                '.' => TokenKind::Dot,
+                ':' => TokenKind::Colon,
+                ',' => TokenKind::Comma,
                 ';' => TokenKind::Semicolon,
                 '!' => TokenKind::Bang, // will break `!=`
                 '-' if self.chars.eat('>') => TokenKind::Arrow,
