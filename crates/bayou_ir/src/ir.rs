@@ -62,12 +62,14 @@ pub enum ExprKind {
 #[derive(NodeCopy!)]
 pub enum Constant {
     I64(i64),
+    Bool(bool),
 }
 
 impl Constant {
     pub fn ty(&self) -> Type {
         match self {
             Self::I64(_) => Type::I64,
+            Self::Bool(_) => Type::Bool,
         }
     }
 }

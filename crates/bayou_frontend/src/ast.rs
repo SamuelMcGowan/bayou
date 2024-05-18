@@ -45,7 +45,8 @@ impl Expr {
 
 #[derive(Node!)]
 pub enum ExprKind {
-    Constant(i64),
+    Integer(i64),
+    Bool(bool),
 
     Var(Ident),
 

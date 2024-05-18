@@ -43,6 +43,7 @@ pub enum UnOp {
 #[derive(NodeCopy!)]
 pub enum Type {
     I64,
+    Bool,
     Void,
     Never,
 }

@@ -14,7 +14,7 @@ pub enum TokenKind {
     Keyword(Keyword),
     Identifier(InternedStr),
     Integer(i64),
-    Boolean(bool),
+    Bool(bool),
 
     LBrace,
     RBrace,
@@ -77,7 +77,7 @@ impl TokenKind {
             },
             TokenKind::Identifier(_) => "identifier",
             TokenKind::Integer(_) => "integer",
-            TokenKind::Boolean(_) => "boolean",
+            TokenKind::Bool(_) => "boolean",
             TokenKind::LBrace => "`{`",
             TokenKind::RBrace => "`}`",
             TokenKind::LParen => "`(`",

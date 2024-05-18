@@ -2,7 +2,7 @@ use bayou_ir::ir::*;
 use bayou_ir::{BinOp, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::Session;
-use cranelift::codegen::ir::types::I64;
+use cranelift::codegen::ir::types::{I64, I8};
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
@@ -83,6 +83,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
             IrType::I64 => {
                 self.ctx.func.signature.returns.push(AbiParam::new(I64));
             }
+            IrType::Bool => self.ctx.func.signature.returns.push(AbiParam::new(I8)),
             IrType::Void | IrType::Never => {}
         }
 
@@ -161,6 +162,7 @@ impl FuncCodegen<'_> {
         let value = match &expr.kind {
             ExprKind::Constant(constant) => match constant {
                 Constant::I64(n) => self.builder.ins().iconst(I64, *n),
+                Constant::Bool(b) => self.builder.ins().iconst(I8, if *b { 1 } else { 0 }),
             },
 
             ExprKind::Var(local) => {

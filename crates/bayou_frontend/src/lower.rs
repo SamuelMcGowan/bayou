@@ -169,7 +169,8 @@ impl Lowerer {
 
     fn lower_expr(&mut self, expr: ast::Expr) -> Option<ir::Expr> {
         let expr_kind = match expr.kind {
-            ast::ExprKind::Constant(n) => ir::ExprKind::Constant(ir::Constant::I64(n)),
+            ast::ExprKind::Integer(n) => ir::ExprKind::Constant(ir::Constant::I64(n)),
+            ast::ExprKind::Bool(b) => ir::ExprKind::Constant(ir::Constant::Bool(b)),
 
             ast::ExprKind::Var(ident) => {
                 let id = self.lookup_local(ident)?;

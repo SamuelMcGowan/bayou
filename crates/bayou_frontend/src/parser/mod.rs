@@ -116,6 +116,10 @@ impl Parser {
                 self.tokens.next();
                 Ok(Type::I64)
             }
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::Bool) => {
+                self.tokens.next();
+                Ok(Type::Bool)
+            }
             Some(t) if t.kind == TokenKind::Keyword(Keyword::Void) => {
                 self.tokens.next();
                 Ok(Type::Void)

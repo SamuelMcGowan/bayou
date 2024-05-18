@@ -93,7 +93,15 @@ impl Parser {
                 span,
             }) => {
                 self.tokens.next();
-                Ok(Expr::new(ExprKind::Constant(n), span))
+                Ok(Expr::new(ExprKind::Integer(n), span))
+            }
+
+            Some(Token {
+                kind: TokenKind::Bool(b),
+                span,
+            }) => {
+                self.tokens.next();
+                Ok(Expr::new(ExprKind::Bool(b), span))
             }
 
             Some(Token {
