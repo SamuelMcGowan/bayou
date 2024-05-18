@@ -135,9 +135,16 @@ impl FuncCodegen<'_> {
 
                 let val = self.gen_expr(expr);
 
+                let ty = self.module_cx.symbols.locals[*local].ty;
+                let ty = match ty {
+                    IrType::I64 => Some(I64),
+                    IrType::Bool => Some(I8),
+                    IrType::Void | IrType::Never => None,
+                };
+
                 // void types are not declared
-                if let Some(val) = val {
-                    self.builder.declare_var(var, I64);
+                if let (Some(val), Some(ty)) = (val, ty) {
+                    self.builder.declare_var(var, ty);
                     self.builder.def_var(var, val);
                 }
             }
@@ -170,11 +177,11 @@ impl FuncCodegen<'_> {
 
                 // Void typed variables don't emit expressions.
                 if local_ty == IrType::Void {
-                    let var = Variable::new(local.0);
-                    self.builder.use_var(var)
-                } else {
                     return None;
                 }
+
+                let var = Variable::new(local.0);
+                self.builder.use_var(var)
             }
 
             ExprKind::UnOp { op, expr } => {

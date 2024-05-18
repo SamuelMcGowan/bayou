@@ -133,9 +133,9 @@ impl Lowerer {
         let mut lowered_stmts = vec![];
         for stmt in func_decl.statements {
             match stmt {
-                ast::Stmt::Assign { ident, expr } => {
+                ast::Stmt::Assign { ident, ty, expr } => {
                     let expr = self.lower_expr(expr);
-                    let local_id = self.declare_local(ident, Type::I64);
+                    let local_id = self.declare_local(ident, ty);
 
                     if let Some(expr) = expr {
                         lowered_stmts.push(ir::Stmt::Assign {

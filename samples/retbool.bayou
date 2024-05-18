@@ -1,0 +1,4 @@
+func main() -> i64 {
+    let a: bool = true;
+    return 2;
+}

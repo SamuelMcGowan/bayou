@@ -179,10 +179,14 @@ impl Parser {
 
             Some(token) if token.kind == TokenKind::Keyword(Keyword::Let) => {
                 let ident = self.parse_ident()?;
+
+                self.expect(TokenKind::Colon)?;
+                let ty = self.parse_type()?;
+
                 self.expect(TokenKind::Assign)?;
                 let expr = self.parse_expr()?;
                 self.expect_or_recover(TokenKind::Semicolon);
-                Ok(Stmt::Assign { ident, expr })
+                Ok(Stmt::Assign { ident, ty, expr })
             }
 
             other => Err(self.error_expected("a statement", other)),

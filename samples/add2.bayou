@@ -1,5 +1,5 @@
-func main() -> int {
-    let a = 12;
-    let b = 14;
-    // return a + b;
+func main() -> i64 {
+    let a: i64 = 12;
+    let b: i64 = 14;
+    return a + b;
 }

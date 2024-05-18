@@ -24,7 +24,7 @@ pub struct FuncDecl {
 
 #[derive(Node!)]
 pub enum Stmt {
-    Assign { ident: Ident, expr: Expr },
+    Assign { ident: Ident, ty: Type, expr: Expr },
 
     Return(Expr),
 
