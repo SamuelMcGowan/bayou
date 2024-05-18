@@ -2,16 +2,14 @@ use bayou_ir::ir::*;
 use bayou_ir::{BinOp, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::Session;
-use cranelift::codegen::ir::types::{I64, I8};
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
 use cranelift_object::{ObjectBuilder, ObjectModule, ObjectProduct};
 use target_lexicon::Triple;
 
+use crate::layout::{ConstantAsImm, TypeExt, TypeLayout};
 use crate::{BackendError, BackendResult};
-
-type IrType = bayou_ir::Type;
 
 pub struct Codegen<'sess, D: DiagnosticEmitter> {
     session: &'sess mut Session<D>,
@@ -79,12 +77,11 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
     ) -> BackendResult<()> {
         self.module.clear_context(&mut self.ctx);
 
-        match func_decl.ret_ty {
-            IrType::I64 => {
-                self.ctx.func.signature.returns.push(AbiParam::new(I64));
+        match func_decl.ret_ty.layout() {
+            TypeLayout::Integer(ty) => {
+                self.ctx.func.signature.returns.push(AbiParam::new(ty));
             }
-            IrType::Bool => self.ctx.func.signature.returns.push(AbiParam::new(I8)),
-            IrType::Void | IrType::Never => {}
+            TypeLayout::Void | TypeLayout::Never => {}
         }
 
         let mut builder = FunctionBuilder::new(&mut self.ctx.func, &mut self.builder_ctx);
@@ -136,16 +133,17 @@ impl FuncCodegen<'_> {
                 let val = self.gen_expr(expr);
 
                 let ty = self.module_cx.symbols.locals[*local].ty;
-                let ty = match ty {
-                    IrType::I64 => Some(I64),
-                    IrType::Bool => Some(I8),
-                    IrType::Void | IrType::Never => None,
-                };
-
-                // void types are not declared
-                if let (Some(val), Some(ty)) = (val, ty) {
-                    self.builder.declare_var(var, ty);
-                    self.builder.def_var(var, val);
+                match ty.layout() {
+                    TypeLayout::Integer(ty) => {
+                        // BUG: Variables whose expressions contain a `Never` result will
+                        // not create a variable, which will cause generation of variable
+                        // accesses to panic.
+                        if let Some(val) = val {
+                            self.builder.declare_var(var, ty);
+                            self.builder.def_var(var, val);
+                        }
+                    }
+                    TypeLayout::Void | TypeLayout::Never => {}
                 }
             }
 
@@ -167,25 +165,29 @@ impl FuncCodegen<'_> {
 
     fn gen_expr(&mut self, expr: &Expr) -> Option<Value> {
         let value = match &expr.kind {
-            ExprKind::Constant(constant) => match constant {
-                Constant::I64(n) => self.builder.ins().iconst(I64, *n),
-                Constant::Bool(b) => self.builder.ins().iconst(I8, if *b { 1 } else { 0 }),
+            ExprKind::Constant(constant) => match constant.ty().layout() {
+                TypeLayout::Integer(cranelift_ty) => self
+                    .builder
+                    .ins()
+                    .iconst(cranelift_ty, constant.as_imm().unwrap()),
+                TypeLayout::Void | TypeLayout::Never => return None,
             },
 
             ExprKind::Var(local) => {
                 let local_ty = self.module_cx.symbols.locals[*local].ty;
+                let layout = local_ty.layout();
 
-                // Void typed variables don't emit expressions.
-                if local_ty == IrType::Void {
-                    return None;
+                match layout {
+                    TypeLayout::Integer(_) => {
+                        let var = Variable::new(local.0);
+                        self.builder.use_var(var)
+                    }
+                    TypeLayout::Void | TypeLayout::Never => return None,
                 }
-
-                let var = Variable::new(local.0);
-                self.builder.use_var(var)
             }
 
             ExprKind::UnOp { op, expr } => {
-                let expr = self.gen_expr(expr).unwrap();
+                let expr = self.gen_expr(expr)?;
 
                 match op {
                     UnOp::Negate => self.builder.ins().ineg(expr),
@@ -194,8 +196,8 @@ impl FuncCodegen<'_> {
             }
 
             ExprKind::BinOp { op, lhs, rhs } => {
-                let lhs = self.gen_expr(lhs).unwrap();
-                let rhs = self.gen_expr(rhs).unwrap();
+                let lhs = self.gen_expr(lhs)?;
+                let rhs = self.gen_expr(rhs)?;
 
                 let ins = self.builder.ins();
                 match op {
@@ -210,6 +212,7 @@ impl FuncCodegen<'_> {
                 }
             }
 
+            // TODO: make void a constant
             ExprKind::Void => return None,
         };
 

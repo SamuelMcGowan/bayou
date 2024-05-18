@@ -6,6 +6,7 @@ use cranelift_object::object::write::Object;
 use target_lexicon::{Architecture, Triple};
 
 mod codegen;
+mod layout;
 mod linker;
 
 // Re-exporting `object` here instead of using workspace dependencies
