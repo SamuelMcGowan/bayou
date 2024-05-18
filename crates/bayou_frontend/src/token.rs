@@ -14,6 +14,7 @@ pub enum TokenKind {
     Keyword(Keyword),
     Identifier(InternedStr),
     Integer(i64),
+    Boolean(bool),
 
     LBrace,
     RBrace,
@@ -58,8 +59,9 @@ pub enum Keyword {
 
     Let,
 
-    Void,
     I64,
+    Bool,
+    Void,
 }
 
 impl TokenKind {
@@ -70,10 +72,12 @@ impl TokenKind {
                 Keyword::Return => "keyword `return`",
                 Keyword::Let => "keyword `let`",
                 Keyword::I64 => "keyword `i64`",
+                Keyword::Bool => "keyword `bool`",
                 Keyword::Void => "keyword `void`",
             },
             TokenKind::Identifier(_) => "identifier",
             TokenKind::Integer(_) => "integer",
+            TokenKind::Boolean(_) => "boolean",
             TokenKind::LBrace => "`{`",
             TokenKind::RBrace => "`}`",
             TokenKind::LParen => "`(`",
