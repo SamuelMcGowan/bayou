@@ -161,6 +161,7 @@ impl FuncCodegen<'_> {
         match &expr.kind {
             ExprKind::Constant(constant) => match constant.ty().layout() {
                 TypeLayout::Integer(ty) => {
+                    // constant must have an immediate because it is an integer
                     let val = self.builder.ins().iconst(ty, constant.as_imm().unwrap());
                     RValue::Integer(val, ty)
                 }
@@ -229,9 +230,6 @@ impl FuncCodegen<'_> {
 
                 RValue::Integer(val, types::I64)
             }
-
-            // TODO: make void a constant
-            ExprKind::Void => RValue::Void,
         }
     }
 }

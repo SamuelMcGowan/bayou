@@ -58,13 +58,13 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
-    Void,
 }
 
 #[derive(NodeCopy!)]
 pub enum Constant {
     I64(i64),
     Bool(bool),
+    Void,
 }
 
 impl Constant {
@@ -72,6 +72,7 @@ impl Constant {
         match self {
             Self::I64(_) => Type::I64,
             Self::Bool(_) => Type::Bool,
+            Self::Void => Type::Void,
         }
     }
 }

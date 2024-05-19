@@ -51,6 +51,7 @@ impl ConstantAsImm for Constant {
         match self {
             Constant::I64(n) => Some(*n),
             Constant::Bool(b) => Some(if *b { 1 } else { 0 }),
+            Constant::Void => None,
         }
     }
 }

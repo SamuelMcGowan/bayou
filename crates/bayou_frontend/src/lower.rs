@@ -197,7 +197,7 @@ impl Lowerer {
                 }
             }
 
-            ast::ExprKind::Void => ir::ExprKind::Void,
+            ast::ExprKind::Void => ir::ExprKind::Constant(ir::Constant::Void),
 
             ast::ExprKind::ParseError => return None,
         };
