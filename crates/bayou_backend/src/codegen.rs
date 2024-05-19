@@ -107,7 +107,9 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
 
         func_codegen.builder.finalize();
 
-        verify_function(&self.ctx.func, self.module.isa()).unwrap();
+        // Any error returned here is a compiler bug.
+        // TODO: should there be a feature flag for stuff like this?
+        verify_function(&self.ctx.func, self.module.isa()).expect("function verification failed");
 
         // declare and define in module (not final)
         let ident = module_cx.symbols.funcs[func_decl.id].ident;
@@ -122,7 +124,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
 }
 
 enum RValue {
-    Integer(Value, Type),
+    Value(Value, Type),
     Void,
 }
 
@@ -143,7 +145,7 @@ impl FuncCodegen<'_> {
         let var = Variable::new(local.0);
 
         match self.gen_expr(expr)? {
-            RValue::Integer(val, ty) => {
+            RValue::Value(val, ty) => {
                 self.builder.declare_var(var, ty);
                 self.builder.def_var(var, val);
             }
@@ -155,7 +157,7 @@ impl FuncCodegen<'_> {
 
     fn gen_return_stmt(&mut self, expr: &Expr) -> ControlFlow<UnreachableCode> {
         match self.gen_expr(expr)? {
-            RValue::Integer(val, _ty) => {
+            RValue::Value(val, _ty) => {
                 self.builder.ins().return_(&[val]);
             }
             RValue::Void => {}
@@ -182,7 +184,7 @@ impl FuncCodegen<'_> {
             TypeLayout::Integer(ty) => {
                 // constant must have an immediate because it is an integer
                 let val = self.builder.ins().iconst(ty, constant.as_imm().unwrap());
-                RValue::Integer(val, ty)
+                RValue::Value(val, ty)
             }
             TypeLayout::Void => RValue::Void,
             TypeLayout::Never => unreachable!(),
@@ -190,25 +192,25 @@ impl FuncCodegen<'_> {
     }
 
     fn gen_var_expr(&mut self, local: LocalId) -> RValue {
+        // variables of type never and variables with expressions containing unreachable code will have stopped the codegen by now, so
+        // we don't need to worry about them
+
         let local_ty = self.module_cx.symbols.locals[local].ty;
         let layout = local_ty.layout();
 
         match layout {
             TypeLayout::Integer(ty) => {
                 let var = Variable::new(local.0);
-                RValue::Integer(self.builder.use_var(var), ty)
+                RValue::Value(self.builder.use_var(var), ty)
             }
-
             TypeLayout::Void => RValue::Void,
-
-            // variables of type never will have stopped the codegen by now
             TypeLayout::Never => unreachable!(),
         }
     }
 
     fn gen_unop_expr(&mut self, op: UnOp, expr: &Expr) -> ControlFlow<UnreachableCode, RValue> {
         let expr = match self.gen_expr(expr)? {
-            RValue::Integer(value, _) => value,
+            RValue::Value(value, _) => value,
             RValue::Void => unreachable!(),
         };
 
@@ -217,7 +219,7 @@ impl FuncCodegen<'_> {
             UnOp::BitwiseInvert => self.builder.ins().bnot(expr),
         };
 
-        Continue(RValue::Integer(val, types::I64))
+        Continue(RValue::Value(val, types::I64))
     }
 
     fn gen_binop_expr(
@@ -227,12 +229,12 @@ impl FuncCodegen<'_> {
         rhs: &Expr,
     ) -> ControlFlow<UnreachableCode, RValue> {
         let lhs = match self.gen_expr(lhs)? {
-            RValue::Integer(value, _) => value,
+            RValue::Value(value, _) => value,
             RValue::Void => unreachable!(),
         };
 
         let rhs = match self.gen_expr(rhs)? {
-            RValue::Integer(value, _) => value,
+            RValue::Value(value, _) => value,
             RValue::Void => unreachable!(),
         };
 
@@ -248,6 +250,6 @@ impl FuncCodegen<'_> {
             BinOp::BitwiseXor => ins.bxor(lhs, rhs),
         };
 
-        Continue(RValue::Integer(val, types::I64))
+        Continue(RValue::Value(val, types::I64))
     }
 }
