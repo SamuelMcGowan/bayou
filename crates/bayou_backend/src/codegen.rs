@@ -1,4 +1,7 @@
+use std::ops::ControlFlow::{self, Break, Continue};
+
 use bayou_ir::ir::*;
+use bayou_ir::symbols::LocalId;
 use bayou_ir::{BinOp, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::Session;
@@ -10,6 +13,8 @@ use target_lexicon::Triple;
 
 use crate::layout::{ConstantAsImm, TypeExt, TypeLayout};
 use crate::{BackendError, BackendResult};
+
+struct UnreachableCode;
 
 pub struct Codegen<'sess, D: DiagnosticEmitter> {
     session: &'sess mut Session<D>,
@@ -99,7 +104,9 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         };
 
         for stmt in &func_decl.statements {
-            func_codegen.gen_stmt(stmt);
+            if let Break(_) = func_codegen.gen_stmt(stmt) {
+                break;
+            }
         }
 
         func_codegen.builder.finalize();
@@ -118,6 +125,11 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
     }
 }
 
+enum RValue {
+    Integer(Value, Type),
+    Void,
+}
+
 struct FuncCodegen<'a> {
     builder: FunctionBuilder<'a>,
     module: &'a mut ObjectModule,
@@ -125,117 +137,122 @@ struct FuncCodegen<'a> {
 }
 
 impl FuncCodegen<'_> {
-    fn gen_stmt(&mut self, stmt: &Stmt) {
+    fn gen_stmt(&mut self, stmt: &Stmt) -> ControlFlow<UnreachableCode> {
         match stmt {
-            Stmt::Assign { local, expr } => {
-                let var = Variable::new(local.0);
-
-                match self.gen_expr(expr) {
-                    RValue::Integer(val, ty) => {
-                        self.builder.declare_var(var, ty);
-                        self.builder.def_var(var, val);
-                    }
-                    RValue::Void => {}
-                    RValue::Never => {
-                        // Don't generate variable. Use `try_use_var` to avoid panics in this case.
-                    }
-                }
-            }
-
-            Stmt::Return(expr) => {
-                match self.gen_expr(expr) {
-                    RValue::Integer(val, _ty) => {
-                        self.builder.ins().return_(&[val]);
-                    }
-                    RValue::Void | RValue::Never => {}
-                }
-
-                let after_return = self.builder.create_block();
-                self.builder.switch_to_block(after_return);
-                self.builder.seal_block(after_return); // nothing jumps here, dead code
-            }
+            Stmt::Assign { local, expr } => self.gen_assignment_stmt(*local, expr),
+            Stmt::Return(expr) => self.gen_return_stmt(expr),
         }
     }
 
-    fn gen_expr(&mut self, expr: &Expr) -> RValue {
+    fn gen_assignment_stmt(&mut self, local: LocalId, expr: &Expr) -> ControlFlow<UnreachableCode> {
+        let var = Variable::new(local.0);
+
+        match self.gen_expr(expr)? {
+            RValue::Integer(val, ty) => {
+                self.builder.declare_var(var, ty);
+                self.builder.def_var(var, val);
+            }
+            RValue::Void => {}
+        }
+
+        Continue(())
+    }
+
+    fn gen_return_stmt(&mut self, expr: &Expr) -> ControlFlow<UnreachableCode> {
+        match self.gen_expr(expr)? {
+            RValue::Integer(val, _ty) => {
+                self.builder.ins().return_(&[val]);
+            }
+            RValue::Void => {}
+        }
+
+        let after_return = self.builder.create_block();
+        self.builder.switch_to_block(after_return);
+        self.builder.seal_block(after_return); // nothing jumps here, dead code
+
+        Continue(())
+    }
+
+    fn gen_expr(&mut self, expr: &Expr) -> ControlFlow<UnreachableCode, RValue> {
         match &expr.kind {
-            ExprKind::Constant(constant) => match constant.ty().layout() {
-                TypeLayout::Integer(ty) => {
-                    // constant must have an immediate because it is an integer
-                    let val = self.builder.ins().iconst(ty, constant.as_imm().unwrap());
-                    RValue::Integer(val, ty)
-                }
-                TypeLayout::Void => RValue::Void,
-                TypeLayout::Never => RValue::Never,
-            },
-
-            ExprKind::Var(local) => {
-                let local_ty = self.module_cx.symbols.locals[*local].ty;
-                let layout = local_ty.layout();
-
-                match layout {
-                    TypeLayout::Integer(ty) => {
-                        let var = Variable::new(local.0);
-
-                        match self.builder.try_use_var(var) {
-                            Ok(val) => RValue::Integer(val, ty),
-                            Err(_) => RValue::Never, // variable not generated if unreachable
-                        }
-                    }
-
-                    TypeLayout::Void => RValue::Void,
-                    TypeLayout::Never => RValue::Never,
-                }
-            }
-
-            ExprKind::UnOp { op, expr } => {
-                let expr = match self.gen_expr(expr) {
-                    RValue::Integer(value, _) => value,
-                    RValue::Void => unreachable!(),
-                    RValue::Never => return RValue::Never,
-                };
-
-                let val = match op {
-                    UnOp::Negate => self.builder.ins().ineg(expr),
-                    UnOp::BitwiseInvert => self.builder.ins().bnot(expr),
-                };
-
-                RValue::Integer(val, types::I64)
-            }
-
-            ExprKind::BinOp { op, lhs, rhs } => {
-                let lhs = match self.gen_expr(lhs) {
-                    RValue::Integer(value, _) => value,
-                    RValue::Void => unreachable!(),
-                    RValue::Never => return RValue::Never,
-                };
-
-                let rhs = match self.gen_expr(rhs) {
-                    RValue::Integer(value, _) => value,
-                    RValue::Void => unreachable!(),
-                    RValue::Never => return RValue::Never,
-                };
-
-                let ins = self.builder.ins();
-                let val = match op {
-                    BinOp::Add => ins.iadd(lhs, rhs),
-                    BinOp::Sub => ins.isub(lhs, rhs),
-                    BinOp::Mul => ins.imul(lhs, rhs),
-                    BinOp::Div => ins.sdiv(lhs, rhs),
-                    BinOp::Mod => ins.srem(lhs, rhs),
-                    BinOp::BitwiseAnd => ins.band(lhs, rhs),
-                    BinOp::BitwiseOr => ins.bor(lhs, rhs),
-                    BinOp::BitwiseXor => ins.bxor(lhs, rhs),
-                };
-
-                RValue::Integer(val, types::I64)
-            }
+            ExprKind::Constant(constant) => Continue(self.gen_constant_expr(constant)),
+            ExprKind::Var(local) => Continue(self.gen_var_expr(*local)),
+            ExprKind::UnOp { op, expr } => self.gen_unop_expr(*op, expr),
+            ExprKind::BinOp { op, lhs, rhs } => self.gen_binop_expr(*op, lhs, rhs),
         }
     }
-}
 
-enum RValue {
-    Integer(Value, Type),
-    Void,
-    Never,
+    fn gen_constant_expr(&mut self, constant: &Constant) -> RValue {
+        match constant.ty().layout() {
+            TypeLayout::Integer(ty) => {
+                // constant must have an immediate because it is an integer
+                let val = self.builder.ins().iconst(ty, constant.as_imm().unwrap());
+                RValue::Integer(val, ty)
+            }
+            TypeLayout::Void => RValue::Void,
+            TypeLayout::Never => unreachable!(),
+        }
+    }
+
+    fn gen_var_expr(&mut self, local: LocalId) -> RValue {
+        let local_ty = self.module_cx.symbols.locals[local].ty;
+        let layout = local_ty.layout();
+
+        match layout {
+            TypeLayout::Integer(ty) => {
+                let var = Variable::new(local.0);
+                RValue::Integer(self.builder.use_var(var), ty)
+            }
+
+            TypeLayout::Void => RValue::Void,
+
+            // variables of type never will have stopped the codegen by now
+            TypeLayout::Never => unreachable!(),
+        }
+    }
+
+    fn gen_unop_expr(&mut self, op: UnOp, expr: &Expr) -> ControlFlow<UnreachableCode, RValue> {
+        let expr = match self.gen_expr(expr)? {
+            RValue::Integer(value, _) => value,
+            RValue::Void => unreachable!(),
+        };
+
+        let val = match op {
+            UnOp::Negate => self.builder.ins().ineg(expr),
+            UnOp::BitwiseInvert => self.builder.ins().bnot(expr),
+        };
+
+        Continue(RValue::Integer(val, types::I64))
+    }
+
+    fn gen_binop_expr(
+        &mut self,
+        op: BinOp,
+        lhs: &Expr,
+        rhs: &Expr,
+    ) -> ControlFlow<UnreachableCode, RValue> {
+        let lhs = match self.gen_expr(lhs)? {
+            RValue::Integer(value, _) => value,
+            RValue::Void => unreachable!(),
+        };
+
+        let rhs = match self.gen_expr(rhs)? {
+            RValue::Integer(value, _) => value,
+            RValue::Void => unreachable!(),
+        };
+
+        let ins = self.builder.ins();
+        let val = match op {
+            BinOp::Add => ins.iadd(lhs, rhs),
+            BinOp::Sub => ins.isub(lhs, rhs),
+            BinOp::Mul => ins.imul(lhs, rhs),
+            BinOp::Div => ins.sdiv(lhs, rhs),
+            BinOp::Mod => ins.srem(lhs, rhs),
+            BinOp::BitwiseAnd => ins.band(lhs, rhs),
+            BinOp::BitwiseOr => ins.bor(lhs, rhs),
+            BinOp::BitwiseXor => ins.bxor(lhs, rhs),
+        };
+
+        Continue(RValue::Integer(val, types::I64))
+    }
 }
