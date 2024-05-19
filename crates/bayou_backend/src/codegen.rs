@@ -97,11 +97,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         builder.seal_block(entry_block); // no predecessors
 
         // function codegen
-        let mut func_codegen = FuncCodegen {
-            builder,
-            module: &mut self.module,
-            module_cx,
-        };
+        let mut func_codegen = FuncCodegen { builder, module_cx };
 
         for stmt in &func_decl.statements {
             if let Break(_) = func_codegen.gen_stmt(stmt) {
@@ -132,7 +128,6 @@ enum RValue {
 
 struct FuncCodegen<'a> {
     builder: FunctionBuilder<'a>,
-    module: &'a mut ObjectModule,
     module_cx: &'a ModuleContext,
 }
 
