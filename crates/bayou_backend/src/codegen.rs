@@ -130,30 +130,24 @@ impl FuncCodegen<'_> {
             Stmt::Assign { local, expr } => {
                 let var = Variable::new(local.0);
 
-                let val = self.gen_expr(expr);
-
-                let ty = self.module_cx.symbols.locals[*local].ty;
-                match ty.layout() {
-                    TypeLayout::Integer(ty) => {
-                        // BUG: Variables whose expressions contain a `Never` result will
-                        // not create a variable, which will cause generation of variable
-                        // accesses to panic.
-                        if let Some(val) = val {
-                            self.builder.declare_var(var, ty);
-                            self.builder.def_var(var, val);
-                        }
+                match self.gen_expr(expr) {
+                    RValue::Integer(val, ty) => {
+                        self.builder.declare_var(var, ty);
+                        self.builder.def_var(var, val);
                     }
-                    TypeLayout::Void | TypeLayout::Never => {}
+                    RValue::Void => {}
+                    RValue::Never => {
+                        // Don't generate variable. Use `try_use_var` to avoid panics in this case.
+                    }
                 }
             }
 
             Stmt::Return(expr) => {
-                let value = self.gen_expr(expr);
-
-                if let Some(value) = value {
-                    self.builder.ins().return_(&[value]);
-                } else {
-                    self.builder.ins().return_(&[]);
+                match self.gen_expr(expr) {
+                    RValue::Integer(val, _ty) => {
+                        self.builder.ins().return_(&[val]);
+                    }
+                    RValue::Void | RValue::Never => {}
                 }
 
                 let after_return = self.builder.create_block();
@@ -163,14 +157,15 @@ impl FuncCodegen<'_> {
         }
     }
 
-    fn gen_expr(&mut self, expr: &Expr) -> Option<Value> {
-        let value = match &expr.kind {
+    fn gen_expr(&mut self, expr: &Expr) -> RValue {
+        match &expr.kind {
             ExprKind::Constant(constant) => match constant.ty().layout() {
-                TypeLayout::Integer(cranelift_ty) => self
-                    .builder
-                    .ins()
-                    .iconst(cranelift_ty, constant.as_imm().unwrap()),
-                TypeLayout::Void | TypeLayout::Never => return None,
+                TypeLayout::Integer(ty) => {
+                    let val = self.builder.ins().iconst(ty, constant.as_imm().unwrap());
+                    RValue::Integer(val, ty)
+                }
+                TypeLayout::Void => RValue::Void,
+                TypeLayout::Never => RValue::Never,
             },
 
             ExprKind::Var(local) => {
@@ -178,29 +173,50 @@ impl FuncCodegen<'_> {
                 let layout = local_ty.layout();
 
                 match layout {
-                    TypeLayout::Integer(_) => {
+                    TypeLayout::Integer(ty) => {
                         let var = Variable::new(local.0);
-                        self.builder.use_var(var)
+
+                        match self.builder.try_use_var(var) {
+                            Ok(val) => RValue::Integer(val, ty),
+                            Err(_) => RValue::Never, // variable not generated if unreachable
+                        }
                     }
-                    TypeLayout::Void | TypeLayout::Never => return None,
+
+                    TypeLayout::Void => RValue::Void,
+                    TypeLayout::Never => RValue::Never,
                 }
             }
 
             ExprKind::UnOp { op, expr } => {
-                let expr = self.gen_expr(expr)?;
+                let expr = match self.gen_expr(expr) {
+                    RValue::Integer(value, _) => value,
+                    RValue::Void => unreachable!(),
+                    RValue::Never => return RValue::Never,
+                };
 
-                match op {
+                let val = match op {
                     UnOp::Negate => self.builder.ins().ineg(expr),
                     UnOp::BitwiseInvert => self.builder.ins().bnot(expr),
-                }
+                };
+
+                RValue::Integer(val, types::I64)
             }
 
             ExprKind::BinOp { op, lhs, rhs } => {
-                let lhs = self.gen_expr(lhs)?;
-                let rhs = self.gen_expr(rhs)?;
+                let lhs = match self.gen_expr(lhs) {
+                    RValue::Integer(value, _) => value,
+                    RValue::Void => unreachable!(),
+                    RValue::Never => return RValue::Never,
+                };
+
+                let rhs = match self.gen_expr(rhs) {
+                    RValue::Integer(value, _) => value,
+                    RValue::Void => unreachable!(),
+                    RValue::Never => return RValue::Never,
+                };
 
                 let ins = self.builder.ins();
-                match op {
+                let val = match op {
                     BinOp::Add => ins.iadd(lhs, rhs),
                     BinOp::Sub => ins.isub(lhs, rhs),
                     BinOp::Mul => ins.imul(lhs, rhs),
@@ -209,13 +225,19 @@ impl FuncCodegen<'_> {
                     BinOp::BitwiseAnd => ins.band(lhs, rhs),
                     BinOp::BitwiseOr => ins.bor(lhs, rhs),
                     BinOp::BitwiseXor => ins.bxor(lhs, rhs),
-                }
+                };
+
+                RValue::Integer(val, types::I64)
             }
 
             // TODO: make void a constant
-            ExprKind::Void => return None,
-        };
-
-        Some(value)
+            ExprKind::Void => RValue::Void,
+        }
     }
+}
+
+enum RValue {
+    Integer(Value, Type),
+    Void,
+    Never,
 }
