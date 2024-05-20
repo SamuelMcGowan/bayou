@@ -56,7 +56,6 @@ pub struct Expr {
 pub enum ExprKind {
     Constant(Constant),
     Var(LocalId),
-    Block(Box<Block>),
     UnOp {
         op: UnOp,
         expr: Box<Expr>,
@@ -66,6 +65,7 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+    Block(Box<Block>),
     If {
         cond: Box<Expr>,
         then: Box<Expr>,

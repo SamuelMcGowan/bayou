@@ -56,8 +56,6 @@ pub enum ExprKind {
 
     Var(Ident),
 
-    Block(Box<Block>),
-
     UnOp {
         op: UnOp,
         expr: Box<Expr>,
@@ -68,6 +66,8 @@ pub enum ExprKind {
         lhs: Box<Expr>,
         rhs: Box<Expr>,
     },
+
+    Block(Box<Block>),
 
     If {
         cond: Box<Expr>,

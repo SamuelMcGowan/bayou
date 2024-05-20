@@ -74,44 +74,6 @@ impl Parser {
         Module { items }
     }
 
-    fn parse_block(&mut self) -> ParseResult<Block> {
-        self.expect(TokenKind::LBrace)?;
-
-        let mut statements = vec![];
-        let mut final_expr = None;
-
-        // TODO: significantly improve recoverable parsing
-
-        while self
-            .tokens
-            .peek()
-            .is_some_and(|t| t.kind != TokenKind::RBrace)
-        {
-            // TODO: clean up - checking whether a semicolon is missing like this is a bit messy
-            let (statement, missing_semicolon) = self.parse_statement_or_recover();
-
-            if missing_semicolon {
-                final_expr = Some(match statement {
-                    Stmt::Drop(expr) => expr,
-                    _ => unreachable!("only drop expressions can be missing semicolons"),
-                });
-
-                break;
-            } else {
-                statements.push(statement);
-            }
-        }
-
-        let rbrace = self.expect(TokenKind::RBrace)?;
-
-        let final_expr = final_expr.unwrap_or_else(|| Expr::new(ExprKind::Void, rbrace.span));
-
-        Ok(Block {
-            statements,
-            final_expr,
-        })
-    }
-
     fn parse_func_decl(&mut self) -> ParseResult<FuncDecl> {
         let ident = self.parse_ident()?;
 
@@ -159,6 +121,44 @@ impl Parser {
         }
     }
 
+    fn parse_block(&mut self) -> ParseResult<Block> {
+        self.expect(TokenKind::LBrace)?;
+
+        let mut statements = vec![];
+        let mut final_expr = None;
+
+        // TODO: significantly improve recoverable parsing
+
+        while self
+            .tokens
+            .peek()
+            .is_some_and(|t| t.kind != TokenKind::RBrace)
+        {
+            // TODO: clean up - checking whether a semicolon is missing like this is a bit messy
+            let (statement, missing_semicolon) = self.parse_statement_or_recover();
+
+            if missing_semicolon {
+                final_expr = Some(match statement {
+                    Stmt::Drop(expr) => expr,
+                    _ => unreachable!("only drop expressions can be missing semicolons"),
+                });
+
+                break;
+            } else {
+                statements.push(statement);
+            }
+        }
+
+        let rbrace = self.expect(TokenKind::RBrace)?;
+
+        let final_expr = final_expr.unwrap_or_else(|| Expr::new(ExprKind::Void, rbrace.span));
+
+        Ok(Block {
+            statements,
+            final_expr,
+        })
+    }
+
     fn parse_statement_or_recover(&mut self) -> (Stmt, bool) {
         self.parse_or_recover(Self::parse_statement, |parser, _| {
             parser.seek_and_consume(TokenKind::Semicolon);
@@ -166,6 +166,7 @@ impl Parser {
         })
     }
 
+    // FIXME: this might not advance a token if an expression fails to parse.
     // should always advance at least one token (unless at end)
     fn parse_statement(&mut self) -> ParseResult<(Stmt, bool)> {
         match self.tokens.peek() {

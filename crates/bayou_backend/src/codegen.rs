@@ -139,13 +139,6 @@ struct FuncCodegen<'a> {
 }
 
 impl FuncCodegen<'_> {
-    fn gen_block_expr(&mut self, block: &IrBlock) -> ControlFlow<UnreachableCode, RValue> {
-        for stmt in &block.statements {
-            self.gen_stmt(stmt)?;
-        }
-        self.gen_expr(&block.final_expr)
-    }
-
     fn gen_stmt(&mut self, stmt: &Stmt) -> ControlFlow<UnreachableCode> {
         match stmt {
             Stmt::Assign { local, expr } => self.gen_assignment_stmt(*local, expr),
@@ -192,9 +185,9 @@ impl FuncCodegen<'_> {
         match &expr.kind {
             ExprKind::Constant(constant) => Continue(self.gen_constant_expr(constant)),
             ExprKind::Var(local) => Continue(self.gen_var_expr(*local)),
-            ExprKind::Block(block) => self.gen_block_expr(block),
             ExprKind::UnOp { op, expr } => self.gen_unop_expr(*op, expr),
             ExprKind::BinOp { op, lhs, rhs } => self.gen_binop_expr(*op, lhs, rhs),
+            ExprKind::Block(block) => self.gen_block_expr(block),
             ExprKind::If { cond, then, else_ } => {
                 self.gen_if_expr(cond, then, else_.as_deref(), expr.ty.unwrap())
             }
@@ -273,6 +266,13 @@ impl FuncCodegen<'_> {
         };
 
         Continue(RValue::Value(val, types::I64))
+    }
+
+    fn gen_block_expr(&mut self, block: &IrBlock) -> ControlFlow<UnreachableCode, RValue> {
+        for stmt in &block.statements {
+            self.gen_stmt(stmt)?;
+        }
+        self.gen_expr(&block.final_expr)
     }
 
     fn gen_if_expr(

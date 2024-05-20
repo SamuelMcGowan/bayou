@@ -130,7 +130,7 @@ impl Lowerer {
 
         // no parameters for now
 
-        let block = self.lower_block(func_decl.block)?;
+        let block = self.lower_block_expr(func_decl.block)?;
 
         // TODO: is this lookup necessary
         let id = self.symbols.global_lookup[&func_decl.ident.ident_str]
@@ -144,7 +144,70 @@ impl Lowerer {
         })
     }
 
-    fn lower_block(&mut self, block: ast::Block) -> Option<ir::Block> {
+    fn lower_expr(&mut self, expr: ast::Expr) -> Option<ir::Expr> {
+        let expr_kind = match expr.kind {
+            ast::ExprKind::Integer(n) => ir::ExprKind::Constant(ir::Constant::I64(n)),
+            ast::ExprKind::Bool(b) => ir::ExprKind::Constant(ir::Constant::Bool(b)),
+
+            ast::ExprKind::Var(ident) => {
+                let id = self.lookup_local(ident)?;
+                ir::ExprKind::Var(id)
+            }
+
+            ast::ExprKind::UnOp { op, expr } => {
+                let expr = self.lower_expr(*expr)?;
+                ir::ExprKind::UnOp {
+                    op,
+                    expr: Box::new(expr),
+                }
+            }
+
+            ast::ExprKind::BinOp { op, lhs, rhs } => {
+                // lower both before using `?`
+                let lhs = self.lower_expr(*lhs);
+                let rhs = self.lower_expr(*rhs);
+
+                ir::ExprKind::BinOp {
+                    op,
+                    lhs: Box::new(lhs?),
+                    rhs: Box::new(rhs?),
+                }
+            }
+
+            ast::ExprKind::Block(block) => {
+                let lowered_block = self.lower_block_expr(*block)?;
+                ir::ExprKind::Block(Box::new(lowered_block))
+            }
+
+            ast::ExprKind::If { cond, then, else_ } => {
+                let cond = self.lower_expr(*cond);
+
+                let then = self.in_scope(|s| s.lower_expr(*then));
+                let else_ = self.in_scope(|s| else_.map(|e| s.lower_expr(*e)));
+
+                ir::ExprKind::If {
+                    cond: Box::new(cond?),
+                    then: Box::new(then?),
+                    else_: match else_ {
+                        Some(e) => Some(Box::new(e?)),
+                        None => None,
+                    },
+                }
+            }
+
+            ast::ExprKind::Void => ir::ExprKind::Constant(ir::Constant::Void),
+
+            ast::ExprKind::ParseError => return None,
+        };
+
+        Some(ir::Expr {
+            kind: expr_kind,
+            span: expr.span,
+            ty: None,
+        })
+    }
+
+    fn lower_block_expr(&mut self, block: ast::Block) -> Option<ir::Block> {
         self.in_scope(|lowerer| {
             let mut lowered_stmts = vec![];
 
@@ -184,69 +247,6 @@ impl Lowerer {
                 statements: lowered_stmts,
                 final_expr: lowered_final_expr,
             })
-        })
-    }
-
-    fn lower_expr(&mut self, expr: ast::Expr) -> Option<ir::Expr> {
-        let expr_kind = match expr.kind {
-            ast::ExprKind::Integer(n) => ir::ExprKind::Constant(ir::Constant::I64(n)),
-            ast::ExprKind::Bool(b) => ir::ExprKind::Constant(ir::Constant::Bool(b)),
-
-            ast::ExprKind::Var(ident) => {
-                let id = self.lookup_local(ident)?;
-                ir::ExprKind::Var(id)
-            }
-
-            ast::ExprKind::Block(block) => {
-                let lowered_block = self.lower_block(*block)?;
-                ir::ExprKind::Block(Box::new(lowered_block))
-            }
-
-            ast::ExprKind::UnOp { op, expr } => {
-                let expr = self.lower_expr(*expr)?;
-                ir::ExprKind::UnOp {
-                    op,
-                    expr: Box::new(expr),
-                }
-            }
-
-            ast::ExprKind::BinOp { op, lhs, rhs } => {
-                // lower both before using `?`
-                let lhs = self.lower_expr(*lhs);
-                let rhs = self.lower_expr(*rhs);
-
-                ir::ExprKind::BinOp {
-                    op,
-                    lhs: Box::new(lhs?),
-                    rhs: Box::new(rhs?),
-                }
-            }
-
-            ast::ExprKind::If { cond, then, else_ } => {
-                let cond = self.lower_expr(*cond);
-
-                let then = self.in_scope(|s| s.lower_expr(*then));
-                let else_ = self.in_scope(|s| else_.map(|e| s.lower_expr(*e)));
-
-                ir::ExprKind::If {
-                    cond: Box::new(cond?),
-                    then: Box::new(then?),
-                    else_: match else_ {
-                        Some(e) => Some(Box::new(e?)),
-                        None => None,
-                    },
-                }
-            }
-
-            ast::ExprKind::Void => ir::ExprKind::Constant(ir::Constant::Void),
-
-            ast::ExprKind::ParseError => return None,
-        };
-
-        Some(ir::Expr {
-            kind: expr_kind,
-            span: expr.span,
-            ty: None,
         })
     }
 
