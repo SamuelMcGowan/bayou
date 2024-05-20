@@ -1,4 +1,5 @@
 use bayou_ir::ir::*;
+use bayou_ir::symbols::FuncId;
 use bayou_ir::{BinOp, Type, UnOp};
 use bayou_session::diagnostics::prelude::*;
 
@@ -81,55 +82,80 @@ impl<'a> TypeChecker<'a> {
     }
 
     fn check_func_decl(&mut self, func_decl: &mut FuncDecl) {
-        for stmt in &mut func_decl.statements {
-            match stmt {
-                Stmt::Assign { local, expr } => {
-                    self.check_expr(expr);
+        let (block_type, block_type_span) = self.check_block(&mut func_decl.block, func_decl.id);
 
-                    let local = &self.module_cx.symbols.locals[*local];
-                    if let Some(ty) = expr.ty {
-                        self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
-                    }
-                }
-
-                Stmt::Drop(expr) => {
-                    self.check_expr(expr);
-                }
-
-                Stmt::Return(expr) => {
-                    self.check_expr(expr);
-                    if let Some(ty) = expr.ty {
-                        // FIXME: use return type span
-                        let name_span = self.module_cx.symbols.funcs[func_decl.id].ident.span;
-                        self.check_types_match(func_decl.ret_ty, Some(name_span), ty, expr.span);
-                    }
-                }
-            }
-        }
-
-        // If the function needs to return a value, ensure that the final statement returns.
-        // Return *types* are already checked.
-        if func_decl.ret_ty != Type::Void
-            && !matches!(func_decl.statements.last(), Some(stmt) if stmt_is_diverging(stmt))
-        {
-            // FIXME: use return type span
-            let name_span = self.module_cx.symbols.funcs[func_decl.id].ident.span;
-
-            self.errors.push(TypeError::MissingReturn {
-                ty: func_decl.ret_ty,
-                span: name_span,
-            });
+        // FIXME: use return type span
+        let func_symbol = &self.module_cx.symbols.funcs[func_decl.id];
+        if let Some(block_type) = block_type {
+            self.check_types_match(
+                func_decl.ret_ty,
+                Some(func_symbol.ident.span),
+                block_type,
+                block_type_span,
+            );
         }
     }
 
-    fn check_expr(&mut self, expr: &mut Expr) {
+    // FIXME: create a FuncTypeChecker struct that stores function information so we don't have to pass it around.
+    fn check_stmt(&mut self, stmt: &mut Stmt, func_id: FuncId) {
+        match stmt {
+            Stmt::Assign { local, expr } => {
+                self.check_expr(expr, func_id);
+
+                let local = &self.module_cx.symbols.locals[*local];
+                if let Some(ty) = expr.ty {
+                    self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
+                }
+            }
+
+            Stmt::Drop(expr) => {
+                self.check_expr(expr, func_id);
+            }
+
+            Stmt::Return(expr) => {
+                self.check_expr(expr, func_id);
+                if let Some(ty) = expr.ty {
+                    // FIXME: use return type span
+                    let func_symbol = &self.module_cx.symbols.funcs[func_id];
+                    self.check_types_match(
+                        func_symbol.ret_ty,
+                        Some(func_symbol.ident.span),
+                        ty,
+                        expr.span,
+                    );
+                }
+            }
+        }
+    }
+
+    fn check_block(&mut self, block: &mut Block, func_id: FuncId) -> (Option<Type>, Span) {
+        let mut diverging = false;
+
+        for stmt in &mut block.statements {
+            self.check_stmt(stmt, func_id);
+            diverging |= stmt_is_diverging(stmt);
+        }
+
+        self.check_expr(&mut block.final_expr, func_id);
+
+        if diverging {
+            // FIXME: use block span
+            (Some(Type::Never), block.final_expr.span)
+        } else {
+            (block.final_expr.ty, block.final_expr.span)
+        }
+    }
+
+    fn check_expr(&mut self, expr: &mut Expr, func_id: FuncId) {
         expr.ty = match &mut expr.kind {
             ExprKind::Constant(constant) => Some(constant.ty()),
 
             ExprKind::Var(local) => Some(self.module_cx.symbols.locals[*local].ty),
 
+            ExprKind::Block(block) => self.check_block(block, func_id).0,
+
             ExprKind::UnOp { op, expr } => {
-                self.check_expr(expr);
+                self.check_expr(expr, func_id);
 
                 match op {
                     UnOp::Negate => expr.ty.map(|ty| {
@@ -145,8 +171,8 @@ impl<'a> TypeChecker<'a> {
             }
 
             ExprKind::BinOp { op, lhs, rhs } => {
-                self.check_expr(lhs);
-                self.check_expr(rhs);
+                self.check_expr(lhs, func_id);
+                self.check_expr(rhs, func_id);
 
                 let (exp_lhs, exp_rhs, out) = match op {
                     BinOp::Add => (Type::I64, Type::I64, Type::I64),
@@ -171,17 +197,17 @@ impl<'a> TypeChecker<'a> {
             }
 
             ExprKind::If { cond, then, else_ } => {
-                self.check_expr(cond);
+                self.check_expr(cond, func_id);
 
                 if let Some(ty) = cond.ty {
                     self.check_types_match(Type::Bool, None, ty, cond.span);
                 }
 
-                self.check_expr(then);
+                self.check_expr(then, func_id);
 
                 'check: {
                     if let Some(else_) = else_ {
-                        self.check_expr(else_);
+                        self.check_expr(else_, func_id);
 
                         if let (Some(then_ty), Some(else_ty)) = (then.ty, else_.ty) {
                             match (then_ty, else_ty) {

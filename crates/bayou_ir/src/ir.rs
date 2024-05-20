@@ -29,7 +29,7 @@ pub struct FuncDecl {
 
     // TODO: remove - already in symbol table
     pub ret_ty: Type,
-    pub statements: Vec<Stmt>,
+    pub block: Block,
 }
 
 #[derive(Node!)]
@@ -37,6 +37,12 @@ pub enum Stmt {
     Assign { local: LocalId, expr: Expr },
     Drop(Expr),
     Return(Expr),
+}
+
+#[derive(Node!)]
+pub struct Block {
+    pub statements: Vec<Stmt>,
+    pub final_expr: Expr,
 }
 
 #[derive(Node!)]
@@ -50,6 +56,7 @@ pub struct Expr {
 pub enum ExprKind {
     Constant(Constant),
     Var(LocalId),
+    Block(Box<Block>),
     UnOp {
         op: UnOp,
         expr: Box<Expr>,

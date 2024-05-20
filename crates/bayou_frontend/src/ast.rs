@@ -19,7 +19,7 @@ pub enum Item {
 pub struct FuncDecl {
     pub ident: Ident,
     pub ret_ty: Type,
-    pub statements: Vec<Stmt>,
+    pub block: Block,
 }
 
 #[derive(Node!)]
@@ -29,6 +29,12 @@ pub enum Stmt {
     Return(Expr),
 
     ParseError,
+}
+
+#[derive(Node!)]
+pub struct Block {
+    pub statements: Vec<Stmt>,
+    pub final_expr: Expr,
 }
 
 #[derive(Node!)]
@@ -49,6 +55,8 @@ pub enum ExprKind {
     Bool(bool),
 
     Var(Ident),
+
+    Block(Box<Block>),
 
     UnOp {
         op: UnOp,
@@ -73,10 +81,7 @@ pub enum ExprKind {
 }
 
 impl ExprKind {
-    pub fn requires_semicolon_if_stmt(&self) -> bool {
-        match self {
-            ExprKind::If { .. } => false,
-            _ => false,
-        }
+    pub fn requires_semicolon_in_stmt(&self) -> bool {
+        !matches!(self, ExprKind::Block(_) | ExprKind::If { .. })
     }
 }

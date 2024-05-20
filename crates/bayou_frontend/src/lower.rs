@@ -130,36 +130,7 @@ impl Lowerer {
 
         // no parameters for now
 
-        let mut lowered_stmts = vec![];
-        for stmt in func_decl.statements {
-            match stmt {
-                ast::Stmt::Assign { ident, ty, expr } => {
-                    let expr = self.lower_expr(expr);
-                    let local_id = self.declare_local(ident, ty);
-
-                    if let Some(expr) = expr {
-                        lowered_stmts.push(ir::Stmt::Assign {
-                            local: local_id,
-                            expr,
-                        })
-                    }
-                }
-
-                ast::Stmt::Drop(expr) => {
-                    if let Some(expr) = self.lower_expr(expr) {
-                        lowered_stmts.push(ir::Stmt::Drop(expr));
-                    }
-                }
-
-                ast::Stmt::Return(expr) => {
-                    if let Some(expr) = self.lower_expr(expr) {
-                        lowered_stmts.push(ir::Stmt::Return(expr));
-                    }
-                }
-
-                ast::Stmt::ParseError => {}
-            }
-        }
+        let block = self.lower_block(func_decl.block)?;
 
         // TODO: is this lookup necessary
         let id = self.symbols.global_lookup[&func_decl.ident.ident_str]
@@ -169,7 +140,50 @@ impl Lowerer {
         Some(ir::FuncDecl {
             id,
             ret_ty: func_decl.ret_ty,
-            statements: lowered_stmts,
+            block,
+        })
+    }
+
+    fn lower_block(&mut self, block: ast::Block) -> Option<ir::Block> {
+        self.in_scope(|lowerer| {
+            let mut lowered_stmts = vec![];
+
+            for stmt in block.statements {
+                match stmt {
+                    ast::Stmt::Assign { ident, ty, expr } => {
+                        let expr = lowerer.lower_expr(expr);
+                        let local_id = lowerer.declare_local(ident, ty);
+
+                        if let Some(expr) = expr {
+                            lowered_stmts.push(ir::Stmt::Assign {
+                                local: local_id,
+                                expr,
+                            })
+                        }
+                    }
+
+                    ast::Stmt::Drop(expr) => {
+                        if let Some(expr) = lowerer.lower_expr(expr) {
+                            lowered_stmts.push(ir::Stmt::Drop(expr));
+                        }
+                    }
+
+                    ast::Stmt::Return(expr) => {
+                        if let Some(expr) = lowerer.lower_expr(expr) {
+                            lowered_stmts.push(ir::Stmt::Return(expr));
+                        }
+                    }
+
+                    ast::Stmt::ParseError => {}
+                }
+            }
+
+            let lowered_final_expr = lowerer.lower_expr(block.final_expr)?;
+
+            Some(ir::Block {
+                statements: lowered_stmts,
+                final_expr: lowered_final_expr,
+            })
         })
     }
 
@@ -181,6 +195,11 @@ impl Lowerer {
             ast::ExprKind::Var(ident) => {
                 let id = self.lookup_local(ident)?;
                 ir::ExprKind::Var(id)
+            }
+
+            ast::ExprKind::Block(block) => {
+                let lowered_block = self.lower_block(*block)?;
+                ir::ExprKind::Block(Box::new(lowered_block))
             }
 
             ast::ExprKind::UnOp { op, expr } => {

@@ -1,6 +1,6 @@
 use std::ops::ControlFlow::{self, Break, Continue};
 
-use bayou_ir::ir::*;
+use bayou_ir::ir::{Block as IrBlock, *};
 use bayou_ir::symbols::LocalId;
 use bayou_ir::{BinOp, Type as IrType, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
@@ -99,9 +99,14 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         // function codegen
         let mut func_codegen = FuncCodegen { builder, module_cx };
 
-        for stmt in &func_decl.statements {
-            if let Break(_) = func_codegen.gen_stmt(stmt) {
-                break;
+        if let ControlFlow::Continue(val) = func_codegen.gen_block_expr(&func_decl.block) {
+            match val {
+                RValue::Value(val, _) => {
+                    func_codegen.builder.ins().return_(&[val]);
+                }
+                RValue::Void => {
+                    func_codegen.builder.ins().return_(&[]);
+                }
             }
         }
 
@@ -134,6 +139,13 @@ struct FuncCodegen<'a> {
 }
 
 impl FuncCodegen<'_> {
+    fn gen_block_expr(&mut self, block: &IrBlock) -> ControlFlow<UnreachableCode, RValue> {
+        for stmt in &block.statements {
+            self.gen_stmt(stmt)?;
+        }
+        self.gen_expr(&block.final_expr)
+    }
+
     fn gen_stmt(&mut self, stmt: &Stmt) -> ControlFlow<UnreachableCode> {
         match stmt {
             Stmt::Assign { local, expr } => self.gen_assignment_stmt(*local, expr),
@@ -172,13 +184,15 @@ impl FuncCodegen<'_> {
         self.builder.switch_to_block(after_return);
         self.builder.seal_block(after_return); // nothing jumps here, dead code
 
-        Continue(())
+        // Anything after a return is unreachable
+        Break(UnreachableCode)
     }
 
     fn gen_expr(&mut self, expr: &Expr) -> ControlFlow<UnreachableCode, RValue> {
         match &expr.kind {
             ExprKind::Constant(constant) => Continue(self.gen_constant_expr(constant)),
             ExprKind::Var(local) => Continue(self.gen_var_expr(*local)),
+            ExprKind::Block(block) => self.gen_block_expr(block),
             ExprKind::UnOp { op, expr } => self.gen_unop_expr(*op, expr),
             ExprKind::BinOp { op, lhs, rhs } => self.gen_binop_expr(*op, lhs, rhs),
             ExprKind::If { cond, then, else_ } => {
