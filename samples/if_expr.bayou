@@ -2,6 +2,6 @@ func main() -> i64 {
     let a: i64 = 
         if false then 2
         else 7;
-    
+
     10 + a
 }

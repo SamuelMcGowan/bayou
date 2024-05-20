@@ -157,6 +157,11 @@ impl Parser {
                 Ok(expr)
             }
 
+            Some(t) if t.kind == TokenKind::LBrace => {
+                let block = self.parse_spanned(Self::parse_block).transpose()?;
+                Ok(Expr::new(ExprKind::Block(Box::new(block.node)), block.span))
+            }
+
             Some(t) if t.kind == TokenKind::Keyword(Keyword::If) => {
                 let kind = self
                     .parse_spanned(|parser| {
