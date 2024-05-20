@@ -157,6 +157,35 @@ impl Parser {
                 Ok(expr)
             }
 
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::If) => {
+                let kind = self
+                    .parse_spanned(|parser| {
+                        parser.tokens.next();
+
+                        // TODO: recover to `then`
+                        let cond = parser.parse_expr()?;
+
+                        parser.expect(TokenKind::Keyword(Keyword::Then))?;
+                        let then = parser.parse_expr()?;
+
+                        let else_ = if parser.eat_kind(TokenKind::Keyword(Keyword::Else)) {
+                            Some(parser.parse_expr()?)
+                        } else {
+                            None
+                        };
+
+                        Ok(ExprKind::If {
+                            cond: Box::new(cond),
+                            then: Box::new(then),
+                            else_: else_.map(Box::new),
+                        })
+                    })
+                    .transpose()?;
+
+                Ok(Expr::new(kind.node, kind.span))
+            }
+
+            // TODO: should we consume the token here?
             other => Err(self.error_expected("an expression", other)),
         }
     }

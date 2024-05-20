@@ -35,6 +35,7 @@ pub struct FuncDecl {
 #[derive(Node!)]
 pub enum Stmt {
     Assign { local: LocalId, expr: Expr },
+    Drop(Expr),
     Return(Expr),
 }
 
@@ -57,6 +58,11 @@ pub enum ExprKind {
         op: BinOp,
         lhs: Box<Expr>,
         rhs: Box<Expr>,
+    },
+    If {
+        cond: Box<Expr>,
+        then: Box<Expr>,
+        else_: Option<Box<Expr>>,
     },
 }
 

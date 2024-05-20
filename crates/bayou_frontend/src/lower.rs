@@ -145,6 +145,12 @@ impl Lowerer {
                     }
                 }
 
+                ast::Stmt::Drop(expr) => {
+                    if let Some(expr) = self.lower_expr(expr) {
+                        lowered_stmts.push(ir::Stmt::Drop(expr));
+                    }
+                }
+
                 ast::Stmt::Return(expr) => {
                     if let Some(expr) = self.lower_expr(expr) {
                         lowered_stmts.push(ir::Stmt::Return(expr));
@@ -197,6 +203,22 @@ impl Lowerer {
                 }
             }
 
+            ast::ExprKind::If { cond, then, else_ } => {
+                let cond = self.lower_expr(*cond);
+
+                let then = self.in_scope(|s| s.lower_expr(*then));
+                let else_ = self.in_scope(|s| else_.map(|e| s.lower_expr(*e)));
+
+                ir::ExprKind::If {
+                    cond: Box::new(cond?),
+                    then: Box::new(then?),
+                    else_: match else_ {
+                        Some(e) => Some(Box::new(e?)),
+                        None => None,
+                    },
+                }
+            }
+
             ast::ExprKind::Void => ir::ExprKind::Constant(ir::Constant::Void),
 
             ast::ExprKind::ParseError => return None,
@@ -242,6 +264,13 @@ impl Lowerer {
 
     fn clear_locals(&mut self) {
         self.local_stack.clear();
+    }
+
+    fn in_scope<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> T {
+        let scope = self.start_scope();
+        let output = f(self);
+        self.end_scope(scope);
+        output
     }
 
     #[must_use]

@@ -62,6 +62,9 @@ pub enum Keyword {
     Return,
 
     Let,
+    If,
+    Then,
+    Else,
 
     I64,
     Bool,
@@ -75,6 +78,9 @@ impl TokenKind {
                 Keyword::Func => "keyword `func`",
                 Keyword::Return => "keyword `return`",
                 Keyword::Let => "keyword `let`",
+                Keyword::If => "keyword `if`",
+                Keyword::Then => "keyword `then`",
+                Keyword::Else => "keyword `else`",
                 Keyword::I64 => "keyword `i64`",
                 Keyword::Bool => "keyword `bool`",
                 Keyword::Void => "keyword `void`",

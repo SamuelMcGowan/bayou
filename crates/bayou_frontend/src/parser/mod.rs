@@ -142,8 +142,10 @@ impl Parser {
 
     // should always advance at least one token (unless at end)
     fn parse_statement(&mut self) -> ParseResult<Stmt> {
-        match self.tokens.next() {
+        match self.tokens.peek() {
             Some(token) if token.kind == TokenKind::Keyword(Keyword::Return) => {
+                self.tokens.next();
+
                 let expr = if self.eat_kind(TokenKind::Semicolon) {
                     Expr::new(
                         ExprKind::Void,
@@ -178,6 +180,8 @@ impl Parser {
             }
 
             Some(token) if token.kind == TokenKind::Keyword(Keyword::Let) => {
+                self.tokens.next();
+
                 let ident = self.parse_ident()?;
 
                 self.expect(TokenKind::Colon)?;
@@ -189,7 +193,15 @@ impl Parser {
                 Ok(Stmt::Assign { ident, ty, expr })
             }
 
-            other => Err(self.error_expected("a statement", other)),
+            _ => {
+                let expr = self.parse_expr()?;
+                if expr.kind.requires_semicolon_if_stmt() {
+                    self.expect(TokenKind::Semicolon)?;
+                } else {
+                    self.eat_kind(TokenKind::Semicolon);
+                }
+                Ok(Stmt::Drop(expr))
+            }
         }
     }
 

@@ -25,7 +25,7 @@ pub struct FuncDecl {
 #[derive(Node!)]
 pub enum Stmt {
     Assign { ident: Ident, ty: Type, expr: Expr },
-
+    Drop(Expr),
     Return(Expr),
 
     ParseError,
@@ -61,7 +61,22 @@ pub enum ExprKind {
         rhs: Box<Expr>,
     },
 
+    If {
+        cond: Box<Expr>,
+        then: Box<Expr>,
+        else_: Option<Box<Expr>>,
+    },
+
     Void,
 
     ParseError,
+}
+
+impl ExprKind {
+    pub fn requires_semicolon_if_stmt(&self) -> bool {
+        match self {
+            ExprKind::If { .. } => false,
+            _ => false,
+        }
+    }
 }

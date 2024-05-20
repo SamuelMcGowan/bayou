@@ -2,7 +2,7 @@ use std::ops::ControlFlow::{self, Break, Continue};
 
 use bayou_ir::ir::*;
 use bayou_ir::symbols::LocalId;
-use bayou_ir::{BinOp, UnOp};
+use bayou_ir::{BinOp, Type as IrType, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::Session;
 use cranelift::codegen::verify_function;
@@ -137,6 +137,11 @@ impl FuncCodegen<'_> {
     fn gen_stmt(&mut self, stmt: &Stmt) -> ControlFlow<UnreachableCode> {
         match stmt {
             Stmt::Assign { local, expr } => self.gen_assignment_stmt(*local, expr),
+            Stmt::Drop(expr) => {
+                // just ignore the generated value
+                let _ = self.gen_expr(expr)?;
+                Continue(())
+            }
             Stmt::Return(expr) => self.gen_return_stmt(expr),
         }
     }
@@ -176,6 +181,9 @@ impl FuncCodegen<'_> {
             ExprKind::Var(local) => Continue(self.gen_var_expr(*local)),
             ExprKind::UnOp { op, expr } => self.gen_unop_expr(*op, expr),
             ExprKind::BinOp { op, lhs, rhs } => self.gen_binop_expr(*op, lhs, rhs),
+            ExprKind::If { cond, then, else_ } => {
+                self.gen_if_expr(cond, then, else_.as_deref(), expr.ty.unwrap())
+            }
         }
     }
 
@@ -251,5 +259,75 @@ impl FuncCodegen<'_> {
         };
 
         Continue(RValue::Value(val, types::I64))
+    }
+
+    fn gen_if_expr(
+        &mut self,
+        cond: &Expr,
+        then: &Expr,
+        else_: Option<&Expr>,
+        ty: IrType,
+    ) -> ControlFlow<UnreachableCode, RValue> {
+        let cond = match self.gen_expr(cond)? {
+            RValue::Value(value, _) => value,
+            RValue::Void => unreachable!(),
+        };
+
+        let next_block = self.builder.create_block();
+        match ty.layout() {
+            TypeLayout::Integer(ty) => {
+                self.builder.append_block_param(next_block, ty);
+            }
+            TypeLayout::Void | TypeLayout::Never => {}
+        }
+
+        let then_block = self.builder.create_block();
+        let else_block = self.builder.create_block();
+
+        self.builder
+            .ins()
+            .brif(cond, then_block, &[], else_block, &[]);
+
+        // only the previous branch can jump to these blocks
+        self.builder.seal_block(then_block);
+        self.builder.seal_block(else_block);
+
+        // then branch
+        self.builder.switch_to_block(then_block);
+        match self.gen_expr(then)? {
+            RValue::Value(val, _) => {
+                self.builder.ins().jump(next_block, &[val]);
+            }
+            RValue::Void => {
+                self.builder.ins().jump(next_block, &[]);
+            }
+        }
+
+        // else branch
+        self.builder.switch_to_block(else_block);
+        if let Some(else_) = else_ {
+            match self.gen_expr(else_)? {
+                RValue::Value(val, _) => {
+                    self.builder.ins().jump(next_block, &[val]);
+                }
+                RValue::Void => {
+                    self.builder.ins().jump(next_block, &[]);
+                }
+            }
+        } else {
+            self.builder.ins().jump(next_block, &[]);
+        }
+
+        // next block
+        self.builder.seal_block(next_block);
+        self.builder.switch_to_block(next_block);
+
+        let if_value = match ty.layout() {
+            TypeLayout::Integer(ty) => RValue::Value(self.builder.block_params(next_block)[0], ty),
+            TypeLayout::Void => RValue::Void,
+            TypeLayout::Never => return Break(UnreachableCode),
+        };
+
+        Continue(if_value)
     }
 }

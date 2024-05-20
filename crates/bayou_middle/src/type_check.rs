@@ -92,6 +92,10 @@ impl<'a> TypeChecker<'a> {
                     }
                 }
 
+                Stmt::Drop(expr) => {
+                    self.check_expr(expr);
+                }
+
                 Stmt::Return(expr) => {
                     self.check_expr(expr);
                     if let Some(ty) = expr.ty {
@@ -106,7 +110,7 @@ impl<'a> TypeChecker<'a> {
         // If the function needs to return a value, ensure that the final statement returns.
         // Return *types* are already checked.
         if func_decl.ret_ty != Type::Void
-            && !matches!(func_decl.statements.last(), Some(stmt) if stmt_always_returns(stmt))
+            && !matches!(func_decl.statements.last(), Some(stmt) if stmt_is_diverging(stmt))
         {
             // FIXME: use return type span
             let name_span = self.module_cx.symbols.funcs[func_decl.id].ident.span;
@@ -165,6 +169,47 @@ impl<'a> TypeChecker<'a> {
 
                 Some(out)
             }
+
+            ExprKind::If { cond, then, else_ } => {
+                self.check_expr(cond);
+
+                if let Some(ty) = cond.ty {
+                    self.check_types_match(Type::Bool, None, ty, cond.span);
+                }
+
+                self.check_expr(then);
+
+                'check: {
+                    if let Some(else_) = else_ {
+                        self.check_expr(else_);
+
+                        if let (Some(then_ty), Some(else_ty)) = (then.ty, else_.ty) {
+                            match (then_ty, else_ty) {
+                                // If one side is never, assume the other side is the expected type
+                                (Type::Never, ty) | (ty, Type::Never) => {
+                                    break 'check Some(ty);
+                                }
+
+                                (a, b) if a == b => break 'check Some(a),
+
+                                (a, b) => {
+                                    self.errors.push(TypeError::TypeMismatch {
+                                        expected: a,
+                                        expected_span: Some(then.span),
+                                        found: b,
+                                        found_span: else_.span,
+                                    });
+
+                                    // TODO: do this in more places to avoid cascading type errors.
+                                    break 'check Some(a);
+                                }
+                            }
+                        }
+                    }
+
+                    None
+                }
+            }
         };
     }
 
@@ -193,9 +238,9 @@ impl<'a> TypeChecker<'a> {
     }
 }
 
-fn stmt_always_returns(stmt: &Stmt) -> bool {
+fn stmt_is_diverging(stmt: &Stmt) -> bool {
     match stmt {
         Stmt::Return(_) => true,
-        Stmt::Assign { .. } => false,
+        Stmt::Drop(expr) | Stmt::Assign { expr, .. } => expr.ty == Some(Type::Never),
     }
 }
