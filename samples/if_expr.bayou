@@ -3,5 +3,5 @@ func main() -> i64 {
         if false then 2
         else 7;
     
-    return 10 + a;
+    10 + a
 }
