@@ -25,7 +25,7 @@ pub struct FuncDecl {
 #[derive(Node!)]
 pub enum Stmt {
     Assign { ident: Ident, ty: Type, expr: Expr },
-    Drop(Expr),
+    Drop { expr: Expr, had_semicolon: bool },
     Return(Expr),
 
     ParseError,
@@ -81,7 +81,9 @@ pub enum ExprKind {
 }
 
 impl ExprKind {
-    pub fn requires_semicolon_in_stmt(&self) -> bool {
-        !matches!(self, ExprKind::Block(_) | ExprKind::If { .. })
+    /// Whether a semicolon is optional after an expression statement
+    /// of this kind.
+    pub fn stmt_semicolon_is_optional(&self) -> bool {
+        matches!(self, ExprKind::Block(_) | ExprKind::If { .. })
     }
 }

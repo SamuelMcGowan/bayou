@@ -82,7 +82,9 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
     ) -> BackendResult<()> {
         self.module.clear_context(&mut self.ctx);
 
-        match func_decl.ret_ty.layout() {
+        let func_symbol = &module_cx.symbols.funcs[func_decl.id];
+
+        match func_symbol.ret_ty.layout() {
             TypeLayout::Integer(ty) => {
                 self.ctx.func.signature.returns.push(AbiParam::new(ty));
             }
@@ -117,8 +119,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         verify_function(&self.ctx.func, self.module.isa()).expect("function verification failed");
 
         // declare and define in module (not final)
-        let ident = module_cx.symbols.funcs[func_decl.id].ident;
-        let name = self.session.interner.get(ident.ident_str);
+        let name = self.session.interner.get(func_symbol.ident.ident_str);
         let id = self
             .module
             .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;

@@ -26,9 +26,6 @@ pub enum Item {
 #[derive(Node!)]
 pub struct FuncDecl {
     pub id: FuncId,
-
-    // TODO: remove - already in symbol table
-    pub ret_ty: Type,
     pub block: Block,
 }
 

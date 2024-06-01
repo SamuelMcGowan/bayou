@@ -57,10 +57,12 @@ fn binop_is_r_assoc(_binop: &BinOp) -> bool {
 }
 
 impl Parser {
+    /// Always makes progress.
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
         self.parse_prec(Prec::Lowest)
     }
 
+    /// Always makes progress.
     fn parse_prec(&mut self, prec: Prec) -> ParseResult<Expr> {
         let mut expr = self.parse_lhs()?;
 
@@ -86,6 +88,7 @@ impl Parser {
         Ok(expr)
     }
 
+    /// Always makes progress.
     fn parse_lhs(&mut self) -> ParseResult<Expr> {
         match self.tokens.peek() {
             Some(Token {
@@ -190,8 +193,10 @@ impl Parser {
                 Ok(Expr::new(kind.node, kind.span))
             }
 
-            // TODO: should we consume the token here?
-            other => Err(self.error_expected("an expression", other)),
+            other => {
+                self.tokens.next();
+                Err(self.error_expected("an expression", other))
+            }
         }
     }
 

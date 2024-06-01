@@ -74,7 +74,7 @@ impl<'a> TypeChecker<'a> {
         let func_symbol = &self.module_cx.symbols.funcs[func_decl.id];
         if let Some(block_type) = block_type {
             self.check_types_match(
-                func_decl.ret_ty,
+                func_symbol.ret_ty,
                 Some(func_symbol.ident.span),
                 block_type,
                 block_type_span,
@@ -114,98 +114,69 @@ impl<'a> TypeChecker<'a> {
         }
     }
 
-    // TODO: split into separate functions.
     fn check_expr(&mut self, expr: &mut Expr, func_id: FuncId) {
         expr.ty = match &mut expr.kind {
             ExprKind::Constant(constant) => Some(constant.ty()),
 
             ExprKind::Var(local) => Some(self.module_cx.symbols.locals[*local].ty),
 
-            ExprKind::UnOp { op, expr } => {
-                self.check_expr(expr, func_id);
-
-                match op {
-                    UnOp::Negate => expr.ty.map(|ty| {
-                        self.check_types_match(Type::I64, None, ty, expr.span);
-                        Type::I64
-                    }),
-
-                    UnOp::BitwiseInvert => expr.ty.map(|ty| {
-                        self.check_types_match(Type::I64, None, ty, expr.span);
-                        Type::I64
-                    }),
-                }
-            }
-
-            ExprKind::BinOp { op, lhs, rhs } => {
-                self.check_expr(lhs, func_id);
-                self.check_expr(rhs, func_id);
-
-                let (exp_lhs, exp_rhs, out) = match op {
-                    BinOp::Add => (Type::I64, Type::I64, Type::I64),
-                    BinOp::Sub => (Type::I64, Type::I64, Type::I64),
-                    BinOp::Mul => (Type::I64, Type::I64, Type::I64),
-                    BinOp::Div => (Type::I64, Type::I64, Type::I64),
-                    BinOp::Mod => (Type::I64, Type::I64, Type::I64),
-                    BinOp::BitwiseAnd => (Type::I64, Type::I64, Type::I64),
-                    BinOp::BitwiseOr => (Type::I64, Type::I64, Type::I64),
-                    BinOp::BitwiseXor => (Type::I64, Type::I64, Type::I64),
-                };
-
-                if let Some(ty) = lhs.ty {
-                    self.check_types_match(exp_lhs, None, ty, lhs.span);
-                }
-
-                if let Some(ty) = rhs.ty {
-                    self.check_types_match(exp_rhs, None, ty, rhs.span);
-                }
-
-                Some(out)
-            }
+            ExprKind::UnOp { op, expr } => self.check_unop_expr(*op, expr, func_id),
+            ExprKind::BinOp { op, lhs, rhs } => self.check_binop_expr(*op, lhs, rhs, func_id),
 
             ExprKind::Block(block) => self.check_block_expr(block, func_id).0,
 
             ExprKind::If { cond, then, else_ } => {
-                self.check_expr(cond, func_id);
-
-                if let Some(ty) = cond.ty {
-                    self.check_types_match(Type::Bool, None, ty, cond.span);
-                }
-
-                self.check_expr(then, func_id);
-
-                'check: {
-                    if let Some(else_) = else_ {
-                        self.check_expr(else_, func_id);
-
-                        if let (Some(then_ty), Some(else_ty)) = (then.ty, else_.ty) {
-                            match (then_ty, else_ty) {
-                                // If one side is never, assume the other side is the expected type
-                                (Type::Never, ty) | (ty, Type::Never) => {
-                                    break 'check Some(ty);
-                                }
-
-                                (a, b) if a == b => break 'check Some(a),
-
-                                (a, b) => {
-                                    self.errors.push(TypeError::TypeMismatch {
-                                        expected: a,
-                                        expected_span: Some(then.span),
-                                        found: b,
-                                        found_span: else_.span,
-                                    });
-
-                                    // TODO: do this in more places to avoid cascading type errors.
-                                    break 'check Some(a);
-                                }
-                            }
-                        }
-                    }
-
-                    None
-                }
+                self.check_if_expr(cond, then, else_.as_deref_mut(), func_id)
             }
         };
+    }
+
+    fn check_unop_expr(&mut self, op: UnOp, expr: &mut Expr, func_id: FuncId) -> Option<Type> {
+        self.check_expr(expr, func_id);
+
+        match op {
+            UnOp::Negate => expr.ty.map(|ty| {
+                self.check_types_match(Type::I64, None, ty, expr.span);
+                Type::I64
+            }),
+
+            UnOp::BitwiseInvert => expr.ty.map(|ty| {
+                self.check_types_match(Type::I64, None, ty, expr.span);
+                Type::I64
+            }),
+        }
+    }
+
+    fn check_binop_expr(
+        &mut self,
+        op: BinOp,
+        lhs: &mut Expr,
+        rhs: &mut Expr,
+        func_id: FuncId,
+    ) -> Option<Type> {
+        self.check_expr(lhs, func_id);
+        self.check_expr(rhs, func_id);
+
+        let (exp_lhs, exp_rhs, out) = match op {
+            BinOp::Add => (Type::I64, Type::I64, Type::I64),
+            BinOp::Sub => (Type::I64, Type::I64, Type::I64),
+            BinOp::Mul => (Type::I64, Type::I64, Type::I64),
+            BinOp::Div => (Type::I64, Type::I64, Type::I64),
+            BinOp::Mod => (Type::I64, Type::I64, Type::I64),
+            BinOp::BitwiseAnd => (Type::I64, Type::I64, Type::I64),
+            BinOp::BitwiseOr => (Type::I64, Type::I64, Type::I64),
+            BinOp::BitwiseXor => (Type::I64, Type::I64, Type::I64),
+        };
+
+        if let Some(ty) = lhs.ty {
+            self.check_types_match(exp_lhs, None, ty, lhs.span);
+        }
+
+        if let Some(ty) = rhs.ty {
+            self.check_types_match(exp_rhs, None, ty, rhs.span);
+        }
+
+        Some(out)
     }
 
     fn check_block_expr(&mut self, block: &mut Block, func_id: FuncId) -> (Option<Type>, Span) {
@@ -223,6 +194,53 @@ impl<'a> TypeChecker<'a> {
             (Some(Type::Never), block.final_expr.span)
         } else {
             (block.final_expr.ty, block.final_expr.span)
+        }
+    }
+
+    fn check_if_expr(
+        &mut self,
+        cond: &mut Expr,
+        then: &mut Expr,
+        else_: Option<&mut Expr>,
+        func_id: FuncId,
+    ) -> Option<Type> {
+        self.check_expr(cond, func_id);
+
+        if let Some(ty) = cond.ty {
+            self.check_types_match(Type::Bool, None, ty, cond.span);
+        }
+
+        self.check_expr(then, func_id);
+
+        'check: {
+            if let Some(else_) = else_ {
+                self.check_expr(else_, func_id);
+
+                if let (Some(then_ty), Some(else_ty)) = (then.ty, else_.ty) {
+                    match (then_ty, else_ty) {
+                        // If one side is never, assume the other side is the expected type
+                        (Type::Never, ty) | (ty, Type::Never) => {
+                            break 'check Some(ty);
+                        }
+
+                        (a, b) if a == b => break 'check Some(a),
+
+                        (a, b) => {
+                            self.errors.push(TypeError::TypeMismatch {
+                                expected: a,
+                                expected_span: Some(then.span),
+                                found: b,
+                                found_span: else_.span,
+                            });
+
+                            // TODO: do this in more places to avoid cascading type errors.
+                            break 'check Some(a);
+                        }
+                    }
+                }
+            }
+
+            None
         }
     }
 

@@ -132,16 +132,11 @@ impl Lowerer {
 
         let block = self.lower_block_expr(func_decl.block)?;
 
-        // TODO: is this lookup necessary
         let id = self.symbols.global_lookup[&func_decl.ident.ident_str]
             .as_func()
             .unwrap();
 
-        Some(ir::FuncDecl {
-            id,
-            ret_ty: func_decl.ret_ty,
-            block,
-        })
+        Some(ir::FuncDecl { id, block })
     }
 
     fn lower_expr(&mut self, expr: ast::Expr) -> Option<ir::Expr> {
@@ -225,7 +220,10 @@ impl Lowerer {
                         }
                     }
 
-                    ast::Stmt::Drop(expr) => {
+                    ast::Stmt::Drop {
+                        expr,
+                        had_semicolon: _,
+                    } => {
                         if let Some(expr) = lowerer.lower_expr(expr) {
                             lowered_stmts.push(ir::Stmt::Drop(expr));
                         }

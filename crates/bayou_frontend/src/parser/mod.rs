@@ -134,18 +134,20 @@ impl Parser {
             .peek()
             .is_some_and(|t| t.kind != TokenKind::RBrace)
         {
-            // TODO: clean up - checking whether a semicolon is missing like this is a bit messy
-            let (statement, missing_semicolon) = self.parse_statement_or_recover();
+            let statement = self.parse_statement_or_recover();
 
-            if missing_semicolon {
-                final_expr = Some(match statement {
-                    Stmt::Drop(expr) => expr,
-                    _ => unreachable!("only drop expressions can be missing semicolons"),
-                });
+            match statement {
+                Stmt::Drop {
+                    expr,
+                    had_semicolon: false,
+                } if !expr.kind.stmt_semicolon_is_optional() => {
+                    final_expr = Some(expr);
+                    break;
+                }
 
-                break;
-            } else {
-                statements.push(statement);
+                _ => {
+                    statements.push(statement);
+                }
             }
         }
 
@@ -159,16 +161,16 @@ impl Parser {
         })
     }
 
-    fn parse_statement_or_recover(&mut self) -> (Stmt, bool) {
+    /// Always makes progress.
+    fn parse_statement_or_recover(&mut self) -> Stmt {
         self.parse_or_recover(Self::parse_statement, |parser, _| {
             parser.seek_and_consume(TokenKind::Semicolon);
-            (Stmt::ParseError, false)
+            Stmt::ParseError
         })
     }
 
-    // FIXME: this might not advance a token if an expression fails to parse.
-    // should always advance at least one token (unless at end)
-    fn parse_statement(&mut self) -> ParseResult<(Stmt, bool)> {
+    /// Always makes progress.
+    fn parse_statement(&mut self) -> ParseResult<Stmt> {
         match self.tokens.peek() {
             Some(token) if token.kind == TokenKind::Keyword(Keyword::Return) => {
                 self.tokens.next();
@@ -203,7 +205,7 @@ impl Parser {
                     }
                 };
 
-                Ok((Stmt::Return(expr), false))
+                Ok(Stmt::Return(expr))
             }
 
             Some(token) if token.kind == TokenKind::Keyword(Keyword::Let) => {
@@ -217,16 +219,18 @@ impl Parser {
                 self.expect(TokenKind::Assign)?;
                 let expr = self.parse_expr()?;
                 self.expect_or_recover(TokenKind::Semicolon);
-                Ok((Stmt::Assign { ident, ty, expr }, false))
+                Ok(Stmt::Assign { ident, ty, expr })
             }
 
             _ => {
                 let expr = self.parse_expr()?;
 
                 let had_semicolon = self.eat_kind(TokenKind::Semicolon);
-                let missing_semicolon = expr.kind.requires_semicolon_in_stmt() && !had_semicolon;
 
-                Ok((Stmt::Drop(expr), missing_semicolon))
+                Ok(Stmt::Drop {
+                    expr,
+                    had_semicolon,
+                })
             }
         }
     }
