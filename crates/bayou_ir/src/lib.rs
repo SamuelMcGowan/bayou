@@ -7,14 +7,14 @@ pub mod ir;
 pub mod symbols;
 
 use bayou_diagnostic::span::Span;
-use bayou_session::InternedStr;
+use bayou_session::{sourcemap::SourceSpan, InternedStr};
 
 derive_alias! {
-    #[derive(Node!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];
-    #[derive(NodeCopy!)] = #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)];
+    #[derive(NodeTraits!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];
+    #[derive(NodeCopyTraits!)] = #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)];
 }
 
-#[derive(NodeCopy!)]
+#[derive(NodeCopyTraits!)]
 pub enum BinOp {
     Add,
     Sub,
@@ -34,13 +34,13 @@ pub enum BinOp {
     // LtEq,
 }
 
-#[derive(NodeCopy!)]
+#[derive(NodeCopyTraits!)]
 pub enum UnOp {
     Negate,
     BitwiseInvert,
 }
 
-#[derive(NodeCopy!)]
+#[derive(NodeCopyTraits!)]
 pub enum Type {
     I64,
     Bool,
@@ -48,7 +48,7 @@ pub enum Type {
     Never,
 }
 
-#[derive(NodeCopy!)]
+#[derive(NodeCopyTraits!)]
 pub struct Spanned<T> {
     pub node: T,
     pub span: Span,
@@ -67,4 +67,9 @@ impl<T, E> Spanned<Result<T, E>> {
             span: self.span,
         })
     }
+}
+
+pub struct Node<T> {
+    pub node: T,
+    pub span: SourceSpan,
 }

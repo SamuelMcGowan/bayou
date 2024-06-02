@@ -1,4 +1,4 @@
-use bayou_diagnostic::sources::Cached;
+use bayou_diagnostic::{sources::Cached, span::Span};
 use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
 declare_key_type! { pub struct SourceId; }
@@ -50,4 +50,10 @@ impl bayou_diagnostic::sources::Source for Source {
     fn source_str(&self) -> &str {
         &self.source
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
+pub struct SourceSpan {
+    pub span: Span,
+    pub source: SourceId,
 }

@@ -123,6 +123,7 @@ pub trait Key: Copy {
     fn as_usize(&self) -> usize;
 }
 
+// TODO: use `NonZero...`` integers and allow using u32s
 #[macro_export]
 macro_rules! declare_key_type {
     ($v:vis struct $i:ident;) => {

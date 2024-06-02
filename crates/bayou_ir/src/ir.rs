@@ -1,11 +1,11 @@
 use bayou_diagnostic::span::Span;
 use bayou_session::sourcemap::SourceId;
 
-use super::{BinOp, Node, NodeCopy, UnOp};
+use super::{BinOp, NodeCopyTraits, NodeTraits, UnOp};
 use crate::symbols::{FuncId, LocalId, Symbols};
 use crate::Type;
 
-#[derive(Node!)]
+#[derive(NodeTraits!)]
 pub struct Module {
     pub items: Vec<Item>,
 }
@@ -18,38 +18,38 @@ pub struct ModuleContext {
     pub symbols: Symbols,
 }
 
-#[derive(Node!)]
+#[derive(NodeTraits!)]
 pub enum Item {
     FuncDecl(FuncDecl),
 }
 
-#[derive(Node!)]
+#[derive(NodeTraits!)]
 pub struct FuncDecl {
     pub id: FuncId,
     pub block: Block,
 }
 
-#[derive(Node!)]
+#[derive(NodeTraits!)]
 pub enum Stmt {
     Assign { local: LocalId, expr: Expr },
     Drop(Expr),
     Return(Expr),
 }
 
-#[derive(Node!)]
+#[derive(NodeTraits!)]
 pub struct Block {
     pub statements: Vec<Stmt>,
     pub final_expr: Expr,
 }
 
-#[derive(Node!)]
+#[derive(NodeTraits!)]
 pub struct Expr {
     pub kind: ExprKind,
     pub span: Span,
     pub ty: Option<Type>,
 }
 
-#[derive(Node!)]
+#[derive(NodeTraits!)]
 pub enum ExprKind {
     Constant(Constant),
     Var(LocalId),
@@ -70,7 +70,7 @@ pub enum ExprKind {
     },
 }
 
-#[derive(NodeCopy!)]
+#[derive(NodeCopyTraits!)]
 pub enum Constant {
     I64(i64),
     Bool(bool),
