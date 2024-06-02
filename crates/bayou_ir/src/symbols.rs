@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use bayou_diagnostic::span::Span;
-use bayou_session::Ident;
 use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
-use crate::{InternedStr, Type};
+use crate::{InternedStr, Spanned, Type};
 
 #[derive(Default, Debug, Clone)]
 pub struct Symbols {
@@ -19,7 +18,7 @@ impl Symbols {
         self.global_lookup.get(&name).copied()
     }
 
-    pub fn get_global_ident(&self, id: GlobalId) -> Option<Ident> {
+    pub fn get_global_ident(&self, id: GlobalId) -> Option<Spanned<InternedStr>> {
         match id {
             GlobalId::Func(id) => self.funcs.get(id).map(|s| s.ident),
         }
@@ -31,7 +30,7 @@ declare_key_type! { pub struct FuncId; }
 
 #[derive(Debug, Clone)]
 pub struct LocalSymbol {
-    pub ident: Ident,
+    pub ident: Spanned<InternedStr>,
 
     pub ty: Type,
     pub ty_span: Span,
@@ -52,6 +51,6 @@ impl GlobalId {
 
 #[derive(Debug, Clone)]
 pub struct FunctionSymbol {
-    pub ident: Ident,
+    pub ident: Spanned<InternedStr>,
     pub ret_ty: Type,
 }

@@ -8,7 +8,7 @@ info: "  func  main  (  )  ->  i64  {  return  0  ;  }"
       start: 2
       end: 6
   - kind:
-      Identifier: 1
+      Spanned<InternedStr>ifier: 1
     span:
       start: 8
       end: 12

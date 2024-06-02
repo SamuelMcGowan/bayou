@@ -1,20 +1,23 @@
-use bayou_ir::symbols::*;
 use bayou_ir::{ir, Type};
+use bayou_ir::{symbols::*, Spanned};
 use bayou_session::diagnostics::prelude::*;
-use bayou_session::{Ident, InternedStr};
+use bayou_session::InternedStr;
 
 use crate::ast;
 
 pub enum NameError {
-    LocalUndefined(Ident),
-    DuplicateGlobal { first: Ident, second: Ident },
+    LocalUndefined(Spanned<InternedStr>),
+    DuplicateGlobal {
+        first: Spanned<InternedStr>,
+        second: Spanned<InternedStr>,
+    },
 }
 
 impl IntoDiagnostic for NameError {
     fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic {
         match self {
             Self::DuplicateGlobal { first, second } => {
-                let ident_str = interner.get(first.ident_str);
+                let ident_str = interner.get(first.node);
                 Diagnostic::error()
                     .with_message(format!("duplicate global `{ident_str}`"))
                     .with_snippet(Snippet::secondary(
@@ -30,7 +33,7 @@ impl IntoDiagnostic for NameError {
             }
 
             Self::LocalUndefined(ident) => {
-                let ident_str = interner.get(ident.ident_str);
+                let ident_str = interner.get(ident.node);
                 Diagnostic::error()
                     .with_message(format!("undefined variable `{ident_str}`"))
                     .with_snippet(Snippet::primary(
@@ -97,7 +100,7 @@ impl Lowerer {
         if let Some(first_symbol) = self
             .symbols
             .global_lookup
-            .insert(ident.ident_str, GlobalId::Func(func_id))
+            .insert(ident.node, GlobalId::Func(func_id))
         {
             self.errors.push(NameError::DuplicateGlobal {
                 first: self.symbols.get_global_ident(first_symbol).unwrap(),
@@ -132,7 +135,7 @@ impl Lowerer {
 
         let block = self.lower_block_expr(func_decl.block)?;
 
-        let id = self.symbols.global_lookup[&func_decl.ident.ident_str]
+        let id = self.symbols.global_lookup[&func_decl.ident.node]
             .as_func()
             .unwrap();
 
@@ -249,7 +252,7 @@ impl Lowerer {
     }
 
     #[must_use]
-    fn declare_local(&mut self, ident: Ident, ty: Type) -> LocalId {
+    fn declare_local(&mut self, ident: Spanned<InternedStr>, ty: Type) -> LocalId {
         let id = self.symbols.locals.insert(LocalSymbol {
             ident,
             ty,
@@ -258,19 +261,19 @@ impl Lowerer {
         });
 
         self.local_stack.push(LocalEntry {
-            ident_str: ident.ident_str,
+            ident_str: ident.node,
             id,
         });
 
         id
     }
 
-    fn lookup_local(&mut self, ident: Ident) -> Option<LocalId> {
+    fn lookup_local(&mut self, ident: Spanned<InternedStr>) -> Option<LocalId> {
         let id = self
             .local_stack
             .iter()
             .rev()
-            .find_map(|entry| (entry.ident_str == ident.ident_str).then_some(entry.id));
+            .find_map(|entry| (entry.ident_str == ident.node).then_some(entry.id));
 
         if id.is_none() {
             self.errors.push(NameError::LocalUndefined(ident));

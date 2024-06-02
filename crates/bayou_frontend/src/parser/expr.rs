@@ -1,5 +1,5 @@
+use bayou_ir::Spanned;
 use bayou_ir::{BinOp, UnOp};
-use bayou_session::Ident;
 use bayou_utils::peek::Peek;
 
 use super::{ParseResult, Parser};
@@ -108,12 +108,12 @@ impl Parser {
             }
 
             Some(Token {
-                kind: TokenKind::Identifier(ident_str),
+                kind: TokenKind::Identifier(ident),
                 span,
             }) => {
                 self.tokens.next();
                 // TODO: rely on expression span instead of storing in ident??
-                Ok(Expr::new(ExprKind::Var(Ident { ident_str, span }), span))
+                Ok(Expr::new(ExprKind::Var(Spanned::new(ident, span)), span))
             }
 
             Some(t) if t.kind == TokenKind::Keyword(Keyword::Void) => {

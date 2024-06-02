@@ -7,7 +7,7 @@ pub mod ir;
 pub mod symbols;
 
 use bayou_diagnostic::span::Span;
-use bayou_session::{sourcemap::SourceSpan, InternedStr};
+use bayou_session::InternedStr;
 
 derive_alias! {
     #[derive(NodeTraits!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];
@@ -67,9 +67,4 @@ impl<T, E> Spanned<Result<T, E>> {
             span: self.span,
         })
     }
-}
-
-pub struct Node<T> {
-    pub node: T,
-    pub span: SourceSpan,
 }

@@ -10,12 +10,6 @@ use target_lexicon::Triple;
 pub type InternedStr = bayou_interner::Interned;
 pub type Interner = bayou_interner::Interner;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
-pub struct Ident {
-    pub ident_str: InternedStr,
-    pub span: Span,
-}
-
 pub struct ErrorsEmitted;
 
 /// Session shared between multiple package compilations.

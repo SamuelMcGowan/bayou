@@ -6,7 +6,6 @@ mod expr;
 use bayou_diagnostic::span::Span;
 use bayou_ir::{Spanned, Type};
 use bayou_session::diagnostics::prelude::*;
-use bayou_session::Ident;
 use bayou_utils::peek::Peek;
 
 use crate::ast::*;
@@ -235,12 +234,12 @@ impl Parser {
         }
     }
 
-    fn parse_ident(&mut self) -> ParseResult<Ident> {
+    fn parse_ident(&mut self) -> ParseResult<Spanned<InternedStr>> {
         match self.tokens.next() {
             Some(Token {
-                kind: TokenKind::Identifier(ident_str),
+                kind: TokenKind::Identifier(ident),
                 span,
-            }) => Ok(Ident { ident_str, span }),
+            }) => Ok(Spanned::new(ident, span)),
 
             other => Err(self.error_expected("an identifier", other)),
         }

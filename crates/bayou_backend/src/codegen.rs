@@ -119,7 +119,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         verify_function(&self.ctx.func, self.module.isa()).expect("function verification failed");
 
         // declare and define in module (not final)
-        let name = self.session.interner.get(func_symbol.ident.ident_str);
+        let name = self.session.interner.get(func_symbol.ident.node);
         let id = self
             .module
             .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;
