@@ -8,11 +8,12 @@ use arena::InternerArena;
 use hashbrown::hash_table::Entry;
 use hashbrown::HashTable;
 
+/// Interned string.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Interned(NonZeroU32);
+pub struct Istr(NonZeroU32);
 
-impl Interned {
+impl Istr {
     #[inline]
     fn from_index(index: usize) -> Option<Self> {
         Some(Self(NonZeroU32::new(
@@ -28,7 +29,7 @@ impl Interned {
 
 #[derive(Clone, Copy)]
 struct Metadata {
-    interned: Interned,
+    interned: Istr,
     hash: u64,
 }
 
@@ -51,11 +52,11 @@ impl Interner {
     }
 
     #[inline]
-    pub fn intern(&self, key: &str) -> Interned {
+    pub fn intern(&self, key: &str) -> Istr {
         self.try_intern(key).expect("Too many interned strings")
     }
 
-    pub fn try_intern(&self, key: &str) -> Option<Interned> {
+    pub fn try_intern(&self, key: &str) -> Option<Istr> {
         let mut lookup = self.lookup.borrow_mut();
 
         let hash = lookup.random_state.hash_one(key);
@@ -70,7 +71,7 @@ impl Interner {
             Entry::Occupied(entry) => entry.get().interned,
             Entry::Vacant(entry) => {
                 let index = self.arena.push_str(key);
-                let interned = Interned::from_index(index)?;
+                let interned = Istr::from_index(index)?;
 
                 entry.insert(Metadata { interned, hash });
 
@@ -82,7 +83,7 @@ impl Interner {
     }
 
     /// Get an interned string if it is present.
-    pub fn get_str(&self, key: &str) -> Option<Interned> {
+    pub fn get_str(&self, key: &str) -> Option<Istr> {
         let lookup = self.lookup.borrow();
 
         let hash = lookup.random_state.hash_one(key);
@@ -96,12 +97,12 @@ impl Interner {
     }
 
     #[inline]
-    pub fn get(&self, interned: Interned) -> &str {
+    pub fn get(&self, interned: Istr) -> &str {
         self.try_get(interned).expect("String not in interner")
     }
 
     #[inline]
-    pub fn try_get(&self, interned: Interned) -> Option<&str> {
+    pub fn try_get(&self, interned: Istr) -> Option<&str> {
         self.arena.get(interned.to_index())
     }
 }

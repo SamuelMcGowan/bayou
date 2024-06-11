@@ -1,5 +1,5 @@
 use ast::Module;
-use bayou_session::Interner;
+use bayou_interner::Interner;
 use lexer::Lexer;
 
 #[macro_use]

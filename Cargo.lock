@@ -129,6 +129,7 @@ name = "bayou_frontend"
 version = "0.1.0"
 dependencies = [
  "bayou_diagnostic",
+ "bayou_interner",
  "bayou_ir",
  "bayou_session",
  "bayou_utils",
@@ -153,6 +154,7 @@ name = "bayou_ir"
 version = "0.1.0"
 dependencies = [
  "bayou_diagnostic",
+ "bayou_interner",
  "bayou_session",
  "bayou_utils",
  "macro_rules_attribute",
@@ -164,6 +166,7 @@ name = "bayou_middle"
 version = "0.1.0"
 dependencies = [
  "bayou_frontend",
+ "bayou_interner",
  "bayou_ir",
  "bayou_session",
  "bayou_utils",

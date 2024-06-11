@@ -1,3 +1,4 @@
+use bayou_interner::Interner;
 use bayou_ir::ir::*;
 use bayou_ir::symbols::FuncId;
 use bayou_ir::{BinOp, Type, UnOp};

@@ -1,14 +1,11 @@
 pub mod diagnostics;
 pub mod sourcemap;
 
-pub use bayou_interner;
+use bayou_interner::Interner;
 use diagnostics::prelude::*;
 use diagnostics::DiagnosticEmitter;
 use sourcemap::SourceMap;
 use target_lexicon::Triple;
-
-pub type InternedStr = bayou_interner::Interned;
-pub type Interner = bayou_interner::Interner;
 
 pub struct ErrorsEmitted;
 

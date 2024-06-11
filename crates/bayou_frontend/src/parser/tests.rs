@@ -1,4 +1,4 @@
-use bayou_session::Interner;
+use bayou_interner::Interner;
 use bayou_utils::assert_yaml_snapshot_with_source;
 
 use super::{ParseError, Parser};

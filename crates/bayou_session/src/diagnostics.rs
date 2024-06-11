@@ -9,11 +9,10 @@ pub mod prelude {
 
     pub use super::{Diagnostic, IntoDiagnostic};
     pub use crate::sourcemap::SourceId;
-    pub use crate::{InternedStr, Interner};
 }
 
 use crate::sourcemap::SourceId;
-use crate::Interner;
+use bayou_interner::Interner;
 
 pub type Diagnostic = bayou_diagnostic::Diagnostic<SourceMap>;
 

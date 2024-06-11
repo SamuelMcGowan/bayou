@@ -7,7 +7,6 @@ pub mod ir;
 pub mod symbols;
 
 use bayou_diagnostic::span::Span;
-use bayou_session::InternedStr;
 
 derive_alias! {
     #[derive(NodeTraits!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];

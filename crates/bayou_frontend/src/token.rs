@@ -1,5 +1,5 @@
 use bayou_diagnostic::span::Span;
-use bayou_session::InternedStr;
+use bayou_interner::Istr;
 
 use crate::NodeCopy;
 
@@ -12,7 +12,7 @@ pub struct Token {
 #[derive(NodeCopy!)]
 pub enum TokenKind {
     Keyword(Keyword),
-    Identifier(InternedStr),
+    Identifier(Istr),
     Integer(i64),
     Bool(bool),
 

@@ -3,6 +3,7 @@ mod tests;
 
 use std::str::Chars;
 
+use bayou_interner::Interner;
 use bayou_session::diagnostics::prelude::*;
 use bayou_utils::peek::Peek;
 

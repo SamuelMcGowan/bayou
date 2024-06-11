@@ -1,3 +1,4 @@
+use bayou_interner::Interner;
 use bayou_ir::ir::ModuleContext;
 use bayou_ir::symbols::GlobalId;
 use bayou_ir::Type;

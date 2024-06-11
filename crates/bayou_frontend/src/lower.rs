@@ -1,15 +1,15 @@
 use bayou_ir::{ir, Type};
 use bayou_ir::{symbols::*, Spanned};
 use bayou_session::diagnostics::prelude::*;
-use bayou_session::InternedStr;
+use bayou_interner::{Interner, Istr};
 
 use crate::ast;
 
 pub enum NameError {
-    LocalUndefined(Spanned<InternedStr>),
+    LocalUndefined(Spanned<Istr>),
     DuplicateGlobal {
-        first: Spanned<InternedStr>,
-        second: Spanned<InternedStr>,
+        first: Spanned<Istr>,
+        second: Spanned<Istr>,
     },
 }
 
@@ -47,7 +47,7 @@ impl IntoDiagnostic for NameError {
 }
 
 struct LocalEntry {
-    ident_str: InternedStr,
+    ident_str: Istr,
     id: LocalId,
 }
 
@@ -252,7 +252,7 @@ impl Lowerer {
     }
 
     #[must_use]
-    fn declare_local(&mut self, ident: Spanned<InternedStr>, ty: Type) -> LocalId {
+    fn declare_local(&mut self, ident: Spanned<Istr>, ty: Type) -> LocalId {
         let id = self.symbols.locals.insert(LocalSymbol {
             ident,
             ty,
@@ -268,7 +268,7 @@ impl Lowerer {
         id
     }
 
-    fn lookup_local(&mut self, ident: Spanned<InternedStr>) -> Option<LocalId> {
+    fn lookup_local(&mut self, ident: Spanned<Istr>) -> Option<LocalId> {
         let id = self
             .local_stack
             .iter()
