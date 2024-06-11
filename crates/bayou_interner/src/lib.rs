@@ -1,5 +1,6 @@
 mod arena;
 
+use std::cell::RefCell;
 use std::num::NonZeroU32;
 
 use ahash::RandomState;
@@ -32,10 +33,14 @@ struct Metadata {
 }
 
 #[derive(Default)]
-pub struct Interner {
+struct Lookup {
     random_state: RandomState,
-    lookup: HashTable<Metadata>,
+    table: HashTable<Metadata>,
+}
 
+#[derive(Default)]
+pub struct Interner {
+    lookup: RefCell<Lookup>,
     arena: InternerArena,
 }
 
@@ -46,14 +51,16 @@ impl Interner {
     }
 
     #[inline]
-    pub fn intern(&mut self, key: &str) -> Interned {
+    pub fn intern(&self, key: &str) -> Interned {
         self.try_intern(key).expect("Too many interned strings")
     }
 
-    pub fn try_intern(&mut self, key: &str) -> Option<Interned> {
-        let hash = self.random_state.hash_one(key);
+    pub fn try_intern(&self, key: &str) -> Option<Interned> {
+        let mut lookup = self.lookup.borrow_mut();
 
-        let entry = self.lookup.entry(
+        let hash = lookup.random_state.hash_one(key);
+
+        let entry = lookup.table.entry(
             hash,
             |metadata| self.arena.get(metadata.interned.to_index()) == Some(key),
             |metadata| metadata.hash,
@@ -76,9 +83,12 @@ impl Interner {
 
     /// Get an interned string if it is present.
     pub fn get_str(&self, key: &str) -> Option<Interned> {
-        let hash = self.random_state.hash_one(key);
+        let lookup = self.lookup.borrow();
 
-        self.lookup
+        let hash = lookup.random_state.hash_one(key);
+
+        lookup
+            .table
             .find(hash, |metadata| {
                 self.arena.get(metadata.interned.to_index()) == Some(key)
             })
@@ -98,7 +108,7 @@ impl Interner {
 
 #[test]
 fn test_interner() {
-    let mut interner = Interner::new();
+    let interner = Interner::new();
 
     for n in 0..100 {
         let s = n.to_string();
