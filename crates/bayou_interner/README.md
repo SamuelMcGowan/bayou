@@ -1,8 +1,8 @@
 A string interner.
 
 A string interner is a data structure commonly used in compilers and other contexts that need to
-cheaply store and compare many often identical strings. "Interning" a string returns an ID (or in
-many implementations, a pointer) that is cheap to copy and to perform equality checks on. This is
+cheaply store and compare many often identical strings. "Interning" a string returns a pointer (or in
+this implementation, an ID) that is cheap to copy and to perform string equality checks on. This is
 achieved by deduplicating strings using an internal hash table.
 
 This string interner also stores all strings in a single bump-allocated buffer, courtesy of [`bumpalo`],
