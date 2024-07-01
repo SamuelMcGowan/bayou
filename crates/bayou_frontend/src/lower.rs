@@ -1,7 +1,7 @@
+use bayou_interner::{Interner, Istr};
 use bayou_ir::{ir, Type};
 use bayou_ir::{symbols::*, Spanned};
 use bayou_session::diagnostics::prelude::*;
-use bayou_interner::{Interner, Istr};
 
 use crate::ast;
 
@@ -17,7 +17,7 @@ impl IntoDiagnostic for NameError {
     fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic {
         match self {
             Self::DuplicateGlobal { first, second } => {
-                let ident_str = interner.get(first.node);
+                let ident_str = &interner[first.node];
                 Diagnostic::error()
                     .with_message(format!("duplicate global `{ident_str}`"))
                     .with_snippet(Snippet::secondary(
@@ -33,7 +33,7 @@ impl IntoDiagnostic for NameError {
             }
 
             Self::LocalUndefined(ident) => {
-                let ident_str = interner.get(ident.node);
+                let ident_str = &interner[ident.node];
                 Diagnostic::error()
                     .with_message(format!("undefined variable `{ident_str}`"))
                     .with_snippet(Snippet::primary(

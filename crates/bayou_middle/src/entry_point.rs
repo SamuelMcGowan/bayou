@@ -26,7 +26,9 @@ pub fn check_entrypoint(
     root_module_cx: &ModuleContext,
     interner: &Interner,
 ) -> Result<(), EntrypointError> {
-    let main_ident_str = interner.get_str("main").ok_or(EntrypointError::Missing)?;
+    let main_ident_str = interner
+        .get_interned("main")
+        .ok_or(EntrypointError::Missing)?;
 
     let main_func_id = root_module_cx
         .symbols
