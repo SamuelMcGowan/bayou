@@ -10,7 +10,7 @@
 //!
 //! I decided to represent interned strings with a 32-bit ID instead of a reference to avoid introducing lifetimes.
 //! This does mean that accessing the underlying string requires calling a method on the interner, but this is a
-//! simple array-lookup.
+//! single array lookup.
 //!
 //! # Example
 //! ```rust
@@ -117,7 +117,7 @@ impl Interner {
     /// ```
     ///
     /// # Panics
-    /// Returns `None` if there are no more available IDs. An interner can store up
+    /// Panics if there are no more available IDs. An interner can store up
     /// to `u32::MAX - 1` strings before panicking.
     #[inline]
     pub fn intern(&self, key: &str) -> Istr {

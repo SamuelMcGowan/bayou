@@ -5,12 +5,12 @@ cheaply store and compare many often identical strings. "Interning" a string ret
 this implementation, an ID) that is cheap to copy and to perform string equality checks on. This is
 achieved by deduplicating strings using an internal hash table.
 
-This string interner also stores all strings in a single bump-allocated buffer, courtesy of [`bumpalo`],
-avoiding excessive allocation.
+This string interner also stores all strings in a single bump-allocated buffer, courtesy of
+[bumpalo](https://crates.io/crates/bumpalo), avoiding excessive allocation.
 
 I decided to represent interned strings with a 32-bit ID instead of a reference to avoid introducing lifetimes.
 This does mean that accessing the underlying string requires calling a method on the interner, but this is a
-simple array-lookup.
+single array lookup.
 
 # Example
 ```rust
