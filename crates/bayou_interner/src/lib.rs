@@ -24,7 +24,7 @@
 //! let world = interner.intern("world");
 //!
 //! // Interned strings can be compared cheaply.
-//! assert_ne!(hello, hello2);
+//! assert_eq!(hello, hello2);
 //! assert_ne!(hello, world);
 //!
 //! // Getting the associated string for an interned string.
