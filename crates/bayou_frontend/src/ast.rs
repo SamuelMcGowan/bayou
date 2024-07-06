@@ -1,6 +1,6 @@
-use bayou_diagnostic::span::Span;
-use bayou_ir::{BinOp, Spanned, Type, UnOp};
 use bayou_interner::Istr;
+use bayou_ir::{BinOp, Spanned, Type, UnOp};
+use bayou_session::diagnostics::span::Span;
 
 use crate::Node;
 

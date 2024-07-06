@@ -2,8 +2,8 @@ pub mod diagnostics;
 pub mod sourcemap;
 
 use bayou_interner::Interner;
-use diagnostics::prelude::*;
 use diagnostics::DiagnosticEmitter;
+use diagnostics::*;
 use sourcemap::SourceMap;
 use target_lexicon::Triple;
 

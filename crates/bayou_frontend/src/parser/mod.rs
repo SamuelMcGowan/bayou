@@ -3,10 +3,10 @@ mod tests;
 
 mod expr;
 
-use bayou_diagnostic::span::Span;
 use bayou_interner::{Interner, Istr};
 use bayou_ir::{Spanned, Type};
 use bayou_session::diagnostics::prelude::*;
+use bayou_session::diagnostics::span::Span;
 use bayou_utils::peek::Peek;
 
 use crate::ast::*;

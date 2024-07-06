@@ -1,5 +1,5 @@
-use bayou_diagnostic::span::Span;
 use bayou_interner::Interner;
+use bayou_session::diagnostics::span::Span;
 use bayou_session::sourcemap::SourceId;
 
 use super::{BinOp, NodeCopyTraits, NodeTraits, UnOp};

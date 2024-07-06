@@ -1,5 +1,5 @@
-use bayou_diagnostic::span::Span;
 use bayou_interner::Istr;
+use bayou_session::diagnostics::span::Span;
 
 use crate::NodeCopy;
 

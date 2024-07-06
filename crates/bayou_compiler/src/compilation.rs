@@ -1,8 +1,8 @@
 use bayou_backend::object::write::Object;
-use bayou_diagnostic::sources::{Source as _, SourceMap as _};
 use bayou_interner::Interner;
 use bayou_ir::{ir::Package, symbols::Symbols};
 use bayou_middle::{entry_point::check_entrypoint, type_check::TypeChecker};
+use bayou_session::diagnostics::sources::{Source as _, SourceMap as _};
 use bayou_session::{diagnostics::DiagnosticEmitter, sourcemap::SourceId, Session};
 
 use crate::{CompilerError, CompilerResult};

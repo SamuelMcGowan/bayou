@@ -6,7 +6,7 @@ extern crate macro_rules_attribute;
 pub mod ir;
 pub mod symbols;
 
-use bayou_diagnostic::span::Span;
+use bayou_session::diagnostics::span::Span;
 
 derive_alias! {
     #[derive(NodeTraits!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];

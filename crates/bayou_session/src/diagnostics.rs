@@ -1,14 +1,13 @@
-use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
-use bayou_diagnostic::Config;
-
 use crate::sourcemap::SourceMap;
+use bayou_diagnostic::termcolor::{ColorChoice, StandardStream};
+
+pub use bayou_diagnostic::*;
 
 pub mod prelude {
-    pub use bayou_diagnostic::span::Span;
-    pub use bayou_diagnostic::{Severity, Snippet, SnippetKind};
-
     pub use super::{Diagnostic, IntoDiagnostic};
     pub use crate::sourcemap::SourceId;
+    pub use bayou_diagnostic::span::Span;
+    pub use bayou_diagnostic::{Severity, Snippet, SnippetKind};
 }
 
 use bayou_interner::Interner;
