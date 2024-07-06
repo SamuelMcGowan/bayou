@@ -1,9 +1,9 @@
-use bayou_ir::ir::{Module, ModuleContext, Package};
+use bayou_ir::ir::Package;
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::Session;
 use codegen::Codegen;
 use cranelift_object::object::write::Object;
-use target_lexicon::{Architecture, Triple};
+use target_lexicon::Architecture;
 
 mod codegen;
 mod layout;
@@ -28,33 +28,12 @@ pub enum BackendError {
 
 pub type BackendResult<T> = Result<T, BackendError>;
 
-pub fn run_codegen<
-    'sess,
-    'm,
-    D: DiagnosticEmitter,
-    M: IntoIterator<Item = (&'m Module, &'m ModuleContext)>,
->(
-    session: &'sess mut Session<D>,
-    package_name: &str,
-    target: Triple,
-
-    modules: M,
-) -> BackendResult<Object<'static>> {
-    let mut codegen = Codegen::new(session, target, package_name)?;
-
-    for (module, module_cx) in modules {
-        codegen.compile_module(module, module_cx)?;
-    }
-
-    codegen.finish().map(|obj| obj.object)
-}
-
-pub fn run_codegen_new<D: DiagnosticEmitter>(
+pub fn run_codegen<D: DiagnosticEmitter>(
     session: &mut Session<D>,
     package: &Package,
 ) -> BackendResult<Object<'static>> {
     // TODO: refactor codegen to fit new model
-    let mut codegen = Codegen::new(session, session.target.clone(), &package.name)?;
+    let mut codegen = Codegen::new(session.target.clone(), &package.name)?;
     codegen.compile_package(package)?;
     codegen.finish().map(|obj| obj.object)
 }

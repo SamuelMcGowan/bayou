@@ -3,11 +3,10 @@ name = "bayou_backend"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 bayou_ir = { path = "../bayou_ir" }
 bayou_session = { path = "../bayou_session" }
+bayou_interner = { path = "../bayou_interner" }
 
 cranelift = "0.104.1"
 cranelift-module = "0.104.1"

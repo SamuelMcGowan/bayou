@@ -1,10 +1,9 @@
 use std::ops::ControlFlow::{self, Break, Continue};
 
+use bayou_interner::Interner;
 use bayou_ir::ir::{Block as IrBlock, *};
 use bayou_ir::symbols::{LocalId, Symbols};
 use bayou_ir::{BinOp, Type as IrType, UnOp};
-use bayou_session::diagnostics::DiagnosticEmitter;
-use bayou_session::Session;
 use cranelift::codegen::verify_function;
 use cranelift::prelude::*;
 use cranelift_module::{Linkage, Module as _};
@@ -16,20 +15,14 @@ use crate::{BackendError, BackendResult};
 
 struct UnreachableCode;
 
-pub struct Codegen<'sess, D: DiagnosticEmitter> {
-    session: &'sess mut Session<D>,
-
+pub struct Codegen {
     ctx: codegen::Context,
     builder_ctx: FunctionBuilderContext,
     module: ObjectModule,
 }
 
-impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
-    pub fn new(
-        session: &'sess mut Session<D>,
-        target: Triple,
-        package_name: &str,
-    ) -> BackendResult<Self> {
+impl Codegen {
+    pub fn new(target: Triple, package_name: &str) -> BackendResult<Self> {
         let mut flag_builder = settings::builder();
         flag_builder.set("is_pic", "true").unwrap();
         flag_builder.set("opt_level", "speed").unwrap();
@@ -49,33 +42,17 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         let module = ObjectModule::new(module_builder);
 
         Ok(Self {
-            session,
-
             ctx: module.make_context(),
             builder_ctx: FunctionBuilderContext::new(),
             module,
         })
     }
 
-    pub fn compile_module(
-        &mut self,
-        module: &Module,
-        module_cx: &ModuleContext,
-    ) -> BackendResult<()> {
-        for item in &module.items {
-            match item {
-                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, &module_cx.symbols)?,
-            }
-        }
-
-        Ok(())
-    }
-
     pub fn compile_package(&mut self, package: &Package) -> BackendResult<()> {
         for item in &package.items {
             match item {
                 Item::FuncDecl(func_decl) => {
-                    self.gen_func_decl(func_decl, &package.symbols)?;
+                    self.gen_func_decl(func_decl, &package.symbols, &package.interner)?;
                 }
             }
         }
@@ -87,7 +64,12 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         Ok(self.module.finish())
     }
 
-    fn gen_func_decl(&mut self, func_decl: &FuncDecl, symbols: &Symbols) -> BackendResult<()> {
+    fn gen_func_decl(
+        &mut self,
+        func_decl: &FuncDecl,
+        symbols: &Symbols,
+        interner: &Interner,
+    ) -> BackendResult<()> {
         self.module.clear_context(&mut self.ctx);
 
         let func_symbol = &symbols.funcs[func_decl.id];
@@ -127,7 +109,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         verify_function(&self.ctx.func, self.module.isa()).expect("function verification failed");
 
         // declare and define in module (not final)
-        let name = &self.session.interner[func_symbol.ident.node];
+        let name = &interner[func_symbol.ident.node];
         let id = self
             .module
             .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;

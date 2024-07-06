@@ -42,20 +42,26 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
             .expect("source id not in sources");
 
         let (tokens, lexer_errors) =
-            bayou_frontend::lex(source.source_str(), &mut self.session.interner);
+            bayou_frontend::lex(source.source_str(), &mut self.package.interner);
 
         let (ast, parse_errors) = bayou_frontend::parse(tokens);
 
         let mut had_errors = false;
-        had_errors |= self.session.report_all(lexer_errors).is_err();
-        had_errors |= self.session.report_all(parse_errors).is_err();
+        had_errors |= self
+            .session
+            .report_all(lexer_errors, &self.package.interner)
+            .is_err();
+        had_errors |= self
+            .session
+            .report_all(parse_errors, &self.package.interner)
+            .is_err();
 
         if had_errors {
             return Err(CompilerError::HadErrors);
         }
 
         let ir = bayou_frontend::lower_new(ast, &mut self.package.symbols).map_err(|errors| {
-            let _ = self.session.report_all(errors);
+            let _ = self.session.report_all(errors, &self.package.interner);
             CompilerError::HadErrors
         })?;
 
@@ -68,16 +74,17 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
         // type checking
         let type_checker = TypeChecker::new(&mut self.package.symbols);
         let type_errors = type_checker.run(&mut self.package.items);
-        self.session.report_all(type_errors)?;
+        self.session
+            .report_all(type_errors, &self.package.interner)?;
 
         // check entrypoint
         // FIXME: ensure `main` function is in root module
         if let Err(err) = check_entrypoint(&self.package.symbols, &self.package.interner) {
-            let _ = self.session.report(err);
+            let _ = self.session.report(err, &self.package.interner);
             return Err(CompilerError::HadErrors);
         }
 
-        let object = bayou_backend::run_codegen_new(self.session, &self.package)?;
+        let object = bayou_backend::run_codegen(self.session, &self.package)?;
 
         Ok(object)
     }
