@@ -5,15 +5,28 @@ info: "func main() -> i64 { return0; }"
 - items:
     - FuncDecl:
         ident:
-          ident_str: 1
+          node: 1
           span:
             start: 5
             end: 9
         ret_ty: I64
-        statements:
-          - ParseError
-- - expected: a statement
-    span:
-      start: 21
-      end: 28
-
+        block:
+          statements:
+            - Drop:
+                expr:
+                  kind:
+                    Var:
+                      node: 2
+                      span:
+                        start: 21
+                        end: 28
+                  span:
+                    start: 21
+                    end: 28
+                had_semicolon: true
+          final_expr:
+            kind: Void
+            span:
+              start: 30
+              end: 31
+- []

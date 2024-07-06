@@ -5,17 +5,22 @@ info: "func main() -> i64 { return 0; }"
 - items:
     - FuncDecl:
         ident:
-          ident_str: 1
+          node: 1
           span:
             start: 5
             end: 9
         ret_ty: I64
-        statements:
-          - Return:
-              kind:
-                Constant: 0
-              span:
-                start: 28
-                end: 29
+        block:
+          statements:
+            - Return:
+                kind:
+                  Integer: 0
+                span:
+                  start: 28
+                  end: 29
+          final_expr:
+            kind: Void
+            span:
+              start: 31
+              end: 32
 - []
-

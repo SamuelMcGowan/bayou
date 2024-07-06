@@ -3,17 +3,16 @@ source: crates/bayou_frontend/src/parser/tests.rs
 info: "func main() -> i64 { RETURN 0; }"
 ---
 - items:
-    - FuncDecl:
-        ident:
-          ident_str: 1
-          span:
-            start: 5
-            end: 9
-        ret_ty: I64
-        statements:
-          - ParseError
-- - expected: a statement
+    - ParseError
+- - expected: "`}`"
     span:
-      start: 21
-      end: 27
-
+      start: 28
+      end: 29
+  - expected: an item
+    span:
+      start: 28
+      end: 29
+  - expected: an item
+    span:
+      start: 31
+      end: 32

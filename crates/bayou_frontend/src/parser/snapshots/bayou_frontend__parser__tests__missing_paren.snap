@@ -5,20 +5,25 @@ info: "func main( { return 0; }"
 - items:
     - FuncDecl:
         ident:
-          ident_str: 1
+          node: 1
           span:
             start: 5
             end: 9
         ret_ty: Void
-        statements:
-          - Return:
-              kind:
-                Constant: 0
-              span:
-                start: 20
-                end: 21
+        block:
+          statements:
+            - Return:
+                kind:
+                  Integer: 0
+                span:
+                  start: 20
+                  end: 21
+          final_expr:
+            kind: Void
+            span:
+              start: 23
+              end: 24
 - - expected: "`)`"
     span:
       start: 11
       end: 12
-

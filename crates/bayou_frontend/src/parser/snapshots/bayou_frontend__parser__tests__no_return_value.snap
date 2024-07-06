@@ -5,16 +5,21 @@ info: "func main() { return; }"
 - items:
     - FuncDecl:
         ident:
-          ident_str: 1
+          node: 1
           span:
             start: 5
             end: 9
         ret_ty: Void
-        statements:
-          - Return:
-              kind: Void
-              span:
-                start: 14
-                end: 20
+        block:
+          statements:
+            - Return:
+                kind: Void
+                span:
+                  start: 14
+                  end: 20
+          final_expr:
+            kind: Void
+            span:
+              start: 22
+              end: 23
 - []
-

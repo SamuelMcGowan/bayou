@@ -8,7 +8,7 @@ info: "func main()->i64{return 0;}"
       start: 0
       end: 4
   - kind:
-      Spanned<InternedStr>ifier: 1
+      Identifier: 1
     span:
       start: 5
       end: 9
@@ -52,4 +52,3 @@ info: "func main()->i64{return 0;}"
       start: 26
       end: 27
 - []
-

@@ -8,7 +8,7 @@ info: "\nfunc\nmain\n(\n)\n->\ni64\n{\nreturn\n0\n;\n}"
       start: 1
       end: 5
   - kind:
-      Spanned<InternedStr>ifier: 1
+      Identifier: 1
     span:
       start: 6
       end: 10
@@ -52,4 +52,3 @@ info: "\nfunc\nmain\n(\n)\n->\ni64\n{\nreturn\n0\n;\n}"
       start: 35
       end: 36
 - []
-
