@@ -11,7 +11,6 @@ pub mod prelude {
     pub use crate::sourcemap::SourceId;
 }
 
-use crate::sourcemap::SourceId;
 use bayou_interner::Interner;
 
 pub type Diagnostic = bayou_diagnostic::Diagnostic<SourceMap>;
@@ -49,11 +48,11 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
 }
 
 pub trait IntoDiagnostic {
-    fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic;
+    fn into_diagnostic(self, interner: &Interner) -> Diagnostic;
 }
 
 impl IntoDiagnostic for Diagnostic {
-    fn into_diagnostic(self, _source_id: SourceId, _interner: &Interner) -> Diagnostic {
+    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
         self
     }
 }

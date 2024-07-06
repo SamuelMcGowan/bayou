@@ -28,14 +28,14 @@ pub enum LexerErrorKind {
 }
 
 impl IntoDiagnostic for LexerError {
-    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
-        Diagnostic::error()
-            .with_message("syntax error")
-            .with_snippet(Snippet::primary(
-                self.kind.to_string(),
-                source_id,
-                self.span,
-            ))
+    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
+        Diagnostic::error().with_message("syntax error")
+        // FIXME: add this back
+        // .with_snippet(Snippet::primary(
+        //     self.kind.to_string(),
+        //     source_id,
+        //     self.span,
+        // ))
     }
 }
 

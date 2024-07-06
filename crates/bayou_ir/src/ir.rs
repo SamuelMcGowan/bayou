@@ -1,4 +1,5 @@
 use bayou_diagnostic::span::Span;
+use bayou_interner::Interner;
 use bayou_session::sourcemap::SourceId;
 
 use super::{BinOp, NodeCopyTraits, NodeTraits, UnOp};
@@ -16,6 +17,14 @@ pub struct Module {
 pub struct ModuleContext {
     pub source_id: SourceId,
     pub symbols: Symbols,
+}
+
+pub struct Package {
+    pub name: String,
+
+    pub items: Vec<Item>,
+    pub symbols: Symbols,
+    pub interner: Interner,
 }
 
 #[derive(NodeTraits!)]

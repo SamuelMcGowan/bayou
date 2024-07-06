@@ -14,33 +14,33 @@ pub enum NameError {
 }
 
 impl IntoDiagnostic for NameError {
-    fn into_diagnostic(self, source_id: SourceId, interner: &Interner) -> Diagnostic {
+    // FIXME: add source spans back
+    fn into_diagnostic(self, interner: &Interner) -> Diagnostic {
         match self {
-            Self::DuplicateGlobal { first, second } => {
+            Self::DuplicateGlobal { first, second: _ } => {
                 let ident_str = &interner[first.node];
-                Diagnostic::error()
-                    .with_message(format!("duplicate global `{ident_str}`"))
-                    .with_snippet(Snippet::secondary(
-                        "first definition",
-                        source_id,
-                        first.span,
-                    ))
-                    .with_snippet(Snippet::primary(
-                        "second definition",
-                        source_id,
-                        second.span,
-                    ))
+                Diagnostic::error().with_message(format!("duplicate global `{ident_str}`"))
+
+                // .with_snippet(Snippet::secondary(
+                //     "first definition",
+                //     source_id,
+                //     first.span,
+                // ))
+                // .with_snippet(Snippet::primary(
+                //     "second definition",
+                //     source_id,
+                //     second.span,
+                // ))
             }
 
             Self::LocalUndefined(ident) => {
                 let ident_str = &interner[ident.node];
-                Diagnostic::error()
-                    .with_message(format!("undefined variable `{ident_str}`"))
-                    .with_snippet(Snippet::primary(
-                        "undefined variable here",
-                        source_id,
-                        ident.span,
-                    ))
+                Diagnostic::error().with_message(format!("undefined variable `{ident_str}`"))
+                // .with_snippet(Snippet::primary(
+                //     "undefined variable here",
+                //     source_id,
+                //     ident.span,
+                // ))
             }
         }
     }
@@ -51,29 +51,29 @@ struct LocalEntry {
     id: LocalId,
 }
 
-pub struct Lowerer {
-    symbols: Symbols,
+pub struct Lowerer<'a> {
+    symbols: &'a mut Symbols,
     errors: Vec<NameError>,
 
     local_stack: Vec<LocalEntry>,
 }
 
-impl Lowerer {
-    pub fn new() -> Self {
+impl<'a> Lowerer<'a> {
+    pub fn new(symbols: &'a mut Symbols) -> Self {
         Self {
-            symbols: Symbols::default(),
+            symbols,
             errors: vec![],
 
             local_stack: vec![],
         }
     }
 
-    pub fn run(mut self, module: ast::Module) -> Result<(ir::Module, Symbols), Vec<NameError>> {
+    pub fn run(mut self, module: ast::Module) -> Result<ir::Module, Vec<NameError>> {
         self.declare_globals(&module.items);
 
         let module = self.lower_module(module);
         if self.errors.is_empty() {
-            Ok((module, self.symbols))
+            Ok(module)
         } else {
             Err(self.errors)
         }

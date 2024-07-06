@@ -1,4 +1,4 @@
-use bayou_ir::ir::{Module, ModuleContext};
+use bayou_ir::ir::{Module, ModuleContext, Package};
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::Session;
 use codegen::Codegen;
@@ -46,5 +46,15 @@ pub fn run_codegen<
         codegen.compile_module(module, module_cx)?;
     }
 
+    codegen.finish().map(|obj| obj.object)
+}
+
+pub fn run_codegen_new<D: DiagnosticEmitter>(
+    session: &mut Session<D>,
+    package: &Package,
+) -> BackendResult<Object<'static>> {
+    // TODO: refactor codegen to fit new model
+    let mut codegen = Codegen::new(session, session.target.clone(), &package.name)?;
+    codegen.compile_package(package)?;
     codegen.finish().map(|obj| obj.object)
 }

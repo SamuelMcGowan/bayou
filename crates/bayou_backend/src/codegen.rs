@@ -1,7 +1,7 @@
 use std::ops::ControlFlow::{self, Break, Continue};
 
 use bayou_ir::ir::{Block as IrBlock, *};
-use bayou_ir::symbols::LocalId;
+use bayou_ir::symbols::{LocalId, Symbols};
 use bayou_ir::{BinOp, Type as IrType, UnOp};
 use bayou_session::diagnostics::DiagnosticEmitter;
 use bayou_session::Session;
@@ -64,7 +64,19 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
     ) -> BackendResult<()> {
         for item in &module.items {
             match item {
-                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, module_cx)?,
+                Item::FuncDecl(func_decl) => self.gen_func_decl(func_decl, &module_cx.symbols)?,
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn compile_package(&mut self, package: &Package) -> BackendResult<()> {
+        for item in &package.items {
+            match item {
+                Item::FuncDecl(func_decl) => {
+                    self.gen_func_decl(func_decl, &package.symbols)?;
+                }
             }
         }
 
@@ -75,14 +87,10 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         Ok(self.module.finish())
     }
 
-    fn gen_func_decl(
-        &mut self,
-        func_decl: &FuncDecl,
-        module_cx: &ModuleContext,
-    ) -> BackendResult<()> {
+    fn gen_func_decl(&mut self, func_decl: &FuncDecl, symbols: &Symbols) -> BackendResult<()> {
         self.module.clear_context(&mut self.ctx);
 
-        let func_symbol = &module_cx.symbols.funcs[func_decl.id];
+        let func_symbol = &symbols.funcs[func_decl.id];
 
         match func_symbol.ret_ty.layout() {
             TypeLayout::Integer(ty) => {
@@ -99,7 +107,7 @@ impl<'sess, D: DiagnosticEmitter> Codegen<'sess, D> {
         builder.seal_block(entry_block); // no predecessors
 
         // function codegen
-        let mut func_codegen = FuncCodegen { builder, module_cx };
+        let mut func_codegen = FuncCodegen { builder, symbols };
 
         if let ControlFlow::Continue(val) = func_codegen.gen_block_expr(&func_decl.block) {
             match val {
@@ -136,7 +144,7 @@ enum RValue {
 
 struct FuncCodegen<'a> {
     builder: FunctionBuilder<'a>,
-    module_cx: &'a ModuleContext,
+    symbols: &'a Symbols,
 }
 
 impl FuncCodegen<'_> {
@@ -211,7 +219,7 @@ impl FuncCodegen<'_> {
         // variables of type never and variables with expressions containing unreachable code will have stopped the codegen by now, so
         // we don't need to worry about them
 
-        let local_ty = self.module_cx.symbols.locals[local].ty;
+        let local_ty = self.symbols.locals[local].ty;
         let layout = local_ty.layout();
 
         match layout {

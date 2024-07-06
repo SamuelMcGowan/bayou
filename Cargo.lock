@@ -101,6 +101,7 @@ dependencies = [
  "bayou_backend",
  "bayou_diagnostic",
  "bayou_frontend",
+ "bayou_interner",
  "bayou_ir",
  "bayou_middle",
  "bayou_session",

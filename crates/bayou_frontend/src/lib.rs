@@ -33,5 +33,15 @@ pub fn parse(tokens: TokenIter) -> (Module, Vec<ParseError>) {
 pub fn lower(
     ast: ast::Module,
 ) -> Result<(bayou_ir::ir::Module, bayou_ir::symbols::Symbols), Vec<NameError>> {
-    lower::Lowerer::new().run(ast)
+    let mut symbols = bayou_ir::symbols::Symbols::default();
+    lower::Lowerer::new(&mut symbols)
+        .run(ast)
+        .map(|ir| (ir, symbols))
+}
+
+pub fn lower_new(
+    ast: ast::Module,
+    symbols: &mut bayou_ir::symbols::Symbols,
+) -> Result<bayou_ir::ir::Module, Vec<NameError>> {
+    lower::Lowerer::new(symbols).run(ast)
 }

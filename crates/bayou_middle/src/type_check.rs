@@ -1,6 +1,6 @@
 use bayou_interner::Interner;
 use bayou_ir::ir::*;
-use bayou_ir::symbols::FuncId;
+use bayou_ir::symbols::{FuncId, Symbols};
 use bayou_ir::{BinOp, Type, UnOp};
 use bayou_session::diagnostics::prelude::*;
 
@@ -16,47 +16,51 @@ pub enum TypeError {
 }
 
 impl IntoDiagnostic for TypeError {
-    fn into_diagnostic(self, source_id: SourceId, _interner: &Interner) -> Diagnostic {
+    // FIXME: add source spans back
+    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
         match self {
             TypeError::TypeMismatch {
                 expected,
-                expected_span,
+                expected_span: _,
                 found,
-                found_span,
+                found_span: _,
             } => {
-                let mut diagnostic = Diagnostic::error()
+                // let mut diagnostic =
+
+                Diagnostic::error()
                     .with_message(format!("expected type {expected:?}, found type {found:?}"))
-                    .with_snippet(Snippet::primary("unexpected type", source_id, found_span));
 
-                if let Some(expected_span) = expected_span {
-                    diagnostic = diagnostic.with_snippet(Snippet::secondary(
-                        "expected due to this type",
-                        source_id,
-                        expected_span,
-                    ));
-                }
+                // .with_snippet(Snippet::primary("unexpected type", source_id, found_span));
 
-                diagnostic
+                // if let Some(expected_span) = expected_span {
+                // diagnostic = diagnostic.with_snippet(Snippet::secondary(
+                //     "expected due to this type",
+                //     source_id,
+                //     expected_span,
+                // ));
+                // }
+
+                // diagnostic
             }
         }
     }
 }
 
-pub struct TypeChecker<'m> {
-    module_cx: &'m mut ModuleContext,
+pub struct TypeChecker<'a> {
+    symbols: &'a mut Symbols,
     errors: Vec<TypeError>,
 }
 
 impl<'a> TypeChecker<'a> {
-    pub fn new(module_cx: &'a mut ModuleContext) -> Self {
+    pub fn new(symbols: &'a mut Symbols) -> Self {
         Self {
-            module_cx,
+            symbols,
             errors: vec![],
         }
     }
 
-    pub fn run(mut self, module: &mut Module) -> Vec<TypeError> {
-        for item in &mut module.items {
+    pub fn run(mut self, items: &mut [Item]) -> Vec<TypeError> {
+        for item in items {
             match item {
                 Item::FuncDecl(func_decl) => {
                     self.check_func_decl(func_decl);
@@ -72,7 +76,7 @@ impl<'a> TypeChecker<'a> {
             self.check_block_expr(&mut func_decl.block, func_decl.id);
 
         // FIXME: use return type span
-        let func_symbol = &self.module_cx.symbols.funcs[func_decl.id];
+        let func_symbol = &self.symbols.funcs[func_decl.id];
         if let Some(block_type) = block_type {
             self.check_types_match(
                 func_symbol.ret_ty,
@@ -89,7 +93,7 @@ impl<'a> TypeChecker<'a> {
             Stmt::Assign { local, expr } => {
                 self.check_expr(expr, func_id);
 
-                let local = &self.module_cx.symbols.locals[*local];
+                let local = &self.symbols.locals[*local];
                 if let Some(ty) = expr.ty {
                     self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
                 }
@@ -103,7 +107,7 @@ impl<'a> TypeChecker<'a> {
                 self.check_expr(expr, func_id);
                 if let Some(ty) = expr.ty {
                     // FIXME: use return type span
-                    let func_symbol = &self.module_cx.symbols.funcs[func_id];
+                    let func_symbol = &self.symbols.funcs[func_id];
                     self.check_types_match(
                         func_symbol.ret_ty,
                         Some(func_symbol.ident.span),
@@ -119,7 +123,7 @@ impl<'a> TypeChecker<'a> {
         expr.ty = match &mut expr.kind {
             ExprKind::Constant(constant) => Some(constant.ty()),
 
-            ExprKind::Var(local) => Some(self.module_cx.symbols.locals[*local].ty),
+            ExprKind::Var(local) => Some(self.symbols.locals[*local].ty),
 
             ExprKind::UnOp { op, expr } => self.check_unop_expr(*op, expr, func_id),
             ExprKind::BinOp { op, lhs, rhs } => self.check_binop_expr(*op, lhs, rhs, func_id),
