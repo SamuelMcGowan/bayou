@@ -5,7 +5,7 @@ info: "func main() -> i64 { return0; }"
 - items:
     - FuncDecl:
         ident:
-          node: 1
+          istr: 1
           span:
             start: 5
             end: 9
@@ -16,7 +16,7 @@ info: "func main() -> i64 { return0; }"
                 expr:
                   kind:
                     Var:
-                      node: 2
+                      istr: 2
                       span:
                         start: 21
                         end: 28
