@@ -19,16 +19,15 @@ pub struct ParseError {
     pub span: Span,
 }
 
-impl IntoDiagnostic<()> for ParseError {
-    fn into_diagnostic(self, _interner: &()) -> Diagnostic {
-        Diagnostic::error().with_message("syntax error")
-
-        // FIXME: add this back
-        // .with_snippet(Snippet::primary(
-        //     format!("expected {} here", self.expected),
-        //     source_id,
-        //     self.span,
-        // ))
+impl IntoDiagnostic<SourceId> for ParseError {
+    fn into_diagnostic(self, source_id: SourceId) -> Diagnostic {
+        Diagnostic::error()
+            .with_message("syntax error")
+            .with_snippet(Snippet::primary(
+                format!("expected {} here", self.expected),
+                source_id,
+                self.span,
+            ))
     }
 }
 

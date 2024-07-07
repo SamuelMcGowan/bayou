@@ -47,15 +47,18 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
         let (ast, parse_errors) = bayou_frontend::parse(tokens);
 
         let mut had_errors = false;
-        had_errors |= self.session.report_all(lexer_errors, &()).is_err();
-        had_errors |= self.session.report_all(parse_errors, &()).is_err();
+        had_errors |= self.session.report_all(lexer_errors, source_id).is_err();
+        had_errors |= self.session.report_all(parse_errors, source_id).is_err();
 
         if had_errors {
             return Err(CompilerError::HadErrors);
         }
 
         let ir = bayou_frontend::lower(ast, &mut self.package.symbols).map_err(|errors| {
-            let _ = self.session.report_all(errors, &self.package.interner);
+            let _ = self
+                .session
+                .report_all(errors, (&self.package.interner, source_id));
+
             CompilerError::HadErrors
         })?;
 
@@ -68,12 +71,12 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
         // type checking
         let type_checker = TypeChecker::new(&mut self.package.symbols);
         let type_errors = type_checker.run(&mut self.package.ir);
-        self.session.report_all(type_errors, &())?;
+        self.session.report_all(type_errors, ())?;
 
         // check entrypoint
         // FIXME: ensure `main` function is in root module
         if let Err(err) = check_entrypoint(&self.package.symbols, &self.package.interner) {
-            let _ = self.session.report(err, &());
+            let _ = self.session.report(err, ());
             return Err(CompilerError::HadErrors);
         }
 

@@ -27,15 +27,15 @@ pub enum LexerErrorKind {
     IntegerDigitWrongBase { base: u32, digit: char },
 }
 
-impl IntoDiagnostic<()> for LexerError {
-    fn into_diagnostic(self, _cx: &()) -> Diagnostic {
-        Diagnostic::error().with_message("syntax error")
-        // FIXME: add this back
-        // .with_snippet(Snippet::primary(
-        //     self.kind.to_string(),
-        //     source_id,
-        //     self.span,
-        // ))
+impl IntoDiagnostic<SourceId> for LexerError {
+    fn into_diagnostic(self, source_id: SourceId) -> Diagnostic {
+        Diagnostic::error()
+            .with_message("syntax error")
+            .with_snippet(Snippet::primary(
+                self.kind.to_string(),
+                source_id,
+                self.span,
+            ))
     }
 }
 

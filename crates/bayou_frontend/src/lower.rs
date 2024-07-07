@@ -13,34 +13,34 @@ pub enum NameError {
     },
 }
 
-impl IntoDiagnostic<Interner> for NameError {
-    // FIXME: add source spans back
-    fn into_diagnostic(self, interner: &Interner) -> Diagnostic {
+impl IntoDiagnostic<(&Interner, SourceId)> for NameError {
+    fn into_diagnostic(self, (interner, source_id): (&Interner, SourceId)) -> Diagnostic {
         match self {
-            Self::DuplicateGlobal { first, second: _ } => {
+            Self::DuplicateGlobal { first, second } => {
                 let ident_str = &interner[first.node];
-                Diagnostic::error().with_message(format!("duplicate global `{ident_str}`"))
-
-                // .with_snippet(Snippet::secondary(
-                //     "first definition",
-                //     source_id,
-                //     first.span,
-                // ))
-                // .with_snippet(Snippet::primary(
-                //     "second definition",
-                //     source_id,
-                //     second.span,
-                // ))
+                Diagnostic::error()
+                    .with_message(format!("duplicate global `{ident_str}`"))
+                    .with_snippet(Snippet::secondary(
+                        "first definition",
+                        source_id,
+                        first.span,
+                    ))
+                    .with_snippet(Snippet::primary(
+                        "second definition",
+                        source_id,
+                        second.span,
+                    ))
             }
 
             Self::LocalUndefined(ident) => {
                 let ident_str = &interner[ident.node];
-                Diagnostic::error().with_message(format!("undefined variable `{ident_str}`"))
-                // .with_snippet(Snippet::primary(
-                //     "undefined variable here",
-                //     source_id,
-                //     ident.span,
-                // ))
+                Diagnostic::error()
+                    .with_message(format!("undefined variable `{ident_str}`"))
+                    .with_snippet(Snippet::primary(
+                        "undefined variable here",
+                        source_id,
+                        ident.span,
+                    ))
             }
         }
     }

@@ -16,7 +16,7 @@ pub enum TypeError {
 
 impl IntoDiagnostic<()> for TypeError {
     // FIXME: add source spans back
-    fn into_diagnostic(self, _cx: &()) -> Diagnostic {
+    fn into_diagnostic(self, _cx: ()) -> Diagnostic {
         match self {
             TypeError::TypeMismatch {
                 expected,
