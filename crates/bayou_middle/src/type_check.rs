@@ -2,15 +2,15 @@ use bayou_ir::ir::*;
 use bayou_ir::symbols::{FuncId, Symbols};
 use bayou_ir::{BinOp, Type, UnOp};
 use bayou_session::diagnostics::prelude::*;
+use bayou_session::sourcemap::SourceSpan;
 
-// TODO: make `Spanned` type
 pub enum TypeError {
     TypeMismatch {
         expected: Type,
-        expected_span: Option<Span>,
+        expected_span: Option<SourceSpan>,
 
         found: Type,
-        found_span: Span,
+        found_span: SourceSpan,
     },
 }
 
@@ -20,26 +20,27 @@ impl IntoDiagnostic<()> for TypeError {
         match self {
             TypeError::TypeMismatch {
                 expected,
-                expected_span: _,
+                expected_span,
                 found,
-                found_span: _,
+                found_span,
             } => {
-                // let mut diagnostic =
-
-                Diagnostic::error()
+                let mut diagnostic = Diagnostic::error()
                     .with_message(format!("expected type {expected:?}, found type {found:?}"))
+                    .with_snippet(Snippet::primary(
+                        "unexpected type",
+                        found_span.source_id,
+                        found_span.span,
+                    ));
 
-                // .with_snippet(Snippet::primary("unexpected type", source_id, found_span));
+                if let Some(expected_span) = expected_span {
+                    diagnostic = diagnostic.with_snippet(Snippet::secondary(
+                        "expected due to this type",
+                        expected_span.source_id,
+                        expected_span.span,
+                    ));
+                }
 
-                // if let Some(expected_span) = expected_span {
-                // diagnostic = diagnostic.with_snippet(Snippet::secondary(
-                //     "expected due to this type",
-                //     source_id,
-                //     expected_span,
-                // ));
-                // }
-
-                // diagnostic
+                diagnostic
             }
         }
     }
@@ -58,7 +59,7 @@ impl<'a> TypeChecker<'a> {
         }
     }
 
-    pub fn run(mut self, ir: &mut Module) -> Vec<TypeError> {
+    pub fn run(mut self, ir: &mut PackageIr) -> Vec<TypeError> {
         for item in &mut ir.items {
             match item {
                 Item::FuncDecl(func_decl) => {
@@ -94,7 +95,7 @@ impl<'a> TypeChecker<'a> {
 
                 let local = &self.symbols.locals[*local];
                 if let Some(ty) = expr.ty {
-                    self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
+                    self.check_types_match(local.ty.node, Some(local.ty.span), ty, expr.span);
                 }
             }
 
@@ -122,7 +123,7 @@ impl<'a> TypeChecker<'a> {
         expr.ty = match &mut expr.kind {
             ExprKind::Constant(constant) => Some(constant.ty()),
 
-            ExprKind::Var(local) => Some(self.symbols.locals[*local].ty),
+            ExprKind::Var(local) => Some(self.symbols.locals[*local].ty.node),
 
             ExprKind::UnOp { op, expr } => self.check_unop_expr(*op, expr, func_id),
             ExprKind::BinOp { op, lhs, rhs } => self.check_binop_expr(*op, lhs, rhs, func_id),
@@ -183,7 +184,11 @@ impl<'a> TypeChecker<'a> {
         Some(out)
     }
 
-    fn check_block_expr(&mut self, block: &mut Block, func_id: FuncId) -> (Option<Type>, Span) {
+    fn check_block_expr(
+        &mut self,
+        block: &mut Block,
+        func_id: FuncId,
+    ) -> (Option<Type>, SourceSpan) {
         let mut diverging = false;
 
         for stmt in &mut block.statements {
@@ -251,9 +256,9 @@ impl<'a> TypeChecker<'a> {
     fn check_types_match(
         &mut self,
         expected: Type,
-        expected_span: Option<Span>,
+        expected_span: Option<SourceSpan>,
         found: Type,
-        found_span: Span,
+        found_span: SourceSpan,
     ) {
         let types_match = match (expected, found) {
             (_, Type::Never) => true,

@@ -1,5 +1,6 @@
 use ast::Module;
 use bayou_interner::Interner;
+use bayou_session::sourcemap::SourceId;
 use lexer::Lexer;
 
 #[macro_use]
@@ -33,6 +34,7 @@ pub fn parse(tokens: TokenIter) -> (Module, Vec<ParseError>) {
 pub fn lower(
     ast: ast::Module,
     symbols: &mut bayou_ir::symbols::Symbols,
-) -> Result<bayou_ir::ir::Module, Vec<NameError>> {
-    lower::Lowerer::new(symbols).run(ast)
+    source_id: SourceId,
+) -> Result<bayou_ir::ir::PackageIr, Vec<NameError>> {
+    lower::Lowerer::new(symbols, source_id).run(ast)
 }

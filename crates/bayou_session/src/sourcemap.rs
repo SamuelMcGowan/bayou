@@ -55,5 +55,11 @@ impl bayou_diagnostic::sources::Source for Source {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct SourceSpan {
     pub span: Span,
-    pub source: SourceId,
+    pub source_id: SourceId,
+}
+
+impl SourceSpan {
+    pub fn new(span: Span, source_id: SourceId) -> Self {
+        Self { span, source_id }
+    }
 }

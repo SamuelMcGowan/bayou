@@ -202,7 +202,7 @@ impl FuncCodegen<'_> {
         // we don't need to worry about them
 
         let local_ty = self.symbols.locals[local].ty;
-        let layout = local_ty.layout();
+        let layout = local_ty.node.layout();
 
         match layout {
             TypeLayout::Integer(ty) => {

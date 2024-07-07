@@ -6,7 +6,10 @@ extern crate macro_rules_attribute;
 pub mod ir;
 pub mod symbols;
 
-use bayou_session::diagnostics::span::Span;
+use bayou_session::{
+    diagnostics::span::Span,
+    sourcemap::{SourceId, SourceSpan},
+};
 
 derive_alias! {
     #[derive(NodeTraits!)] = #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)];
@@ -47,20 +50,32 @@ pub enum Type {
     Never,
 }
 
+// pub type Spanned<T> = WithSpan<T, Span>;
+// pub type SourceSpanned<T> = Spanned<T, SourceSpan>;
+
 #[derive(NodeCopyTraits!)]
-pub struct Spanned<T> {
+pub struct Spanned<T, S = Span> {
     pub node: T,
-    pub span: Span,
+    pub span: S,
 }
 
-impl<T> Spanned<T> {
-    pub fn new(node: T, span: Span) -> Self {
+impl<T> Spanned<T, Span> {
+    pub fn to_source_spanned(self, source_id: SourceId) -> Spanned<T, SourceSpan> {
+        Spanned {
+            node: self.node,
+            span: SourceSpan::new(self.span, source_id),
+        }
+    }
+}
+
+impl<T, S> Spanned<T, S> {
+    pub fn new(node: T, span: S) -> Self {
         Self { node, span }
     }
 }
 
-impl<T, E> Spanned<Result<T, E>> {
-    pub fn transpose(self) -> Result<Spanned<T>, E> {
+impl<T, E, Extra> Spanned<Result<T, E>, Extra> {
+    pub fn transpose(self) -> Result<Spanned<T, Extra>, E> {
         self.node.map(|node| Spanned {
             node,
             span: self.span,

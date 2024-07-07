@@ -1,21 +1,21 @@
 use bayou_interner::Interner;
-use bayou_session::diagnostics::span::Span;
+use bayou_session::sourcemap::SourceSpan;
 
 use super::{BinOp, NodeCopyTraits, NodeTraits, UnOp};
 use crate::symbols::{FuncId, LocalId, Symbols};
 use crate::Type;
 
-#[derive(Default, NodeTraits!)]
-pub struct Module {
-    pub items: Vec<Item>,
-}
-
 pub struct Package {
     pub name: String,
 
-    pub ir: Module,
+    pub ir: PackageIr,
     pub symbols: Symbols,
     pub interner: Interner,
+}
+
+#[derive(Default, NodeTraits!)]
+pub struct PackageIr {
+    pub items: Vec<Item>,
 }
 
 #[derive(NodeTraits!)]
@@ -45,7 +45,7 @@ pub struct Block {
 #[derive(NodeTraits!)]
 pub struct Expr {
     pub kind: ExprKind,
-    pub span: Span,
+    pub span: SourceSpan,
     pub ty: Option<Type>,
 }
 

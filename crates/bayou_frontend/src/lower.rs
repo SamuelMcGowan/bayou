@@ -2,33 +2,36 @@ use bayou_interner::{Interner, Istr};
 use bayou_ir::{ir, Type};
 use bayou_ir::{symbols::*, Spanned};
 use bayou_session::diagnostics::prelude::*;
+use bayou_session::sourcemap::SourceSpan;
 
 use crate::ast;
 
 pub enum NameError {
-    LocalUndefined(Spanned<Istr>),
+    LocalUndefined(Spanned<Istr, SourceSpan>),
+
     DuplicateGlobal {
-        first: Spanned<Istr>,
-        second: Spanned<Istr>,
+        first: Spanned<Istr, SourceSpan>,
+        second: Spanned<Istr, SourceSpan>,
     },
 }
 
-impl IntoDiagnostic<(&Interner, SourceId)> for NameError {
-    fn into_diagnostic(self, (interner, source_id): (&Interner, SourceId)) -> Diagnostic {
+impl IntoDiagnostic<&Interner> for NameError {
+    fn into_diagnostic(self, interner: &Interner) -> Diagnostic {
         match self {
             Self::DuplicateGlobal { first, second } => {
                 let ident_str = &interner[first.node];
+
                 Diagnostic::error()
                     .with_message(format!("duplicate global `{ident_str}`"))
                     .with_snippet(Snippet::secondary(
                         "first definition",
-                        source_id,
-                        first.span,
+                        first.span.source_id,
+                        first.span.span,
                     ))
                     .with_snippet(Snippet::primary(
                         "second definition",
-                        source_id,
-                        second.span,
+                        second.span.source_id,
+                        second.span.span,
                     ))
             }
 
@@ -38,8 +41,8 @@ impl IntoDiagnostic<(&Interner, SourceId)> for NameError {
                     .with_message(format!("undefined variable `{ident_str}`"))
                     .with_snippet(Snippet::primary(
                         "undefined variable here",
-                        source_id,
-                        ident.span,
+                        ident.span.source_id,
+                        ident.span.span,
                     ))
             }
         }
@@ -56,19 +59,23 @@ pub struct Lowerer<'a> {
     errors: Vec<NameError>,
 
     local_stack: Vec<LocalEntry>,
+
+    source_id: SourceId,
 }
 
 impl<'a> Lowerer<'a> {
-    pub fn new(symbols: &'a mut Symbols) -> Self {
+    pub fn new(symbols: &'a mut Symbols, source_id: SourceId) -> Self {
         Self {
             symbols,
             errors: vec![],
 
             local_stack: vec![],
+
+            source_id,
         }
     }
 
-    pub fn run(mut self, module: ast::Module) -> Result<ir::Module, Vec<NameError>> {
+    pub fn run(mut self, module: ast::Module) -> Result<ir::PackageIr, Vec<NameError>> {
         self.declare_globals(&module.items);
 
         let module = self.lower_module(module);
@@ -83,7 +90,7 @@ impl<'a> Lowerer<'a> {
         for item in items {
             match item {
                 ast::Item::FuncDecl(func_decl) => self.declare_global_func(FunctionSymbol {
-                    ident: func_decl.ident,
+                    ident: func_decl.ident.to_source_spanned(self.source_id),
                     ret_ty: func_decl.ret_ty,
                 }),
 
@@ -109,7 +116,7 @@ impl<'a> Lowerer<'a> {
         }
     }
 
-    fn lower_module(&mut self, module: ast::Module) -> ir::Module {
+    fn lower_module(&mut self, module: ast::Module) -> ir::PackageIr {
         let mut items_lowered = vec![];
 
         for item in module.items {
@@ -123,7 +130,7 @@ impl<'a> Lowerer<'a> {
             }
         }
 
-        ir::Module {
+        ir::PackageIr {
             items: items_lowered,
         }
     }
@@ -200,7 +207,7 @@ impl<'a> Lowerer<'a> {
 
         Some(ir::Expr {
             kind: expr_kind,
-            span: expr.span,
+            span: SourceSpan::new(expr.span, self.source_id),
             ty: None,
         })
     }
@@ -254,10 +261,8 @@ impl<'a> Lowerer<'a> {
     #[must_use]
     fn declare_local(&mut self, ident: Spanned<Istr>, ty: Type) -> LocalId {
         let id = self.symbols.locals.insert(LocalSymbol {
-            ident,
-            ty,
-            // FIXME: use variable type span
-            ty_span: ident.span,
+            ident: ident.to_source_spanned(self.source_id),
+            ty: Spanned::new(ty, ident.span).to_source_spanned(self.source_id),
         });
 
         self.local_stack.push(LocalEntry {
@@ -276,7 +281,9 @@ impl<'a> Lowerer<'a> {
             .find_map(|entry| (entry.ident_str == ident.node).then_some(entry.id));
 
         if id.is_none() {
-            self.errors.push(NameError::LocalUndefined(ident));
+            self.errors.push(NameError::LocalUndefined(
+                ident.to_source_spanned(self.source_id),
+            ));
         }
 
         id

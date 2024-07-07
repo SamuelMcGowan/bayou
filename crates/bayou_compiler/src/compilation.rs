@@ -1,6 +1,6 @@
 use bayou_backend::object::write::Object;
 use bayou_interner::Interner;
-use bayou_ir::{ir::Module, ir::Package, symbols::Symbols};
+use bayou_ir::{ir::Package, ir::PackageIr, symbols::Symbols};
 use bayou_middle::{entry_point::check_entrypoint, type_check::TypeChecker};
 use bayou_session::diagnostics::sources::{Source as _, SourceMap as _};
 use bayou_session::{diagnostics::DiagnosticEmitter, sourcemap::SourceId, Session};
@@ -16,7 +16,7 @@ pub fn compile_package<D: DiagnosticEmitter>(
         package: Package {
             name: name.into(),
 
-            ir: Module::default(),
+            ir: PackageIr::default(),
             symbols: Symbols::default(),
             interner: Interner::new(),
         },
@@ -54,13 +54,12 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
             return Err(CompilerError::HadErrors);
         }
 
-        let ir = bayou_frontend::lower(ast, &mut self.package.symbols).map_err(|errors| {
-            let _ = self
-                .session
-                .report_all(errors, (&self.package.interner, source_id));
+        let ir =
+            bayou_frontend::lower(ast, &mut self.package.symbols, source_id).map_err(|errors| {
+                let _ = self.session.report_all(errors, &self.package.interner);
 
-            CompilerError::HadErrors
-        })?;
+                CompilerError::HadErrors
+            })?;
 
         self.package.ir = ir;
 
