@@ -59,8 +59,8 @@ impl<'a> TypeChecker<'a> {
         }
     }
 
-    pub fn run(mut self, items: &mut [Item]) -> Vec<TypeError> {
-        for item in items {
+    pub fn run(mut self, ir: &mut Module) -> Vec<TypeError> {
+        for item in &mut ir.items {
             match item {
                 Item::FuncDecl(func_decl) => {
                     self.check_func_decl(func_decl);

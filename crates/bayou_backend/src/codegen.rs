@@ -49,7 +49,7 @@ impl Codegen {
     }
 
     pub fn compile_package(&mut self, package: &Package) -> BackendResult<()> {
-        for item in &package.items {
+        for item in &package.ir.items {
             match item {
                 Item::FuncDecl(func_decl) => {
                     self.gen_func_decl(func_decl, &package.symbols, &package.interner)?;

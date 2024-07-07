@@ -1,6 +1,6 @@
 use bayou_backend::object::write::Object;
 use bayou_interner::Interner;
-use bayou_ir::{ir::Package, symbols::Symbols};
+use bayou_ir::{ir::Module, ir::Package, symbols::Symbols};
 use bayou_middle::{entry_point::check_entrypoint, type_check::TypeChecker};
 use bayou_session::diagnostics::sources::{Source as _, SourceMap as _};
 use bayou_session::{diagnostics::DiagnosticEmitter, sourcemap::SourceId, Session};
@@ -16,7 +16,7 @@ pub fn compile_package<D: DiagnosticEmitter>(
         package: Package {
             name: name.into(),
 
-            items: vec![],
+            ir: Module::default(),
             symbols: Symbols::default(),
             interner: Interner::new(),
         },
@@ -60,12 +60,12 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
             return Err(CompilerError::HadErrors);
         }
 
-        let ir = bayou_frontend::lower_new(ast, &mut self.package.symbols).map_err(|errors| {
+        let ir = bayou_frontend::lower(ast, &mut self.package.symbols).map_err(|errors| {
             let _ = self.session.report_all(errors, &self.package.interner);
             CompilerError::HadErrors
         })?;
 
-        self.package.items = ir.items;
+        self.package.ir = ir;
 
         Ok(())
     }
@@ -73,7 +73,7 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
     fn compile(mut self) -> CompilerResult<Object<'static>> {
         // type checking
         let type_checker = TypeChecker::new(&mut self.package.symbols);
-        let type_errors = type_checker.run(&mut self.package.items);
+        let type_errors = type_checker.run(&mut self.package.ir);
         self.session
             .report_all(type_errors, &self.package.interner)?;
 

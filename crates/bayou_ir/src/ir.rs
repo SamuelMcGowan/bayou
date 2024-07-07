@@ -1,28 +1,19 @@
 use bayou_interner::Interner;
 use bayou_session::diagnostics::span::Span;
-use bayou_session::sourcemap::SourceId;
 
 use super::{BinOp, NodeCopyTraits, NodeTraits, UnOp};
 use crate::symbols::{FuncId, LocalId, Symbols};
 use crate::Type;
 
-#[derive(NodeTraits!)]
+#[derive(Default, NodeTraits!)]
 pub struct Module {
     pub items: Vec<Item>,
-}
-
-// TODO: revisit borrowing issues
-/// Additional information about a module that can't be stored in the [`Module`] type due
-/// to borrowing issues.
-pub struct ModuleContext {
-    pub source_id: SourceId,
-    pub symbols: Symbols,
 }
 
 pub struct Package {
     pub name: String,
 
-    pub items: Vec<Item>,
+    pub ir: Module,
     pub symbols: Symbols,
     pub interner: Interner,
 }
