@@ -27,8 +27,8 @@ pub enum LexerErrorKind {
     IntegerDigitWrongBase { base: u32, digit: char },
 }
 
-impl IntoDiagnostic for LexerError {
-    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
+impl IntoDiagnostic<()> for LexerError {
+    fn into_diagnostic(self, _cx: &()) -> Diagnostic {
         Diagnostic::error().with_message("syntax error")
         // FIXME: add this back
         // .with_snippet(Snippet::primary(

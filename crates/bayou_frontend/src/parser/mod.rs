@@ -3,7 +3,7 @@ mod tests;
 
 mod expr;
 
-use bayou_interner::{Interner, Istr};
+use bayou_interner::Istr;
 use bayou_ir::{Spanned, Type};
 use bayou_session::diagnostics::prelude::*;
 use bayou_session::diagnostics::span::Span;
@@ -19,8 +19,8 @@ pub struct ParseError {
     pub span: Span,
 }
 
-impl IntoDiagnostic for ParseError {
-    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
+impl IntoDiagnostic<()> for ParseError {
+    fn into_diagnostic(self, _interner: &()) -> Diagnostic {
         Diagnostic::error().with_message("syntax error")
 
         // FIXME: add this back

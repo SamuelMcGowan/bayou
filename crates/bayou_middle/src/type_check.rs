@@ -1,4 +1,3 @@
-use bayou_interner::Interner;
 use bayou_ir::ir::*;
 use bayou_ir::symbols::{FuncId, Symbols};
 use bayou_ir::{BinOp, Type, UnOp};
@@ -15,9 +14,9 @@ pub enum TypeError {
     },
 }
 
-impl IntoDiagnostic for TypeError {
+impl IntoDiagnostic<()> for TypeError {
     // FIXME: add source spans back
-    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
+    fn into_diagnostic(self, _cx: &()) -> Diagnostic {
         match self {
             TypeError::TypeMismatch {
                 expected,

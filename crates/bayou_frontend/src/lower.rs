@@ -13,7 +13,7 @@ pub enum NameError {
     },
 }
 
-impl IntoDiagnostic for NameError {
+impl IntoDiagnostic<Interner> for NameError {
     // FIXME: add source spans back
     fn into_diagnostic(self, interner: &Interner) -> Diagnostic {
         match self {

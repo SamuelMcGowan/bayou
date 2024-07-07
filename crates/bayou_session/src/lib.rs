@@ -1,7 +1,6 @@
 pub mod diagnostics;
 pub mod sourcemap;
 
-use bayou_interner::Interner;
 use diagnostics::DiagnosticEmitter;
 use diagnostics::*;
 use sourcemap::SourceMap;
@@ -25,10 +24,10 @@ impl<D: DiagnosticEmitter> Session<D> {
         }
     }
 
-    pub fn report(
+    pub fn report<Context>(
         &mut self,
-        diagnostic: impl IntoDiagnostic,
-        interner: &Interner,
+        diagnostic: impl IntoDiagnostic<Context>,
+        interner: &Context,
     ) -> Result<(), ErrorsEmitted> {
         let diagnostic = diagnostic.into_diagnostic(interner);
         let kind = diagnostic.severity;
@@ -42,14 +41,14 @@ impl<D: DiagnosticEmitter> Session<D> {
         }
     }
 
-    pub fn report_all<I>(
+    pub fn report_all<Context, I>(
         &mut self,
         diagnostics: I,
-        interner: &Interner,
+        interner: &Context,
     ) -> Result<(), ErrorsEmitted>
     where
         I: IntoIterator,
-        I::Item: IntoDiagnostic,
+        I::Item: IntoDiagnostic<Context>,
     {
         let mut had_error = false;
 

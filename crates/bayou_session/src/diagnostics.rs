@@ -10,8 +10,6 @@ pub mod prelude {
     pub use bayou_diagnostic::{Severity, Snippet, SnippetKind};
 }
 
-use bayou_interner::Interner;
-
 pub type Diagnostic = bayou_diagnostic::Diagnostic<SourceMap>;
 
 pub trait DiagnosticEmitter {
@@ -46,12 +44,12 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
     }
 }
 
-pub trait IntoDiagnostic {
-    fn into_diagnostic(self, interner: &Interner) -> Diagnostic;
+pub trait IntoDiagnostic<Context> {
+    fn into_diagnostic(self, cx: &Context) -> Diagnostic;
 }
 
-impl IntoDiagnostic for Diagnostic {
-    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
+impl<Cx> IntoDiagnostic<Cx> for Diagnostic {
+    fn into_diagnostic(self, _cx: &Cx) -> Diagnostic {
         self
     }
 }

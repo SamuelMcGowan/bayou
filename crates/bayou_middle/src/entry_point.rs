@@ -9,8 +9,8 @@ pub enum EntrypointError {
     WrongSignature { expected: Type, found: Type },
 }
 
-impl IntoDiagnostic for EntrypointError {
-    fn into_diagnostic(self, _interner: &Interner) -> Diagnostic {
+impl IntoDiagnostic<()> for EntrypointError {
+    fn into_diagnostic(self, _cx: &()) -> Diagnostic {
         match self {
             EntrypointError::Missing => Diagnostic::error().with_message("`main` function missing"),
             EntrypointError::WrongSignature { expected, found } => Diagnostic::error()
