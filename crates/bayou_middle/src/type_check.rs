@@ -95,7 +95,7 @@ impl<'a> TypeChecker<'a> {
 
                 let local = &self.symbols.locals[*local];
                 if let Some(ty) = expr.ty {
-                    self.check_types_match(local.ty.node, Some(local.ty.span), ty, expr.span);
+                    self.check_types_match(local.ty, Some(local.ty_span), ty, expr.span);
                 }
             }
 
@@ -123,7 +123,7 @@ impl<'a> TypeChecker<'a> {
         expr.ty = match &mut expr.kind {
             ExprKind::Constant(constant) => Some(constant.ty()),
 
-            ExprKind::Var(local) => Some(self.symbols.locals[*local].ty.node),
+            ExprKind::Var(local) => Some(self.symbols.locals[*local].ty),
 
             ExprKind::UnOp { op, expr } => self.check_unop_expr(*op, expr, func_id),
             ExprKind::BinOp { op, lhs, rhs } => self.check_binop_expr(*op, lhs, rhs, func_id),

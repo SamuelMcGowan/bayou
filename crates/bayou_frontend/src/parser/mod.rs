@@ -3,8 +3,7 @@ mod tests;
 
 mod expr;
 
-use bayou_interner::Istr;
-use bayou_ir::{Spanned, Type};
+use bayou_ir::{Ident, Type};
 use bayou_session::diagnostics::prelude::*;
 use bayou_session::diagnostics::span::Span;
 use bayou_utils::peek::Peek;
@@ -93,6 +92,7 @@ impl Parser {
 
         Ok(FuncDecl {
             ident,
+
             ret_ty,
             block,
         })
@@ -212,13 +212,12 @@ impl Parser {
                 self.tokens.next();
 
                 let ident = self.parse_ident()?;
-
                 self.expect(TokenKind::Colon)?;
                 let ty = self.parse_type()?;
-
                 self.expect(TokenKind::Assign)?;
                 let expr = self.parse_expr()?;
                 self.expect_or_recover(TokenKind::Semicolon);
+
                 Ok(Stmt::Assign { ident, ty, expr })
             }
 
@@ -235,12 +234,12 @@ impl Parser {
         }
     }
 
-    fn parse_ident(&mut self) -> ParseResult<Spanned<Istr>> {
+    fn parse_ident(&mut self) -> ParseResult<Ident> {
         match self.tokens.next() {
             Some(Token {
-                kind: TokenKind::Identifier(ident),
+                kind: TokenKind::Identifier(istr),
                 span,
-            }) => Ok(Spanned::new(ident, span)),
+            }) => Ok(Ident { istr, span }),
 
             other => Err(self.error_expected("an identifier", other)),
         }
@@ -251,23 +250,24 @@ impl Parser {
         parse: impl FnOnce(&mut Self) -> ParseResult<T>,
         recover: impl FnOnce(&mut Self, Span) -> T,
     ) -> T {
-        let result = self.parse_spanned(parse);
-        match result.node {
+        let (result, span) = self.parse_spanned(parse);
+
+        match result {
             Ok(node) => node,
             Err(err) => {
                 self.report(err);
-                recover(self, result.span)
+                recover(self, span)
             }
         }
     }
 
-    fn parse_spanned<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> Spanned<T> {
+    fn parse_spanned<T>(&mut self, f: impl FnOnce(&mut Self) -> T) -> (T, Span) {
         let span_start = self.tokens.peek_span();
         let node = f(self);
         let span_end = self.tokens.prev_span();
 
         let span = Span::new(span_start.start, span_end.end.max(span_start.start));
-        Spanned::new(node, span)
+        (node, span)
     }
 
     fn expect(&mut self, kind: TokenKind) -> ParseResult<Token> {
@@ -381,5 +381,19 @@ impl Parser {
                 span: self.tokens.eof_span(),
             },
         }
+    }
+}
+
+pub trait Transpose {
+    type Transposed;
+
+    fn transpose(self) -> Self::Transposed;
+}
+
+impl<T, E> Transpose for (Result<T, E>, Span) {
+    type Transposed = Result<(T, Span), E>;
+
+    fn transpose(self) -> Self::Transposed {
+        self.0.map(|inner| (inner, self.1))
     }
 }

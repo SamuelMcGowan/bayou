@@ -1,5 +1,4 @@
-use bayou_interner::Istr;
-use bayou_ir::{BinOp, Spanned, Type, UnOp};
+use bayou_ir::{BinOp, Ident, Type, UnOp};
 use bayou_session::diagnostics::span::Span;
 
 use crate::Node;
@@ -17,22 +16,16 @@ pub enum Item {
 
 #[derive(Node!)]
 pub struct FuncDecl {
-    pub ident: Spanned<Istr>,
+    pub ident: Ident,
+
     pub ret_ty: Type,
     pub block: Block,
 }
 
 #[derive(Node!)]
 pub enum Stmt {
-    Assign {
-        ident: Spanned<Istr>,
-        ty: Type,
-        expr: Expr,
-    },
-    Drop {
-        expr: Expr,
-        had_semicolon: bool,
-    },
+    Assign { ident: Ident, ty: Type, expr: Expr },
+    Drop { expr: Expr, had_semicolon: bool },
     Return(Expr),
 
     ParseError,
@@ -61,7 +54,7 @@ pub enum ExprKind {
     Integer(i64),
     Bool(bool),
 
-    Var(Spanned<Istr>),
+    Var(Ident),
 
     UnOp {
         op: UnOp,

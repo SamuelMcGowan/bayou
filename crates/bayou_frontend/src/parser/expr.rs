@@ -1,8 +1,8 @@
-use bayou_ir::Spanned;
+use bayou_ir::Ident;
 use bayou_ir::{BinOp, UnOp};
 use bayou_utils::peek::Peek;
 
-use super::{ParseResult, Parser};
+use super::{ParseResult, Parser, Transpose};
 use crate::ast::*;
 use crate::token::*;
 
@@ -108,12 +108,12 @@ impl Parser {
             }
 
             Some(Token {
-                kind: TokenKind::Identifier(ident),
+                kind: TokenKind::Identifier(istr),
                 span,
             }) => {
                 self.tokens.next();
                 // TODO: rely on expression span instead of storing in ident??
-                Ok(Expr::new(ExprKind::Var(Spanned::new(ident, span)), span))
+                Ok(Expr::new(ExprKind::Var(Ident { istr, span }), span))
             }
 
             Some(t) if t.kind == TokenKind::Keyword(Keyword::Void) => {
@@ -161,12 +161,12 @@ impl Parser {
             }
 
             Some(t) if t.kind == TokenKind::LBrace => {
-                let block = self.parse_spanned(Self::parse_block).transpose()?;
-                Ok(Expr::new(ExprKind::Block(Box::new(block.node)), block.span))
+                let (block, span) = self.parse_spanned(Self::parse_block).transpose()?;
+                Ok(Expr::new(ExprKind::Block(Box::new(block)), span))
             }
 
             Some(t) if t.kind == TokenKind::Keyword(Keyword::If) => {
-                let kind = self
+                let (kind, span) = self
                     .parse_spanned(|parser| {
                         parser.tokens.next();
 
@@ -190,7 +190,7 @@ impl Parser {
                     })
                     .transpose()?;
 
-                Ok(Expr::new(kind.node, kind.span))
+                Ok(Expr::new(kind, span))
             }
 
             other => {

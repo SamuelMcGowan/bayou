@@ -109,7 +109,7 @@ impl Codegen {
         verify_function(&self.ctx.func, self.module.isa()).expect("function verification failed");
 
         // declare and define in module (not final)
-        let name = &interner[func_symbol.ident.node];
+        let name = &interner[func_symbol.ident.istr];
         let id = self
             .module
             .declare_function(name, Linkage::Export, &self.ctx.func.signature)?;
@@ -202,7 +202,7 @@ impl FuncCodegen<'_> {
         // we don't need to worry about them
 
         let local_ty = self.symbols.locals[local].ty;
-        let layout = local_ty.node.layout();
+        let layout = local_ty.layout();
 
         match layout {
             TypeLayout::Integer(ty) => {

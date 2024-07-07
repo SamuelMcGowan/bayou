@@ -4,7 +4,7 @@ use bayou_interner::Istr;
 use bayou_session::sourcemap::SourceSpan;
 use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
-use crate::{Spanned, Type};
+use crate::{IdentWithSource, Type};
 
 #[derive(Default, Debug, Clone)]
 pub struct Symbols {
@@ -19,7 +19,7 @@ impl Symbols {
         self.global_lookup.get(&name).copied()
     }
 
-    pub fn get_global_ident(&self, id: GlobalId) -> Option<Spanned<Istr, SourceSpan>> {
+    pub fn get_global_ident(&self, id: GlobalId) -> Option<IdentWithSource> {
         match id {
             GlobalId::Func(id) => self.funcs.get(id).map(|s| s.ident),
         }
@@ -31,8 +31,10 @@ declare_key_type! { pub struct FuncId; }
 
 #[derive(Debug, Clone)]
 pub struct LocalSymbol {
-    pub ident: Spanned<Istr, SourceSpan>,
-    pub ty: Spanned<Type, SourceSpan>,
+    pub ident: IdentWithSource,
+
+    pub ty: Type,
+    pub ty_span: SourceSpan,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -50,6 +52,6 @@ impl GlobalId {
 
 #[derive(Debug, Clone)]
 pub struct FunctionSymbol {
-    pub ident: Spanned<Istr, SourceSpan>,
+    pub ident: IdentWithSource,
     pub ret_ty: Type,
 }
