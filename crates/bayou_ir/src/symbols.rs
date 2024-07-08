@@ -8,6 +8,7 @@ use crate::{IdentWithSource, Type};
 
 #[derive(Default, Debug, Clone)]
 pub struct Symbols {
+    // FIXME: globals should have already been resolved by this point
     pub global_lookup: HashMap<Istr, GlobalId>,
     pub locals: KeyVec<LocalId, LocalSymbol>,
 
