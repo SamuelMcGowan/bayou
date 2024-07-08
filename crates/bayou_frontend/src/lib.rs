@@ -1,14 +1,12 @@
-use ast::Module;
-use bayou_interner::Interner;
-use bayou_session::sourcemap::SourceId;
-use lexer::Lexer;
-
 #[macro_use]
 extern crate macro_rules_attribute;
 
 mod lexer;
-mod lower;
 mod parser;
+
+mod module_global_lookup;
+
+mod lower;
 
 pub mod ast;
 pub mod token;
@@ -16,6 +14,11 @@ pub mod token;
 pub use lexer::{LexerError, LexerErrorKind, LexerResult, TokenIter};
 pub use lower::NameError;
 pub use parser::ParseError;
+
+use ast::Module;
+use bayou_interner::Interner;
+use bayou_session::sourcemap::SourceId;
+use lexer::Lexer;
 use parser::Parser;
 
 derive_alias! {
