@@ -196,8 +196,7 @@ impl<'a> TypeChecker<'a> {
         self.check_expr(&mut block.final_expr, func_id);
 
         if diverging {
-            // FIXME: use block span
-            (Some(Type::Never), block.final_expr.span)
+            (Some(Type::Never), block.span)
         } else {
             (block.final_expr.ty, block.final_expr.span)
         }

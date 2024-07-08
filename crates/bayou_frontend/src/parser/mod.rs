@@ -126,42 +126,51 @@ impl Parser {
     }
 
     fn parse_block(&mut self) -> ParseResult<Block> {
-        self.expect(TokenKind::LBrace)?;
+        let ((statements, final_expr), span) = self
+            .parse_spanned(|parser| -> ParseResult<_> {
+                parser.expect(TokenKind::LBrace)?;
 
-        let mut statements = vec![];
-        let mut final_expr = None;
+                let mut statements = vec![];
+                let mut final_expr = None;
 
-        // TODO: significantly improve recoverable parsing
+                // TODO: significantly improve recoverable parsing
 
-        while self
-            .tokens
-            .peek()
-            .is_some_and(|t| t.kind != TokenKind::RBrace)
-        {
-            let statement = self.parse_statement_or_recover();
+                while parser
+                    .tokens
+                    .peek()
+                    .is_some_and(|t| t.kind != TokenKind::RBrace)
+                {
+                    let statement = parser.parse_statement_or_recover();
 
-            match statement {
-                Stmt::Drop {
-                    expr,
-                    had_semicolon: false,
-                } if !expr.kind.stmt_semicolon_is_optional() => {
-                    final_expr = Some(expr);
-                    break;
+                    match statement {
+                        Stmt::Drop {
+                            expr,
+                            had_semicolon: false,
+                        } if !expr.kind.stmt_semicolon_is_optional() => {
+                            final_expr = Some(expr);
+                            break;
+                        }
+
+                        _ => {
+                            statements.push(statement);
+                        }
+                    }
                 }
 
-                _ => {
-                    statements.push(statement);
-                }
-            }
-        }
+                let rbrace = parser.expect(TokenKind::RBrace)?;
 
-        let rbrace = self.expect(TokenKind::RBrace)?;
+                let final_expr =
+                    final_expr.unwrap_or_else(|| Expr::new(ExprKind::Void, rbrace.span));
 
-        let final_expr = final_expr.unwrap_or_else(|| Expr::new(ExprKind::Void, rbrace.span));
+                Ok((statements, final_expr))
+            })
+            .transpose()?;
 
         Ok(Block {
             statements,
             final_expr,
+
+            span,
         })
     }
 

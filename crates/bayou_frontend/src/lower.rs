@@ -256,6 +256,8 @@ impl<'a> Lowerer<'a> {
             Some(ir::Block {
                 statements: lowered_stmts,
                 final_expr: lowered_final_expr,
+
+                span: SourceSpan::new(block.span, lowerer.source_id),
             })
         })
     }

@@ -37,6 +37,8 @@ pub enum Stmt {
 pub struct Block {
     pub statements: Vec<Stmt>,
     pub final_expr: Expr,
+
+    pub span: Span,
 }
 
 #[derive(Node!)]
