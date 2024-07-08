@@ -93,6 +93,7 @@ impl<'a> Lowerer<'a> {
                     ident: func_decl.ident.with_source(self.source_id),
 
                     ret_ty: func_decl.ret_ty,
+                    ret_ty_span: SourceSpan::new(func_decl.ret_ty_span, self.source_id),
                 }),
 
                 ast::Item::ParseError => {}

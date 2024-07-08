@@ -74,12 +74,11 @@ impl<'a> TypeChecker<'a> {
         let (block_type, block_type_span) =
             self.check_block_expr(&mut func_decl.block, func_decl.id);
 
-        // FIXME: use return type span
         let func_symbol = &self.symbols.funcs[func_decl.id];
         if let Some(block_type) = block_type {
             self.check_types_match(
                 func_symbol.ret_ty,
-                Some(func_symbol.ident.span),
+                Some(func_symbol.ret_ty_span),
                 block_type,
                 block_type_span,
             );
@@ -105,11 +104,10 @@ impl<'a> TypeChecker<'a> {
             Stmt::Return(expr) => {
                 self.check_expr(expr, func_id);
                 if let Some(ty) = expr.ty {
-                    // FIXME: use return type span
                     let func_symbol = &self.symbols.funcs[func_id];
                     self.check_types_match(
                         func_symbol.ret_ty,
-                        Some(func_symbol.ident.span),
+                        Some(func_symbol.ret_ty_span),
                         ty,
                         expr.span,
                     );

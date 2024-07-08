@@ -53,5 +53,7 @@ impl GlobalId {
 #[derive(Debug, Clone)]
 pub struct FunctionSymbol {
     pub ident: IdentWithSource,
+
     pub ret_ty: Type,
+    pub ret_ty_span: SourceSpan,
 }

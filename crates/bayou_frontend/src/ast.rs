@@ -19,6 +19,8 @@ pub struct FuncDecl {
     pub ident: Ident,
 
     pub ret_ty: Type,
+    pub ret_ty_span: Span,
+
     pub block: Block,
 }
 

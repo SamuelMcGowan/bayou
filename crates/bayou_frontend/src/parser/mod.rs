@@ -79,13 +79,15 @@ impl Parser {
         self.expect_or_recover(TokenKind::LParen);
         self.expect_or_recover(TokenKind::RParen); // TODO: change when parsing parameters?
 
-        let ret_ty = if self.eat_kind(TokenKind::Arrow) {
-            self.parse_or_recover(Self::parse_type, |parser, _| {
-                parser.seek(TokenKind::LBrace);
-                Type::Void
+        let (ret_ty, ret_ty_span) = if self.eat_kind(TokenKind::Arrow) {
+            self.parse_spanned(|parser| {
+                parser.parse_or_recover(Self::parse_type, |parser, _| {
+                    parser.seek(TokenKind::LBrace);
+                    Type::Void
+                })
             })
         } else {
-            Type::Void
+            (Type::Void, Span::empty(self.tokens.peek_span().start))
         };
 
         let block = self.parse_block()?;
@@ -94,6 +96,8 @@ impl Parser {
             ident,
 
             ret_ty,
+            ret_ty_span,
+
             block,
         })
     }
