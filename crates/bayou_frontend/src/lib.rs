@@ -51,6 +51,5 @@ pub fn load_and_parse_modules<M: ModuleLoader>(
     module_loader: &M,
     interner: &Interner,
 ) -> (ModuleTree, Vec<GatherModulesError<M>>) {
-    let module_gatherer = ModuleGatherer::new(source_map, module_loader, interner);
-    module_gatherer.run()
+    ModuleGatherer::new(source_map, module_loader, interner).run()
 }

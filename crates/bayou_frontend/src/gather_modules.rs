@@ -8,7 +8,7 @@ use bayou_session::{
 
 use crate::{
     lexer::Lexer,
-    module_tree::{DuplicateGlobal, ModuleEntry, ModulePath, ModuleTree},
+    module_tree::{DuplicateGlobalError, ModuleEntry, ModulePath, ModuleTree},
     parser::Parser,
     LexerError, ParseError,
 };
@@ -20,7 +20,7 @@ pub enum GatherModulesError<M: ModuleLoader> {
     ModuleLoaderError(M::Error),
 
     InvalidModuleName(Istr),
-    DuplicateGlobal(DuplicateGlobal),
+    DuplicateGlobal(DuplicateGlobalError),
 }
 
 pub struct ModuleGatherer<'a, 'src, M: ModuleLoader> {
@@ -53,16 +53,16 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
     pub fn run(mut self) -> (ModuleTree, Vec<GatherModulesError<M>>) {
         let mut module_tree = ModuleTree::new();
 
-        let mut load_queue = vec![module_tree.root_id()];
+        let mut modules_to_load = vec![module_tree.root_id()];
 
-        while let Some(module_id) = load_queue.pop() {
-            let path = module_tree.path(module_id);
+        while let Some(module_id) = modules_to_load.pop() {
+            let module_path = module_tree.path(module_id);
 
-            let Some(entry) = self.parse_module(path) else {
+            let Some(module_entry) = self.parse_module(module_path) else {
                 continue;
             };
 
-            *module_tree.entry_mut(module_id) = Some(entry);
+            *module_tree.entry_mut(module_id) = Some(module_entry);
 
             // TODO: use module submodules
             let submodule_names = vec![];
@@ -85,7 +85,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
                     }
                 };
 
-                load_queue.push(submodule_id);
+                modules_to_load.push(submodule_id);
             }
         }
 
@@ -93,7 +93,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
     }
 
     fn parse_module(&mut self, module_path: &ModulePath) -> Option<ModuleEntry> {
-        let source = match self.module_loader.load(module_path) {
+        let source_string = match self.module_loader.load(module_path) {
             Ok(s) => s,
             Err(err) => {
                 self.errors.push(GatherModulesError::ModuleLoaderError(err));
@@ -103,7 +103,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
 
         let (source_id, source) = self.source_map.insert_and_get(Source {
             name: module_path.display(self.interner).to_string(),
-            source,
+            source: source_string,
         });
 
         let (tokens, lexer_errors) = Lexer::new(source.source_str(), self.interner).lex();

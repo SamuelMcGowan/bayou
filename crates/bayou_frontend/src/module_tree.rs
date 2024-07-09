@@ -70,15 +70,15 @@ impl Display for DisplayModulePath<'_> {
 declare_key_type! { pub struct ModuleId; }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DuplicateGlobal {
-    pub first: GlobalId,
-    pub second: GlobalId,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GlobalId {
     Func(FuncId),
     Module(ModuleId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DuplicateGlobalError {
+    pub first: GlobalId,
+    pub second: GlobalId,
 }
 
 pub struct ModuleEntry {
@@ -142,7 +142,7 @@ impl ModuleTree {
 
     /// # Panics
     /// Panics if the module is not in the tree.
-    pub fn lookup_global(&self, module: ModuleId, name: Istr) -> Option<GlobalId> {
+    pub fn get_global(&self, module: ModuleId, name: Istr) -> Option<GlobalId> {
         let module = &self.modules[module];
         module.globals.get(&name).copied()
     }
@@ -153,19 +153,19 @@ impl ModuleTree {
         &mut self,
         parent: ModuleId,
         name: Istr,
-    ) -> Result<ModuleId, DuplicateGlobal> {
+    ) -> Result<ModuleId, DuplicateGlobalError> {
         let path = self.modules[parent].path.join(name);
 
-        let module = self.modules.insert(ModuleEntryInternal {
+        let id = self.modules.insert(ModuleEntryInternal {
             globals: HashMap::new(),
             path,
 
             entry: None,
         });
 
-        self.insert_global(parent, name, GlobalId::Module(module))?;
+        self.insert_global(parent, name, GlobalId::Module(id))?;
 
-        Ok(module)
+        Ok(id)
     }
 
     /// # Panics
@@ -175,10 +175,10 @@ impl ModuleTree {
         module: ModuleId,
         name: Istr,
         symbol_id: GlobalId,
-    ) -> Result<(), DuplicateGlobal> {
+    ) -> Result<(), DuplicateGlobalError> {
         match self.modules[module].globals.insert(name, symbol_id) {
             None => Ok(()),
-            Some(first) => Err(DuplicateGlobal {
+            Some(first) => Err(DuplicateGlobalError {
                 first,
                 second: symbol_id,
             }),
