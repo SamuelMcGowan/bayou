@@ -1,4 +1,7 @@
-use bayou_diagnostic::{sources::Cached, span::Span};
+use bayou_diagnostic::{
+    sources::{Cached, SourceMap as _},
+    span::Span,
+};
 use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
 declare_key_type! { pub struct SourceId; }
@@ -26,6 +29,11 @@ impl Source {
 impl SourceMap {
     pub fn insert(&mut self, source: Source) -> SourceId {
         self.inner.insert(Cached::new(source))
+    }
+
+    pub fn insert_and_get(&mut self, source: Source) -> (SourceId, &Cached<Source>) {
+        let id = self.insert(source);
+        (id, self.get_source(id).unwrap())
     }
 }
 

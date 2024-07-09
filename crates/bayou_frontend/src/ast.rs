@@ -3,7 +3,7 @@ use bayou_session::diagnostics::span::Span;
 
 use crate::Node;
 
-#[derive(Node!)]
+#[derive(Node!, Default)]
 pub struct Module {
     pub items: Vec<Item>,
 }

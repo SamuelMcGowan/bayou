@@ -4,21 +4,23 @@ extern crate macro_rules_attribute;
 mod lexer;
 mod parser;
 
-mod module_global_lookup;
-mod module_loader;
+mod gather_modules;
+mod module_tree;
 
 mod lower;
 
 pub mod ast;
 pub mod token;
 
+use gather_modules::{GatherModulesError, ModuleGatherer, ModuleLoader};
 pub use lexer::{LexerError, LexerErrorKind, LexerResult, TokenIter};
 pub use lower::NameError;
+use module_tree::ModuleTree;
 pub use parser::ParseError;
 
 use ast::Module;
 use bayou_interner::Interner;
-use bayou_session::sourcemap::SourceId;
+use bayou_session::sourcemap::{SourceId, SourceMap};
 use lexer::Lexer;
 use parser::Parser;
 
@@ -43,9 +45,12 @@ pub fn lower(
     lower::Lowerer::new(symbols, source_id).run(ast)
 }
 
-pub enum LoadAndParseError {
-    LexerError(LexerError),
-    ParseError(ParseError),
-}
+pub fn load_and_parse_modules<M: ModuleLoader>(
+    source_map: &mut SourceMap,
 
-// pub fn load_and_parse_modules(interner: &mut Interner)
+    module_loader: &M,
+    interner: &Interner,
+) -> (ModuleTree, Vec<GatherModulesError<M>>) {
+    let module_gatherer = ModuleGatherer::new(source_map, module_loader, interner);
+    module_gatherer.run()
+}
