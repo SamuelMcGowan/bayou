@@ -42,7 +42,7 @@ impl IntoDiagnostic<SourceId> for LexerError {
 pub type LexerResult<T> = Result<T, LexerErrorKind>;
 
 pub struct Lexer<'sess> {
-    interner: &'sess mut Interner,
+    interner: &'sess Interner,
     errors: Vec<LexerError>,
 
     all: &'sess str,
@@ -52,7 +52,7 @@ pub struct Lexer<'sess> {
 }
 
 impl<'sess> Lexer<'sess> {
-    pub fn new(source: &'sess str, interner: &'sess mut Interner) -> Self {
+    pub fn new(source: &'sess str, interner: &'sess Interner) -> Self {
         Self {
             interner,
             errors: vec![],

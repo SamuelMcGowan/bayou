@@ -42,7 +42,7 @@ impl<D: DiagnosticEmitter> PackageCompiler<'_, D> {
             .expect("source id not in sources");
 
         let (tokens, lexer_errors) =
-            bayou_frontend::lex(source.source_str(), &mut self.package.interner);
+            bayou_frontend::lex(source.source_str(), &self.package.interner);
 
         let (ast, parse_errors) = bayou_frontend::parse(tokens);
 

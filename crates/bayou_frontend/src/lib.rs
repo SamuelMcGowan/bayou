@@ -5,6 +5,7 @@ mod lexer;
 mod parser;
 
 mod module_global_lookup;
+mod module_loader;
 
 mod lower;
 
@@ -26,7 +27,7 @@ derive_alias! {
     #[derive(NodeCopy!)] = #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)];
 }
 
-pub fn lex(source: &str, interner: &mut Interner) -> (TokenIter, Vec<LexerError>) {
+pub fn lex(source: &str, interner: &Interner) -> (TokenIter, Vec<LexerError>) {
     Lexer::new(source, interner).lex()
 }
 
@@ -41,3 +42,10 @@ pub fn lower(
 ) -> Result<bayou_ir::ir::PackageIr, Vec<NameError>> {
     lower::Lowerer::new(symbols, source_id).run(ast)
 }
+
+pub enum LoadAndParseError {
+    LexerError(LexerError),
+    ParseError(ParseError),
+}
+
+// pub fn load_and_parse_modules(interner: &mut Interner)
