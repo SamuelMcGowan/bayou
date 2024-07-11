@@ -8,16 +8,16 @@ use bayou_session::{
 
 use crate::{
     lexer::Lexer,
-    module_tree::{DuplicateGlobalError, ModuleEntry, ModulePath, ModuleTree},
+    module_tree::{DuplicateGlobalError, ModulePath, ModuleTree, ParsedModule},
     parser::Parser,
     LexerError, ParseError,
 };
 
 pub enum GatherModulesError<M: ModuleLoader> {
+    ModuleLoaderError(M::Error),
+
     LexerError(LexerError),
     ParseError(ParseError),
-
-    ModuleLoaderError(M::Error),
 
     InvalidModuleName(Istr),
     DuplicateGlobal(DuplicateGlobalError),
@@ -58,11 +58,11 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
         while let Some(module_id) = modules_to_load.pop() {
             let module_path = module_tree.path(module_id);
 
-            let Some(module_entry) = self.parse_module(module_path) else {
+            let Some(parsed_module) = self.parse_module(module_path) else {
                 continue;
             };
 
-            *module_tree.entry_mut(module_id) = Some(module_entry);
+            module_tree.set_parsed_module(module_id, parsed_module);
 
             // TODO: use module submodules
             let submodule_names = vec![];
@@ -92,7 +92,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
         (module_tree, self.errors)
     }
 
-    fn parse_module(&mut self, module_path: &ModulePath) -> Option<ModuleEntry> {
+    fn parse_module(&mut self, module_path: &ModulePath) -> Option<ParsedModule> {
         let source_string = match self.module_loader.load(module_path) {
             Ok(s) => s,
             Err(err) => {
@@ -114,7 +114,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
         self.errors
             .extend(parse_errors.into_iter().map(GatherModulesError::ParseError));
 
-        Some(ModuleEntry { source_id, ast })
+        Some(ParsedModule { source_id, ast })
     }
 }
 

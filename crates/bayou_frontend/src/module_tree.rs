@@ -81,20 +81,20 @@ pub struct DuplicateGlobalError {
     pub second: GlobalId,
 }
 
-pub struct ModuleEntry {
+pub struct ParsedModule {
     pub source_id: SourceId,
     pub ast: ast::Module,
 }
 
-struct ModuleEntryInternal {
-    globals: HashMap<Istr, GlobalId>,
-    path: ModulePath,
+pub struct ModuleEntry {
+    pub globals: HashMap<Istr, GlobalId>,
+    pub path: ModulePath,
 
-    entry: Option<ModuleEntry>,
+    pub parsed: Option<ParsedModule>,
 }
 
 pub struct ModuleTree {
-    modules: KeyVec<ModuleId, ModuleEntryInternal>,
+    modules: KeyVec<ModuleId, ModuleEntry>,
     root_id: ModuleId,
 }
 
@@ -108,11 +108,11 @@ impl ModuleTree {
     pub fn new() -> Self {
         let mut modules = KeyVec::new();
 
-        let root_id = modules.insert(ModuleEntryInternal {
+        let root_id = modules.insert(ModuleEntry {
             globals: HashMap::new(),
             path: ModulePath::root(),
 
-            entry: None,
+            parsed: None,
         });
 
         Self { modules, root_id }
@@ -124,14 +124,22 @@ impl ModuleTree {
 
     /// # Panics
     /// Panics if the module is not in the tree.
-    pub fn entry(&self, module: ModuleId) -> &Option<ModuleEntry> {
-        &self.modules[module].entry
+    pub fn entry(&self, module: ModuleId) -> &ModuleEntry {
+        &self.modules[module]
     }
 
     /// # Panics
-    /// Panics if the module is not in the tree.
-    pub fn entry_mut(&mut self, module: ModuleId) -> &mut Option<ModuleEntry> {
-        &mut self.modules[module].entry
+    /// Panics if the module is not in the tree or this has already been called
+    /// for this module.
+    pub fn set_parsed_module(&mut self, module: ModuleId, parsed: ParsedModule) {
+        let entry_parsed = &mut self.modules[module].parsed;
+
+        assert!(
+            entry_parsed.is_none(),
+            "`ParsedModule` already set for this module."
+        );
+
+        *entry_parsed = Some(parsed);
     }
 
     /// # Panics
@@ -156,11 +164,11 @@ impl ModuleTree {
     ) -> Result<ModuleId, DuplicateGlobalError> {
         let path = self.modules[parent].path.join(name);
 
-        let id = self.modules.insert(ModuleEntryInternal {
+        let id = self.modules.insert(ModuleEntry {
             globals: HashMap::new(),
             path,
 
-            entry: None,
+            parsed: None,
         });
 
         self.insert_global(parent, name, GlobalId::Module(id))?;
