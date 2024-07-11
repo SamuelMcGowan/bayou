@@ -56,13 +56,13 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
         let mut modules_to_load = vec![module_tree.root_id()];
 
         while let Some(module_id) = modules_to_load.pop() {
-            let module_path = module_tree.path(module_id);
+            let module_path = &module_tree.entry(module_id).path;
 
             let Some(parsed_module) = self.parse_module(module_path) else {
                 continue;
             };
 
-            module_tree.set_parsed_module(module_id, parsed_module);
+            module_tree.entry_mut(module_id).set_parsed(parsed_module);
 
             // TODO: use module submodules
             let submodule_names = vec![];

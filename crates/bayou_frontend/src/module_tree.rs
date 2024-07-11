@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fmt::{self, Display},
+    ops::Deref,
 };
 
 use bayou_interner::{Interner, Istr};
@@ -93,6 +94,51 @@ pub struct ModuleEntry {
     pub parsed: Option<ParsedModule>,
 }
 
+impl ModuleEntry {
+    pub fn get_global(&self, name: Istr) -> Option<GlobalId> {
+        self.globals.get(&name).copied()
+    }
+}
+
+pub struct ModuleEntryMut<'a> {
+    entry: &'a mut ModuleEntry,
+}
+
+impl Deref for ModuleEntryMut<'_> {
+    type Target = ModuleEntry;
+
+    fn deref(&self) -> &Self::Target {
+        self.entry
+    }
+}
+
+impl ModuleEntryMut<'_> {
+    /// # Panics
+    /// Panics if this method has already been called for this module.
+    pub fn set_parsed(&mut self, parsed: ParsedModule) {
+        assert!(
+            self.entry.parsed.is_none(),
+            "`ParsedModule` already provided for this module"
+        );
+
+        self.entry.parsed = Some(parsed);
+    }
+
+    pub fn insert_global(
+        &mut self,
+        name: Istr,
+        global: GlobalId,
+    ) -> Result<(), DuplicateGlobalError> {
+        match self.entry.globals.insert(name, global) {
+            None => Ok(()),
+            Some(first) => Err(DuplicateGlobalError {
+                first,
+                second: global,
+            }),
+        }
+    }
+}
+
 pub struct ModuleTree {
     modules: KeyVec<ModuleId, ModuleEntry>,
     root_id: ModuleId,
@@ -129,30 +175,11 @@ impl ModuleTree {
     }
 
     /// # Panics
-    /// Panics if the module is not in the tree or this has already been called
-    /// for this module.
-    pub fn set_parsed_module(&mut self, module: ModuleId, parsed: ParsedModule) {
-        let entry_parsed = &mut self.modules[module].parsed;
-
-        assert!(
-            entry_parsed.is_none(),
-            "`ParsedModule` already set for this module."
-        );
-
-        *entry_parsed = Some(parsed);
-    }
-
-    /// # Panics
     /// Panics if the module is not in the tree.
-    pub fn path(&self, module: ModuleId) -> &ModulePath {
-        &self.modules[module].path
-    }
-
-    /// # Panics
-    /// Panics if the module is not in the tree.
-    pub fn get_global(&self, module: ModuleId, name: Istr) -> Option<GlobalId> {
-        let module = &self.modules[module];
-        module.globals.get(&name).copied()
+    pub fn entry_mut(&mut self, module: ModuleId) -> ModuleEntryMut {
+        ModuleEntryMut {
+            entry: &mut self.modules[module],
+        }
     }
 
     /// # Panics
@@ -171,25 +198,9 @@ impl ModuleTree {
             parsed: None,
         });
 
-        self.insert_global(parent, name, GlobalId::Module(id))?;
+        self.entry_mut(parent)
+            .insert_global(name, GlobalId::Module(id))?;
 
         Ok(id)
-    }
-
-    /// # Panics
-    /// Panics if the module is not in the tree.
-    pub fn insert_global(
-        &mut self,
-        module: ModuleId,
-        name: Istr,
-        symbol_id: GlobalId,
-    ) -> Result<(), DuplicateGlobalError> {
-        match self.modules[module].globals.insert(name, symbol_id) {
-            None => Ok(()),
-            Some(first) => Err(DuplicateGlobalError {
-                first,
-                second: symbol_id,
-            }),
-        }
     }
 }
