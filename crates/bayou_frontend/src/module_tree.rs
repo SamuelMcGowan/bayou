@@ -120,6 +120,12 @@ pub struct ModulePath {
 }
 
 impl ModulePath {
+    pub fn new(components: impl Into<Vec<Istr>>) -> Self {
+        Self {
+            components: components.into(),
+        }
+    }
+
     pub fn root() -> Self {
         Self { components: vec![] }
     }

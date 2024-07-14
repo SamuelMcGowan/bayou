@@ -187,3 +187,41 @@ fn module_path_to_pathbuf(
 
     path
 }
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use bayou_interner::Interner;
+
+    use crate::{gather_modules::module_path_to_pathbuf, module_tree::ModulePath};
+
+    #[test]
+    fn module_paths() {
+        let root_dir = PathBuf::from("source_dir");
+        let interner = Interner::new();
+
+        assert_eq!(
+            module_path_to_pathbuf(&ModulePath::new([]), &root_dir, &interner),
+            PathBuf::from("source_dir/main.by")
+        );
+
+        assert_eq!(
+            module_path_to_pathbuf(
+                &ModulePath::new([interner.intern("foo")]),
+                &root_dir,
+                &interner
+            ),
+            PathBuf::from("source_dir/foo.by")
+        );
+
+        assert_eq!(
+            module_path_to_pathbuf(
+                &ModulePath::new([interner.intern("foo"), interner.intern("bar")]),
+                &root_dir,
+                &interner
+            ),
+            PathBuf::from("source_dir/foo/bar.by")
+        );
+    }
+}

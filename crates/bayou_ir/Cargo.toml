@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 bayou_utils = { path = "../bayou_utils" }
 bayou_session = { path = "../bayou_session" }
-bayou_interner = { path = "../bayou_interner" }
+bayou_interner = { path = "../bayou_interner", features = ["serialize"] }
 
 macro_rules_attribute = { workspace = true }
 serde = { workspace = true }
