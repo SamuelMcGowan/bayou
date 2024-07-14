@@ -58,6 +58,8 @@ pub enum TokenKind {
 
 #[derive(NodeCopy!)]
 pub enum Keyword {
+    Submodule,
+
     Func,
     Return,
 
@@ -75,6 +77,7 @@ impl TokenKind {
     pub fn token_name(&self) -> &'static str {
         match self {
             TokenKind::Keyword(kw) => match kw {
+                Keyword::Submodule => "keyword `submodule`",
                 Keyword::Func => "keyword `func`",
                 Keyword::Return => "keyword `return`",
                 Keyword::Let => "keyword `let`",

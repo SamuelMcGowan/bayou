@@ -6,9 +6,9 @@ use crate::ast::Module;
 use crate::lexer::Lexer;
 
 fn parse(source: &str) -> (Module, Vec<ParseError>) {
-    let mut interner = Interner::new();
+    let interner = Interner::new();
 
-    let lexer = Lexer::new(source, &mut interner);
+    let lexer = Lexer::new(source, &interner);
     let (tokens, lexer_errors) = lexer.lex();
 
     assert!(lexer_errors.is_empty(), "lexer errors in parser tests");

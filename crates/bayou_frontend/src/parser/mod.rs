@@ -54,23 +54,42 @@ impl Parser {
         let mut items = vec![];
 
         while !self.tokens.at_end() {
-            match self.tokens.next() {
-                Some(t) if t.kind == TokenKind::Keyword(Keyword::Func) => {
-                    let item = self.parse_or_recover(
-                        |parser| parser.parse_func_decl().map(Item::FuncDecl),
-                        |_, _| Item::ParseError,
-                    );
+            match self.parse_item() {
+                Ok(item) => {
                     items.push(item);
                 }
 
-                other => {
-                    self.report(self.error_expected("an item", other));
-                    self.seek(TokenKind::Keyword(Keyword::Func));
+                Err(err) => {
+                    self.report(err);
+                    self.seek(&[
+                        TokenKind::Keyword(Keyword::Submodule),
+                        TokenKind::Keyword(Keyword::Func),
+                    ]);
                 }
             }
         }
 
         Module { items }
+    }
+
+    fn parse_item(&mut self) -> ParseResult<Item> {
+        match self.tokens.next() {
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::Submodule) => {
+                let ident = self.parse_ident()?;
+                self.expect(TokenKind::Semicolon)?;
+                Ok(Item::Submodule(ident))
+            }
+
+            Some(t) if t.kind == TokenKind::Keyword(Keyword::Func) => {
+                let item = self.parse_or_recover(
+                    |parser| parser.parse_func_decl().map(Item::FuncDecl),
+                    |_, _| Item::ParseError,
+                );
+                Ok(item)
+            }
+
+            other => Err(self.error_expected("an item", other)),
+        }
     }
 
     fn parse_func_decl(&mut self) -> ParseResult<FuncDecl> {
@@ -82,7 +101,7 @@ impl Parser {
         let (ret_ty, ret_ty_span) = if self.eat_kind(TokenKind::Arrow) {
             self.parse_spanned(|parser| {
                 parser.parse_or_recover(Self::parse_type, |parser, _| {
-                    parser.seek(TokenKind::LBrace);
+                    parser.seek(&[TokenKind::LBrace]);
                     Type::Void
                 })
             })
@@ -177,7 +196,7 @@ impl Parser {
     /// Always makes progress.
     fn parse_statement_or_recover(&mut self) -> Stmt {
         self.parse_or_recover(Self::parse_statement, |parser, _| {
-            parser.seek_and_consume(TokenKind::Semicolon);
+            parser.seek_and_consume(&[TokenKind::Semicolon]);
             Stmt::ParseError
         })
     }
@@ -310,13 +329,13 @@ impl Parser {
         }
     }
 
-    fn seek_and_consume(&mut self, kind: TokenKind) {
-        if self.seek(kind) {
+    fn seek_and_consume(&mut self, kinds: &[TokenKind]) {
+        if self.seek(kinds) {
             self.tokens.next();
         }
     }
 
-    fn seek(&mut self, kind: TokenKind) -> bool {
+    fn seek(&mut self, kinds: &[TokenKind]) -> bool {
         // could just use `paren_depth_stack` but this is clearer
         let mut brace_depth = 0;
 
@@ -325,7 +344,7 @@ impl Parser {
 
         loop {
             match self.tokens.peek() {
-                Some(token) if token.kind == kind => {
+                Some(token) if kinds.contains(&token.kind) => {
                     return true;
                 }
 

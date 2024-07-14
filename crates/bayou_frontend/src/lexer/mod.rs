@@ -182,6 +182,7 @@ impl<'sess> Lexer<'sess> {
         let s = &self.all[self.token_start..self.byte_pos()];
 
         match s {
+            "submodule" => TokenKind::Keyword(Keyword::Submodule),
             "func" => TokenKind::Keyword(Keyword::Func),
             "return" => TokenKind::Keyword(Keyword::Return),
             "let" => TokenKind::Keyword(Keyword::Let),

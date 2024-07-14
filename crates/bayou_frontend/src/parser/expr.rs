@@ -151,7 +151,7 @@ impl Parser {
                 self.tokens.next();
 
                 let expr = self.parse_or_recover(Self::parse_expr, |parser, span| {
-                    parser.seek(TokenKind::RParen);
+                    parser.seek(&[TokenKind::RParen]);
                     Expr::new(ExprKind::ParseError, span)
                 });
 

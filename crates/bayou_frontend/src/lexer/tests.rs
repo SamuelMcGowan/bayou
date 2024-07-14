@@ -5,9 +5,9 @@ use super::{Lexer, LexerError};
 use crate::token::Token;
 
 fn lex(source: &str) -> (Vec<Token>, Vec<LexerError>) {
-    let mut interner = Interner::new();
+    let interner = Interner::new();
 
-    let lexer = Lexer::new(source, &mut interner);
+    let lexer = Lexer::new(source, &interner);
     let (tokens, lexer_errors) = lexer.lex();
 
     (tokens.collect(), lexer_errors)
