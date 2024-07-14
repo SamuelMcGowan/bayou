@@ -3,6 +3,9 @@ name = "bayou_diagnostic"
 version = "0.1.0"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 termcolor = "1.4.1"
 unicode-width = "0.1.11"

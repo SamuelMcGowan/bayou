@@ -3,6 +3,9 @@ name = "bayou_backend"
 version = "0.1.0"
 edition = "2021"
 
+[lints]
+workspace = true
+
 [dependencies]
 bayou_ir = { path = "../bayou_ir" }
 bayou_session = { path = "../bayou_session" }
