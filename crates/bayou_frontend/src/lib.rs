@@ -12,14 +12,14 @@ mod lower;
 pub mod ast;
 pub mod token;
 
-use gather_modules::{GatherModulesError, ModuleGatherer, ModuleLoader, ParsedModule};
+use gather_modules::{GatherModulesError, ModuleGatherer, ParsedModule};
 pub use lexer::{LexerError, LexerErrorKind, LexerResult, TokenIter};
 pub use lower::NameError;
 pub use parser::ParseError;
 
 use ast::Module;
 use bayou_interner::Interner;
-use bayou_session::sourcemap::SourceMap;
+use bayou_session::{module_loader::ModuleLoader, sourcemap::SourceMap};
 use lexer::Lexer;
 use module_tree::ModuleTree;
 use parser::Parser;

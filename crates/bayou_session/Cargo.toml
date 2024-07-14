@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bayou_utils = { path = "../bayou_utils" }
+bayou_interner = { path = "../bayou_interner", features = ["serialize"] }
 bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
 
 serde = { workspace = true }

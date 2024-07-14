@@ -1,11 +1,8 @@
-use std::{
-    collections::HashMap,
-    fmt::{self, Display},
-    ops::Deref,
-};
+use std::{collections::HashMap, ops::Deref};
 
-use bayou_interner::{Interner, Istr};
+use bayou_interner::Istr;
 use bayou_ir::symbols::FuncId;
+use bayou_session::module_loader::ModulePath;
 use bayou_utils::{declare_key_type, keyvec::KeyVec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -111,68 +108,5 @@ impl ModuleEntryMut<'_> {
                 second: global,
             }),
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ModulePath {
-    components: Vec<Istr>,
-}
-
-impl ModulePath {
-    pub fn new(components: impl Into<Vec<Istr>>) -> Self {
-        Self {
-            components: components.into(),
-        }
-    }
-
-    pub fn root() -> Self {
-        Self { components: vec![] }
-    }
-
-    pub fn push(&mut self, name: Istr) {
-        self.components.push(name);
-    }
-
-    pub fn join(&self, name: Istr) -> Self {
-        let mut components = self.components.clone();
-        components.push(name);
-
-        Self { components }
-    }
-
-    pub fn name(&self) -> Option<Istr> {
-        self.components.last().copied()
-    }
-
-    pub fn components(&self) -> &[Istr] {
-        &self.components
-    }
-
-    /// # Panics
-    /// Calling [`DisplayModulePath::fmt`] panics or produces an invalid result if any of
-    /// the path components are not from this interner.
-    pub fn display<'a>(&'a self, interner: &'a Interner) -> DisplayModulePath<'a> {
-        DisplayModulePath {
-            path: self,
-            interner,
-        }
-    }
-}
-
-pub struct DisplayModulePath<'a> {
-    path: &'a ModulePath,
-    interner: &'a Interner,
-}
-
-impl Display for DisplayModulePath<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "package")?;
-
-        for &component in &self.path.components {
-            write!(f, "::{}", &self.interner[component])?;
-        }
-
-        Ok(())
     }
 }

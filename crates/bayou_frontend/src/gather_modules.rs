@@ -1,15 +1,14 @@
-use std::{collections::HashMap, fs, io, path::PathBuf};
-
 use bayou_interner::{Interner, Istr};
 use bayou_session::{
     diagnostics::sources::Source as _,
+    module_loader::{ModuleLoader, ModulePath},
     sourcemap::{Source, SourceId, SourceMap},
 };
 
 use crate::{
     ast,
     lexer::Lexer,
-    module_tree::{DuplicateGlobalError, ModuleId, ModulePath, ModuleTree},
+    module_tree::{DuplicateGlobalError, ModuleId, ModuleTree},
     parser::Parser,
     LexerError, ParseError,
 };
@@ -70,7 +69,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
             };
 
             let submodule_names = ast.items.iter().filter_map(|item| match item {
-                ast::Item::Submodule(name) => Some(*name),
+                ast::Item::Submodule(name) => Some(name),
                 _ => None,
             });
 
@@ -107,7 +106,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
     }
 
     fn parse_module(&mut self, module_path: &ModulePath) -> Option<(SourceId, ast::Module)> {
-        let source_string = match self.module_loader.load(module_path) {
+        let source_string = match self.module_loader.load_module(module_path, self.interner) {
             Ok(s) => s,
             Err(err) => {
                 self.errors.push(GatherModulesError::ModuleLoaderError(err));
@@ -129,99 +128,5 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
             .extend(parse_errors.into_iter().map(GatherModulesError::ParseError));
 
         Some((source_id, ast))
-    }
-}
-
-pub trait ModuleLoader {
-    type Error;
-
-    /// # Panics
-    /// May panic or produce a wrong result if any of the path components are
-    /// from a different interner than the this loader expects.
-    fn load(&self, path: &ModulePath) -> Result<String, Self::Error>;
-}
-
-pub struct HashMapLoader(pub HashMap<ModulePath, String>);
-
-impl ModuleLoader for HashMapLoader {
-    type Error = ();
-
-    fn load(&self, path: &ModulePath) -> Result<String, Self::Error> {
-        self.0.get(path).cloned().ok_or(())
-    }
-}
-
-pub struct FsLoader<'a> {
-    pub root_dir: PathBuf,
-    pub interner: &'a Interner,
-}
-
-impl ModuleLoader for FsLoader<'_> {
-    type Error = io::Error;
-
-    fn load(&self, path: &ModulePath) -> Result<String, Self::Error> {
-        let path = module_path_to_pathbuf(path, &self.root_dir, self.interner);
-        fs::read_to_string(path)
-    }
-}
-
-fn module_path_to_pathbuf(
-    module_path: &ModulePath,
-    root_dir: impl Into<PathBuf>,
-    interner: &Interner,
-) -> PathBuf {
-    let mut path: PathBuf = root_dir.into();
-
-    match module_path.components() {
-        [] => path.push("main.by"),
-
-        [parents @ .., name] => {
-            for &parent in parents {
-                path.push(&interner[parent]);
-            }
-
-            path.push(&interner[*name]);
-            path.set_extension("by");
-        }
-    }
-
-    path
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::PathBuf;
-
-    use bayou_interner::Interner;
-
-    use crate::{gather_modules::module_path_to_pathbuf, module_tree::ModulePath};
-
-    #[test]
-    fn module_paths() {
-        let root_dir = PathBuf::from("source_dir");
-        let interner = Interner::new();
-
-        assert_eq!(
-            module_path_to_pathbuf(&ModulePath::new([]), &root_dir, &interner),
-            PathBuf::from("source_dir/main.by")
-        );
-
-        assert_eq!(
-            module_path_to_pathbuf(
-                &ModulePath::new([interner.intern("foo")]),
-                &root_dir,
-                &interner
-            ),
-            PathBuf::from("source_dir/foo.by")
-        );
-
-        assert_eq!(
-            module_path_to_pathbuf(
-                &ModulePath::new([interner.intern("foo"), interner.intern("bar")]),
-                &root_dir,
-                &interner
-            ),
-            PathBuf::from("source_dir/foo/bar.by")
-        );
     }
 }

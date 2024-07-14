@@ -175,6 +175,7 @@ name = "bayou_session"
 version = "0.1.0"
 dependencies = [
  "bayou_diagnostic",
+ "bayou_interner",
  "bayou_utils",
  "serde",
  "target-lexicon",

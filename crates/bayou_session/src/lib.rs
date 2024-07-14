@@ -1,4 +1,5 @@
 pub mod diagnostics;
+pub mod module_loader;
 pub mod sourcemap;
 
 use diagnostics::DiagnosticEmitter;
