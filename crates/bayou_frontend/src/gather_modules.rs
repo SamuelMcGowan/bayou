@@ -69,35 +69,38 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
                 continue;
             };
 
-            parsed_modules.push(ParsedModule {
-                scope_id,
-                source_id,
-                ast,
+            let submodule_names = ast.items.iter().filter_map(|item| match item {
+                ast::Item::Submodule(name) => Some(*name),
+                _ => None,
             });
-
-            // TODO: use module submodules
-            let submodule_names = vec![];
 
             for submodule_name in submodule_names {
                 // A submodule of the root module can't be called `main` because it would
                 // clash with the root module. For now just check no modules are called `main`.
                 // TODO: handle cyclic modules properly?
-                if &self.interner[submodule_name] == "main" {
+                if &self.interner[submodule_name.istr] == "main" {
                     self.errors
-                        .push(GatherModulesError::InvalidModuleName(submodule_name));
+                        .push(GatherModulesError::InvalidModuleName(submodule_name.istr));
                     continue;
                 }
 
-                let submodule_id = match global_scope_tree.insert_module(scope_id, submodule_name) {
-                    Ok(id) => id,
-                    Err(err) => {
-                        self.errors.push(GatherModulesError::DuplicateGlobal(err));
-                        continue;
-                    }
-                };
+                let submodule_id =
+                    match global_scope_tree.insert_module(scope_id, submodule_name.istr) {
+                        Ok(id) => id,
+                        Err(err) => {
+                            self.errors.push(GatherModulesError::DuplicateGlobal(err));
+                            continue;
+                        }
+                    };
 
                 modules_to_load.push(submodule_id);
             }
+
+            parsed_modules.push(ParsedModule {
+                scope_id,
+                source_id,
+                ast,
+            });
         }
 
         (global_scope_tree, parsed_modules, self.errors)

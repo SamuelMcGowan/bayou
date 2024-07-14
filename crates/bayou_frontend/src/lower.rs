@@ -96,7 +96,7 @@ impl<'a> Lowerer<'a> {
                     ret_ty_span: SourceSpan::new(func_decl.ret_ty_span, self.source_id),
                 }),
 
-                ast::Item::ParseError => {}
+                ast::Item::Submodule(_) | ast::Item::ParseError => {}
             }
         }
     }
@@ -128,7 +128,7 @@ impl<'a> Lowerer<'a> {
                         items_lowered.push(ir::Item::FuncDecl(func_decl));
                     }
                 }
-                ast::Item::ParseError => {}
+                ast::Item::Submodule(_) | ast::Item::ParseError => {}
             }
         }
 

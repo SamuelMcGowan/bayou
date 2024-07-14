@@ -10,6 +10,7 @@ pub struct Module {
 
 #[derive(Node!)]
 pub enum Item {
+    Submodule(Ident),
     FuncDecl(FuncDecl),
     ParseError,
 }
