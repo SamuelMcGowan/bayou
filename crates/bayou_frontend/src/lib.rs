@@ -19,7 +19,7 @@ pub use parser::ParseError;
 
 use ast::Module;
 use bayou_interner::Interner;
-use bayou_session::sourcemap::{SourceId, SourceMap};
+use bayou_session::sourcemap::SourceMap;
 use lexer::Lexer;
 use module_tree::ModuleTree;
 use parser::Parser;
@@ -37,14 +37,6 @@ pub fn parse(tokens: TokenIter) -> (Module, Vec<ParseError>) {
     Parser::new(tokens).parse()
 }
 
-pub fn lower(
-    ast: ast::Module,
-    symbols: &mut bayou_ir::symbols::Symbols,
-    source_id: SourceId,
-) -> Result<bayou_ir::ir::PackageIr, Vec<NameError>> {
-    lower::Lowerer::new(symbols, source_id).run(ast)
-}
-
 pub fn load_and_parse_modules<M: ModuleLoader>(
     source_map: &mut SourceMap,
 
@@ -52,4 +44,23 @@ pub fn load_and_parse_modules<M: ModuleLoader>(
     interner: &Interner,
 ) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<M>>) {
     ModuleGatherer::new(source_map, module_loader, interner).run()
+}
+
+pub fn lower(
+    modules: &[ParsedModule],
+    module_tree: &ModuleTree,
+    symbols: &mut bayou_ir::symbols::Symbols,
+) -> Result<bayou_ir::ir::PackageIr, Vec<NameError>> {
+    let mut errors = vec![];
+    let mut package_ir = bayou_ir::ir::PackageIr::default();
+
+    for module in modules {
+        lower::ModuleLowerer::new(module, module_tree, symbols, &mut package_ir, &mut errors).run();
+    }
+
+    if errors.is_empty() {
+        Ok(package_ir)
+    } else {
+        Err(errors)
+    }
 }
