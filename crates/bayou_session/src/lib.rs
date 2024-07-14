@@ -27,7 +27,7 @@ impl<D: DiagnosticEmitter> Session<D> {
     pub fn report<Context>(
         &mut self,
         diagnostic: impl IntoDiagnostic<Context>,
-        context: Context,
+        context: &Context,
     ) -> Result<(), ErrorsEmitted> {
         let diagnostic = diagnostic.into_diagnostic(context);
         let kind = diagnostic.severity;
@@ -44,17 +44,16 @@ impl<D: DiagnosticEmitter> Session<D> {
     pub fn report_all<Context, I>(
         &mut self,
         diagnostics: I,
-        context: Context,
+        context: &Context,
     ) -> Result<(), ErrorsEmitted>
     where
-        Context: Clone,
         I: IntoIterator,
         I::Item: IntoDiagnostic<Context>,
     {
         let mut had_error = false;
 
         for diagnostic in diagnostics {
-            let diagnostic = diagnostic.into_diagnostic(context.clone());
+            let diagnostic = diagnostic.into_diagnostic(context);
             had_error |= diagnostic.severity >= Severity::Error;
             self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
         }

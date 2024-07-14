@@ -17,7 +17,7 @@ pub enum NameError {
     },
 }
 
-impl IntoDiagnostic<&Interner> for NameError {
+impl IntoDiagnostic<Interner> for NameError {
     fn into_diagnostic(self, interner: &Interner) -> Diagnostic {
         match self {
             Self::DuplicateGlobal { first, second } => {

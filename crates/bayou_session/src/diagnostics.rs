@@ -45,11 +45,11 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
 }
 
 pub trait IntoDiagnostic<Context> {
-    fn into_diagnostic(self, cx: Context) -> Diagnostic;
+    fn into_diagnostic(self, cx: &Context) -> Diagnostic;
 }
 
 impl IntoDiagnostic<()> for Diagnostic {
-    fn into_diagnostic(self, _cx: ()) -> Diagnostic {
+    fn into_diagnostic(self, _cx: &()) -> Diagnostic {
         self
     }
 }
