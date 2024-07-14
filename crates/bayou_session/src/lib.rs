@@ -14,63 +14,6 @@ use target_lexicon::Triple;
 pub struct ErrorsEmitted;
 
 /// Session shared between multiple package compilations.
-pub struct Session<D: DiagnosticEmitter> {
-    pub target: Triple,
-    pub sources: SourceMap,
-    pub diagnostics: D,
-}
-
-impl<D: DiagnosticEmitter> Session<D> {
-    pub fn new(target: Triple, diagnostics: D) -> Self {
-        Self {
-            target,
-            sources: SourceMap::default(),
-            diagnostics,
-        }
-    }
-
-    pub fn report<Context>(
-        &mut self,
-        diagnostic: impl IntoDiagnostic<Context>,
-        context: &Context,
-    ) -> Result<(), ErrorsEmitted> {
-        let diagnostic = diagnostic.into_diagnostic(context);
-        let kind = diagnostic.severity;
-
-        self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
-
-        if kind < Severity::Error {
-            Ok(())
-        } else {
-            Err(ErrorsEmitted)
-        }
-    }
-
-    pub fn report_all<Context, I>(
-        &mut self,
-        diagnostics: I,
-        context: &Context,
-    ) -> Result<(), ErrorsEmitted>
-    where
-        I: IntoIterator,
-        I::Item: IntoDiagnostic<Context>,
-    {
-        let mut had_error = false;
-
-        for diagnostic in diagnostics {
-            let diagnostic = diagnostic.into_diagnostic(context);
-            had_error |= diagnostic.severity >= Severity::Error;
-            self.diagnostics.emit_diagnostic(diagnostic, &self.sources);
-        }
-
-        if !had_error {
-            Ok(())
-        } else {
-            Err(ErrorsEmitted)
-        }
-    }
-}
-
 pub trait SessionTrait {
     type ModuleLoader: ModuleLoader;
     type PackageConfig;
@@ -122,6 +65,7 @@ pub trait SessionTrait {
     }
 }
 
+/// Session for a single package compilation.
 pub struct PackageSession<S: SessionTrait + ?Sized> {
     pub interner: Interner,
     pub module_loader: S::ModuleLoader,
@@ -130,6 +74,15 @@ pub struct PackageSession<S: SessionTrait + ?Sized> {
 pub struct TestSession {
     pub target_triple: Triple,
     pub diagnostics: Vec<Diagnostic>,
+}
+
+impl TestSession {
+    pub fn new(target_triple: Triple) -> Self {
+        Self {
+            target_triple,
+            diagnostics: vec![],
+        }
+    }
 }
 
 impl SessionTrait for TestSession {
@@ -163,6 +116,16 @@ pub struct FullSession {
 
     pub diagnostics: PrettyDiagnosticEmitter,
     pub source_map: SourceMap,
+}
+
+impl FullSession {
+    pub fn new(target_triple: Triple) -> Self {
+        Self {
+            target_triple,
+            diagnostics: PrettyDiagnosticEmitter::default(),
+            source_map: SourceMap::default(),
+        }
+    }
 }
 
 impl SessionTrait for FullSession {

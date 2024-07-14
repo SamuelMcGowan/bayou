@@ -6,9 +6,8 @@ use std::path::Path;
 use std::str::FromStr;
 
 use bayou_backend::Linker;
-use bayou_session::diagnostics::PrettyDiagnosticEmitter;
 use bayou_session::sourcemap::Source;
-use bayou_session::Session;
+use bayou_session::FullSession;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use target_lexicon::Triple;
@@ -72,7 +71,7 @@ fn run() -> CompilerResult<()> {
 
             let linker = Linker::detect(&target).ok_or(CompilerError::NoLinker)?;
 
-            let mut session = Session::new(target, PrettyDiagnosticEmitter::default());
+            let mut session = FullSession::new(target);
 
             let (name, name_stem, source) = if source {
                 ("unnamed".to_owned(), "unnamed".to_owned(), input)
@@ -93,7 +92,7 @@ fn run() -> CompilerResult<()> {
             let object = {
                 println!("compiling project `{name}`");
 
-                let source_id = session.sources.insert(Source { name, source });
+                let source_id = session.source_map.insert(Source { name, source });
 
                 compile_package(&mut session, name_stem.clone(), source_id)?
             };

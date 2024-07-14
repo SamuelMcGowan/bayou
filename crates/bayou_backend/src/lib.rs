@@ -1,6 +1,5 @@
 use bayou_ir::ir::Package;
-use bayou_session::diagnostics::DiagnosticEmitter;
-use bayou_session::Session;
+use bayou_session::SessionTrait;
 use codegen::Codegen;
 use cranelift_object::object::write::Object;
 use target_lexicon::Architecture;
@@ -28,12 +27,12 @@ pub enum BackendError {
 
 pub type BackendResult<T> = Result<T, BackendError>;
 
-pub fn run_codegen<D: DiagnosticEmitter>(
-    session: &mut Session<D>,
+pub fn run_codegen<S: SessionTrait>(
+    session: &mut S,
     package: &Package,
 ) -> BackendResult<Object<'static>> {
     // TODO: refactor codegen to fit new model
-    let mut codegen = Codegen::new(session.target.clone(), &package.name)?;
+    let mut codegen = Codegen::new(session.target_triple().clone(), &package.name)?;
     codegen.compile_package(package)?;
     codegen.finish().map(|obj| obj.object)
 }
