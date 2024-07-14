@@ -90,14 +90,15 @@ impl ModuleLoader for FsLoader {
 }
 
 pub struct HashMapLoader {
-    pub modules: HashMap<ModulePath, String>,
+    pub modules: HashMap<String, String>,
 }
 
 impl ModuleLoader for HashMapLoader {
     type Error = ();
 
-    fn load_module(&self, path: &ModulePath, _interner: &Interner) -> Result<String, Self::Error> {
-        self.modules.get(path).cloned().ok_or(())
+    fn load_module(&self, path: &ModulePath, interner: &Interner) -> Result<String, Self::Error> {
+        let path_str = path.display(interner).to_string();
+        self.modules.get(&path_str).cloned().ok_or(())
     }
 }
 
