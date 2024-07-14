@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
@@ -11,13 +13,8 @@ pub struct Cli {
 pub enum Command {
     /// Build a program.
     Build {
-        /// The input file.
-        input: String,
-
-        /// Whether the given input should be used directly as the source instead
-        /// of as the source file path.
-        #[clap(long, short, action)]
-        source: bool,
+        /// The input directory.
+        input: PathBuf,
 
         /// The output file. If not specified, prints assembly to stdout.
         #[arg(short, long)]

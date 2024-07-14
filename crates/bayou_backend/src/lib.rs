@@ -1,5 +1,5 @@
 use bayou_ir::ir::Package;
-use bayou_session::SessionTrait;
+use bayou_session::Session;
 use codegen::Codegen;
 use cranelift_object::object::write::Object;
 use target_lexicon::Architecture;
@@ -27,7 +27,7 @@ pub enum BackendError {
 
 pub type BackendResult<T> = Result<T, BackendError>;
 
-pub fn run_codegen<S: SessionTrait>(
+pub fn run_codegen<S: Session>(
     session: &mut S,
     package: &Package,
 ) -> BackendResult<Object<'static>> {

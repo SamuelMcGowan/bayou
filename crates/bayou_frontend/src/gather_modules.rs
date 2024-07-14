@@ -1,8 +1,10 @@
-use bayou_interner::{Interner, Istr};
+use bayou_interner::Interner;
+use bayou_ir::IdentWithSource;
 use bayou_session::{
-    diagnostics::sources::Source as _,
+    diagnostics::{prelude::*, sources::Source as _},
     module_loader::{ModuleLoader, ModulePath},
-    sourcemap::{Source, SourceId, SourceMap},
+    sourcemap::{Source, SourceId},
+    PackageSession, Session,
 };
 
 use crate::{
@@ -13,14 +15,44 @@ use crate::{
     LexerError, ParseError,
 };
 
-pub enum GatherModulesError<M: ModuleLoader> {
-    ModuleLoaderError(M::Error),
+pub enum GatherModulesError<S: Session> {
+    ModuleLoaderError(<S::ModuleLoader as ModuleLoader>::Error),
 
-    LexerError(LexerError),
-    ParseError(ParseError),
+    LexerError(LexerError, SourceId),
+    ParseError(ParseError, SourceId),
 
-    InvalidModuleName(Istr),
+    InvalidModuleName(IdentWithSource),
     DuplicateGlobal(DuplicateGlobalError),
+}
+
+impl<S: Session> IntoDiagnostic<Interner> for GatherModulesError<S> {
+    fn into_diagnostic(self, interner: &Interner) -> bayou_session::diagnostics::Diagnostic {
+        match self {
+            Self::ModuleLoaderError(_) => {
+                // TODO: require ModuleLoader::Error to be IntoDiagnostic
+                todo!()
+            }
+
+            Self::LexerError(err, source_id) => err.into_diagnostic(&source_id),
+            Self::ParseError(err, source_id) => err.into_diagnostic(&source_id),
+
+            Self::InvalidModuleName(name) => Diagnostic::error()
+                .with_message("invalid module name")
+                .with_snippet(Snippet::primary(
+                    format!(
+                        "`{}` is not a valid name for a module",
+                        interner.get_str(name.istr).unwrap()
+                    ),
+                    name.span.source_id,
+                    name.span.span,
+                )),
+
+            Self::DuplicateGlobal(_err) => {
+                // TODO: store source spans in duplicate global error
+                todo!()
+            }
+        }
+    }
 }
 
 pub struct ParsedModule {
@@ -30,32 +62,24 @@ pub struct ParsedModule {
     pub ast: ast::Module,
 }
 
-pub struct ModuleGatherer<'a, 'src, M: ModuleLoader> {
-    source_map: &'src mut SourceMap,
-    module_loader: &'a M,
+pub struct ModuleGatherer<'a, S: Session> {
+    session: &'a mut S,
+    package_session: &'a mut PackageSession<S>,
 
-    errors: Vec<GatherModulesError<M>>,
-
-    interner: &'a Interner,
+    errors: Vec<GatherModulesError<S>>,
 }
 
-impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
-    pub fn new(
-        source_map: &'src mut SourceMap,
-        module_loader: &'a M,
-        interner: &'a Interner,
-    ) -> Self {
+impl<'a, S: Session> ModuleGatherer<'a, S> {
+    pub fn new(session: &'a mut S, package_session: &'a mut PackageSession<S>) -> Self {
         Self {
-            source_map,
-            module_loader,
+            session,
+            package_session,
 
             errors: vec![],
-
-            interner,
         }
     }
 
-    pub fn run(mut self) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<M>>) {
+    pub fn run(mut self) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<S>>) {
         let mut global_scope_tree = ModuleTree::new();
         let mut parsed_modules = vec![];
 
@@ -69,7 +93,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
             };
 
             let submodule_names = ast.items.iter().filter_map(|item| match item {
-                ast::Item::Submodule(name) => Some(name),
+                ast::Item::Submodule(name) => Some(name.with_source(source_id)),
                 _ => None,
             });
 
@@ -77,9 +101,10 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
                 // A submodule of the root module can't be called `main` because it would
                 // clash with the root module. For now just check no modules are called `main`.
                 // TODO: handle cyclic modules properly?
-                if &self.interner[submodule_name.istr] == "main" {
+                if &self.package_session.interner[submodule_name.istr] == "main" {
+                    // span is in
                     self.errors
-                        .push(GatherModulesError::InvalidModuleName(submodule_name.istr));
+                        .push(GatherModulesError::InvalidModuleName(submodule_name));
                     continue;
                 }
 
@@ -106,7 +131,11 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
     }
 
     fn parse_module(&mut self, module_path: &ModulePath) -> Option<(SourceId, ast::Module)> {
-        let source_string = match self.module_loader.load_module(module_path, self.interner) {
+        let source_string = match self
+            .package_session
+            .module_loader
+            .load_module(module_path, &self.package_session.interner)
+        {
             Ok(s) => s,
             Err(err) => {
                 self.errors.push(GatherModulesError::ModuleLoaderError(err));
@@ -114,18 +143,27 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
             }
         };
 
-        let (source_id, source) = self.source_map.insert_and_get(Source {
-            name: module_path.display(self.interner).to_string(),
+        let (source_id, source) = self.session.source_map_mut().insert_and_get(Source {
+            name: module_path
+                .display(&self.package_session.interner)
+                .to_string(),
             source: source_string,
         });
 
-        let (tokens, lexer_errors) = Lexer::new(source.source_str(), self.interner).lex();
-        self.errors
-            .extend(lexer_errors.into_iter().map(GatherModulesError::LexerError));
+        let (tokens, lexer_errors) =
+            Lexer::new(source.source_str(), &self.package_session.interner).lex();
+        self.errors.extend(
+            lexer_errors
+                .into_iter()
+                .map(|err| GatherModulesError::LexerError(err, source_id)),
+        );
 
         let (ast, parse_errors) = Parser::new(tokens).parse();
-        self.errors
-            .extend(parse_errors.into_iter().map(GatherModulesError::ParseError));
+        self.errors.extend(
+            parse_errors
+                .into_iter()
+                .map(|err| GatherModulesError::ParseError(err, source_id)),
+        );
 
         Some((source_id, ast))
     }

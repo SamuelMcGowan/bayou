@@ -14,13 +14,17 @@ use target_lexicon::Triple;
 pub struct ErrorsEmitted;
 
 /// Session shared between multiple package compilations.
-pub trait SessionTrait {
+pub trait Session {
     type ModuleLoader: ModuleLoader;
     type PackageConfig;
 
     fn build_package_session(&self, config: Self::PackageConfig) -> PackageSession<Self>;
 
     fn target_triple(&self) -> &Triple;
+
+    fn source_map(&self) -> &SourceMap;
+    fn source_map_mut(&mut self) -> &mut SourceMap;
+
     fn emit_diagnostic(&mut self, diagnostic: Diagnostic);
 
     fn report<Context>(
@@ -66,7 +70,8 @@ pub trait SessionTrait {
 }
 
 /// Session for a single package compilation.
-pub struct PackageSession<S: SessionTrait + ?Sized> {
+pub struct PackageSession<S: Session + ?Sized> {
+    pub name: String,
     pub interner: Interner,
     pub module_loader: S::ModuleLoader,
 }
@@ -74,6 +79,7 @@ pub struct PackageSession<S: SessionTrait + ?Sized> {
 pub struct TestSession {
     pub target_triple: Triple,
     pub diagnostics: Vec<Diagnostic>,
+    pub source_map: SourceMap,
 }
 
 impl TestSession {
@@ -81,16 +87,18 @@ impl TestSession {
         Self {
             target_triple,
             diagnostics: vec![],
+            source_map: SourceMap::default(),
         }
     }
 }
 
-impl SessionTrait for TestSession {
+impl Session for TestSession {
     type ModuleLoader = HashMapLoader;
     type PackageConfig = TestSessionConfig;
 
     fn build_package_session(&self, config: Self::PackageConfig) -> PackageSession<Self> {
         PackageSession {
+            name: config.name,
             interner: Interner::new(),
             module_loader: HashMapLoader {
                 modules: config.modules,
@@ -102,12 +110,22 @@ impl SessionTrait for TestSession {
         &self.target_triple
     }
 
+    fn source_map(&self) -> &SourceMap {
+        &self.source_map
+    }
+
+    fn source_map_mut(&mut self) -> &mut SourceMap {
+        &mut self.source_map
+    }
+
     fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
         self.diagnostics.push(diagnostic);
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct TestSessionConfig {
+    pub name: String,
     pub modules: HashMap<String, String>,
 }
 
@@ -128,12 +146,13 @@ impl FullSession {
     }
 }
 
-impl SessionTrait for FullSession {
+impl Session for FullSession {
     type ModuleLoader = FsLoader;
     type PackageConfig = FullSessionConfig;
 
     fn build_package_session(&self, config: Self::PackageConfig) -> PackageSession<Self> {
         PackageSession {
+            name: config.name,
             interner: Interner::new(),
             module_loader: FsLoader {
                 root_dir: config.root_dir,
@@ -145,12 +164,22 @@ impl SessionTrait for FullSession {
         &self.target_triple
     }
 
+    fn source_map(&self) -> &SourceMap {
+        &self.source_map
+    }
+
+    fn source_map_mut(&mut self) -> &mut SourceMap {
+        &mut self.source_map
+    }
+
     fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
         self.diagnostics
             .emit_diagnostic(diagnostic, &self.source_map);
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct FullSessionConfig {
+    pub name: String,
     pub root_dir: PathBuf,
 }

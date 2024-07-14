@@ -1,13 +1,11 @@
+mod cli;
 mod compilation;
 
-mod cli;
-
-use std::path::Path;
 use std::str::FromStr;
 
 use bayou_backend::Linker;
-use bayou_session::sourcemap::Source;
 use bayou_session::FullSession;
+use bayou_session::FullSessionConfig;
 use clap::Parser as _;
 use cli::{Cli, Command};
 use target_lexicon::Triple;
@@ -60,10 +58,15 @@ fn run() -> CompilerResult<()> {
     match cli.command {
         Command::Build {
             input,
-            source,
             output,
             target,
         } => {
+            let name: String = input
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .replace(|ch: char| !(ch.is_ascii_alphanumeric() || ch == '_'), "");
+
             let target = match target {
                 Some(s) => Triple::from_str(&s)?,
                 None => Triple::host(),
@@ -73,28 +76,19 @@ fn run() -> CompilerResult<()> {
 
             let mut session = FullSession::new(target);
 
-            let (name, name_stem, source) = if source {
-                ("unnamed".to_owned(), "unnamed".to_owned(), input)
-            } else {
-                let source = std::fs::read_to_string(&input)?;
-                let name_normalised = Path::new(&input)
-                    .file_stem()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_owned();
-                (input, name_normalised, source)
-            };
-
-            let output = output.unwrap_or_else(|| name_stem.clone());
+            let output = output.unwrap_or_else(|| name.clone());
 
             // compilation
             let object = {
-                println!("compiling project `{name}`");
+                println!("compiling project `{}`", name);
 
-                let source_id = session.source_map.insert(Source { name, source });
-
-                compile_package(&mut session, name_stem.clone(), source_id)?
+                compile_package(
+                    &mut session,
+                    FullSessionConfig {
+                        name: name.clone(),
+                        root_dir: input,
+                    },
+                )?
             };
 
             // emit and link objects
@@ -103,7 +97,7 @@ fn run() -> CompilerResult<()> {
 
                 let tmp_file = TempFileBuilder::new()
                     .in_dir(tmp_dir.path())
-                    .prefix(name_stem)
+                    .prefix(name)
                     .suffix(".o")
                     .build()?;
 

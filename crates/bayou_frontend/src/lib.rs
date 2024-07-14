@@ -12,14 +12,16 @@ mod lower;
 pub mod ast;
 pub mod token;
 
-use gather_modules::{GatherModulesError, ModuleGatherer, ParsedModule};
+use bayou_ir::symbols::Symbols;
+pub use gather_modules::GatherModulesError;
+use gather_modules::{ModuleGatherer, ParsedModule};
 pub use lexer::{LexerError, LexerErrorKind, LexerResult, TokenIter};
 pub use lower::NameError;
 pub use parser::ParseError;
 
 use ast::Module;
 use bayou_interner::Interner;
-use bayou_session::{module_loader::ModuleLoader, sourcemap::SourceMap};
+use bayou_session::{PackageSession, Session};
 use lexer::Lexer;
 use module_tree::ModuleTree;
 use parser::Parser;
@@ -37,30 +39,36 @@ pub fn parse(tokens: TokenIter) -> (Module, Vec<ParseError>) {
     Parser::new(tokens).parse()
 }
 
-pub fn load_and_parse_modules<M: ModuleLoader>(
-    source_map: &mut SourceMap,
-
-    module_loader: &M,
-    interner: &Interner,
-) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<M>>) {
-    ModuleGatherer::new(source_map, module_loader, interner).run()
+pub fn load_and_parse_modules<S: Session>(
+    session: &mut S,
+    package_session: &mut PackageSession<S>,
+) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<S>>) {
+    ModuleGatherer::new(session, package_session).run()
 }
 
 pub fn lower(
     modules: &[ParsedModule],
     module_tree: &ModuleTree,
-    symbols: &mut bayou_ir::symbols::Symbols,
-) -> Result<bayou_ir::ir::PackageIr, Vec<NameError>> {
+) -> (
+    bayou_ir::ir::PackageIr,
+    bayou_ir::symbols::Symbols,
+    Vec<NameError>,
+) {
     let mut errors = vec![];
+
+    let mut symbols = Symbols::default();
     let mut package_ir = bayou_ir::ir::PackageIr::default();
 
     for module in modules {
-        lower::ModuleLowerer::new(module, module_tree, symbols, &mut package_ir, &mut errors).run();
+        lower::ModuleLowerer::new(
+            module,
+            module_tree,
+            &mut symbols,
+            &mut package_ir,
+            &mut errors,
+        )
+        .run();
     }
 
-    if errors.is_empty() {
-        Ok(package_ir)
-    } else {
-        Err(errors)
-    }
+    (package_ir, symbols, errors)
 }
