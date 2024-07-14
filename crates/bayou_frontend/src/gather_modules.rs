@@ -3,12 +3,13 @@ use std::{collections::HashMap, fs, io, path::PathBuf};
 use bayou_interner::{Interner, Istr};
 use bayou_session::{
     diagnostics::sources::Source as _,
-    sourcemap::{Source, SourceMap},
+    sourcemap::{Source, SourceId, SourceMap},
 };
 
 use crate::{
+    ast,
     lexer::Lexer,
-    module_tree::{DuplicateGlobalError, ModulePath, ModuleTree, ParsedModule},
+    module_tree::{DuplicateGlobalError, ModuleId, ModulePath, ModuleTree},
     parser::Parser,
     LexerError, ParseError,
 };
@@ -21,6 +22,13 @@ pub enum GatherModulesError<M: ModuleLoader> {
 
     InvalidModuleName(Istr),
     DuplicateGlobal(DuplicateGlobalError),
+}
+
+pub struct ParsedModule {
+    pub scope_id: ModuleId,
+    pub source_id: SourceId,
+
+    pub ast: ast::Module,
 }
 
 pub struct ModuleGatherer<'a, 'src, M: ModuleLoader> {
@@ -48,21 +56,24 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
         }
     }
 
-    /// If there were any errors, modules in the module tree might be missing
-    /// (i.e. entries might be `None`).
-    pub fn run(mut self) -> (ModuleTree, Vec<GatherModulesError<M>>) {
-        let mut module_tree = ModuleTree::new();
+    pub fn run(mut self) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<M>>) {
+        let mut global_scope_tree = ModuleTree::new();
+        let mut parsed_modules = vec![];
 
-        let mut modules_to_load = vec![module_tree.root_id()];
+        let mut modules_to_load = vec![global_scope_tree.root_id()];
 
-        while let Some(module_id) = modules_to_load.pop() {
-            let module_path = &module_tree.entry(module_id).path;
+        while let Some(scope_id) = modules_to_load.pop() {
+            let module_path = &global_scope_tree.entry(scope_id).path;
 
-            let Some(parsed_module) = self.parse_module(module_path) else {
+            let Some((source_id, ast)) = self.parse_module(module_path) else {
                 continue;
             };
 
-            module_tree.entry_mut(module_id).set_parsed(parsed_module);
+            parsed_modules.push(ParsedModule {
+                scope_id,
+                source_id,
+                ast,
+            });
 
             // TODO: use module submodules
             let submodule_names = vec![];
@@ -77,7 +88,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
                     continue;
                 }
 
-                let submodule_id = match module_tree.insert_module(module_id, submodule_name) {
+                let submodule_id = match global_scope_tree.insert_module(scope_id, submodule_name) {
                     Ok(id) => id,
                     Err(err) => {
                         self.errors.push(GatherModulesError::DuplicateGlobal(err));
@@ -89,10 +100,10 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
             }
         }
 
-        (module_tree, self.errors)
+        (global_scope_tree, parsed_modules, self.errors)
     }
 
-    fn parse_module(&mut self, module_path: &ModulePath) -> Option<ParsedModule> {
+    fn parse_module(&mut self, module_path: &ModulePath) -> Option<(SourceId, ast::Module)> {
         let source_string = match self.module_loader.load(module_path) {
             Ok(s) => s,
             Err(err) => {
@@ -114,7 +125,7 @@ impl<'a, 'src, M: ModuleLoader> ModuleGatherer<'a, 'src, M> {
         self.errors
             .extend(parse_errors.into_iter().map(GatherModulesError::ParseError));
 
-        Some(ParsedModule { source_id, ast })
+        Some((source_id, ast))
     }
 }
 

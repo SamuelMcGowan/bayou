@@ -9,21 +9,19 @@ mod module_tree;
 
 mod lower;
 
-mod scope;
-
 pub mod ast;
 pub mod token;
 
-use gather_modules::{GatherModulesError, ModuleGatherer, ModuleLoader};
+use gather_modules::{GatherModulesError, ModuleGatherer, ModuleLoader, ParsedModule};
 pub use lexer::{LexerError, LexerErrorKind, LexerResult, TokenIter};
 pub use lower::NameError;
-use module_tree::ModuleTree;
 pub use parser::ParseError;
 
 use ast::Module;
 use bayou_interner::Interner;
 use bayou_session::sourcemap::{SourceId, SourceMap};
 use lexer::Lexer;
+use module_tree::ModuleTree;
 use parser::Parser;
 
 derive_alias! {
@@ -52,6 +50,6 @@ pub fn load_and_parse_modules<M: ModuleLoader>(
 
     module_loader: &M,
     interner: &Interner,
-) -> (ModuleTree, Vec<GatherModulesError<M>>) {
+) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<M>>) {
     ModuleGatherer::new(source_map, module_loader, interner).run()
 }

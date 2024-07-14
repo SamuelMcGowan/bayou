@@ -6,10 +6,113 @@ use std::{
 
 use bayou_interner::{Interner, Istr};
 use bayou_ir::symbols::FuncId;
-use bayou_session::sourcemap::SourceId;
 use bayou_utils::{declare_key_type, keyvec::KeyVec};
 
-use crate::ast;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GlobalId {
+    Module(ModuleId),
+    Func(FuncId),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DuplicateGlobalError {
+    pub first: GlobalId,
+    pub second: GlobalId,
+}
+
+declare_key_type! { pub struct ModuleId; }
+
+pub struct ModuleTree {
+    entries: KeyVec<ModuleId, ModuleEntry>,
+    root_id: ModuleId,
+}
+
+impl Default for ModuleTree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ModuleTree {
+    pub fn new() -> Self {
+        let mut scopes = KeyVec::new();
+
+        let root_id = scopes.insert(ModuleEntry {
+            path: ModulePath::root(),
+            globals: HashMap::new(),
+        });
+
+        Self {
+            entries: scopes,
+            root_id,
+        }
+    }
+
+    pub fn root_id(&self) -> ModuleId {
+        self.root_id
+    }
+
+    pub fn entry(&self, id: ModuleId) -> &ModuleEntry {
+        &self.entries[id]
+    }
+
+    pub fn entry_mut(&mut self, id: ModuleId) -> ModuleEntryMut {
+        ModuleEntryMut {
+            inner: &mut self.entries[id],
+        }
+    }
+
+    pub fn insert_module(
+        &mut self,
+        parent: ModuleId,
+        name: Istr,
+    ) -> Result<ModuleId, DuplicateGlobalError> {
+        let path = self.entries[parent].path.join(name);
+
+        let id = self.entries.insert(ModuleEntry {
+            path,
+            globals: HashMap::new(),
+        });
+
+        self.entry_mut(parent)
+            .insert_global(name, GlobalId::Module(id))?;
+
+        Ok(id)
+    }
+}
+
+pub struct ModuleEntry {
+    pub path: ModulePath,
+    pub globals: HashMap<Istr, GlobalId>,
+}
+
+pub struct ModuleEntryMut<'a> {
+    inner: &'a mut ModuleEntry,
+}
+
+impl Deref for ModuleEntryMut<'_> {
+    type Target = ModuleEntry;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner
+    }
+}
+
+impl ModuleEntryMut<'_> {
+    pub fn insert_global(
+        &mut self,
+        name: Istr,
+        global: GlobalId,
+    ) -> Result<(), DuplicateGlobalError> {
+        match self.inner.globals.insert(name, global) {
+            None => Ok(()),
+            Some(first) => Err(DuplicateGlobalError {
+                first,
+                second: global,
+            }),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
@@ -65,142 +168,5 @@ impl Display for DisplayModulePath<'_> {
         }
 
         Ok(())
-    }
-}
-
-declare_key_type! { pub struct ModuleId; }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GlobalId {
-    Func(FuncId),
-    Module(ModuleId),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DuplicateGlobalError {
-    pub first: GlobalId,
-    pub second: GlobalId,
-}
-
-pub struct ParsedModule {
-    pub source_id: SourceId,
-    pub ast: ast::Module,
-}
-
-pub struct ModuleEntry {
-    pub globals: HashMap<Istr, GlobalId>,
-    pub path: ModulePath,
-
-    pub parsed: Option<ParsedModule>,
-}
-
-impl ModuleEntry {
-    pub fn get_global(&self, name: Istr) -> Option<GlobalId> {
-        self.globals.get(&name).copied()
-    }
-}
-
-pub struct ModuleEntryMut<'a> {
-    entry: &'a mut ModuleEntry,
-}
-
-impl Deref for ModuleEntryMut<'_> {
-    type Target = ModuleEntry;
-
-    fn deref(&self) -> &Self::Target {
-        self.entry
-    }
-}
-
-impl ModuleEntryMut<'_> {
-    /// # Panics
-    /// Panics if this method has already been called for this module.
-    pub fn set_parsed(&mut self, parsed: ParsedModule) {
-        assert!(
-            self.entry.parsed.is_none(),
-            "`ParsedModule` already provided for this module"
-        );
-
-        self.entry.parsed = Some(parsed);
-    }
-
-    pub fn insert_global(
-        &mut self,
-        name: Istr,
-        global: GlobalId,
-    ) -> Result<(), DuplicateGlobalError> {
-        match self.entry.globals.insert(name, global) {
-            None => Ok(()),
-            Some(first) => Err(DuplicateGlobalError {
-                first,
-                second: global,
-            }),
-        }
-    }
-}
-
-pub struct ModuleTree {
-    modules: KeyVec<ModuleId, ModuleEntry>,
-    root_id: ModuleId,
-}
-
-impl Default for ModuleTree {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ModuleTree {
-    pub fn new() -> Self {
-        let mut modules = KeyVec::new();
-
-        let root_id = modules.insert(ModuleEntry {
-            globals: HashMap::new(),
-            path: ModulePath::root(),
-
-            parsed: None,
-        });
-
-        Self { modules, root_id }
-    }
-
-    pub fn root_id(&self) -> ModuleId {
-        self.root_id
-    }
-
-    /// # Panics
-    /// Panics if the module is not in the tree.
-    pub fn entry(&self, module: ModuleId) -> &ModuleEntry {
-        &self.modules[module]
-    }
-
-    /// # Panics
-    /// Panics if the module is not in the tree.
-    pub fn entry_mut(&mut self, module: ModuleId) -> ModuleEntryMut {
-        ModuleEntryMut {
-            entry: &mut self.modules[module],
-        }
-    }
-
-    /// # Panics
-    /// Panics if the parent module is not in the tree.
-    pub fn insert_module(
-        &mut self,
-        parent: ModuleId,
-        name: Istr,
-    ) -> Result<ModuleId, DuplicateGlobalError> {
-        let path = self.modules[parent].path.join(name);
-
-        let id = self.modules.insert(ModuleEntry {
-            globals: HashMap::new(),
-            path,
-
-            parsed: None,
-        });
-
-        self.entry_mut(parent)
-            .insert_global(name, GlobalId::Module(id))?;
-
-        Ok(id)
     }
 }
