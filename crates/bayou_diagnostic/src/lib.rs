@@ -15,7 +15,7 @@ use self::sources::SourceMap;
 use self::span::Span;
 
 #[cfg_attr(feature = "serialize", derive(Serialize))]
-#[derive_where(Debug; S::SourceId)]
+#[derive_where(Debug, Clone; S::SourceId)]
 pub struct Diagnostic<S: SourceMap> {
     pub severity: Severity,
 
@@ -86,7 +86,7 @@ impl fmt::Display for Severity {
 }
 
 #[cfg_attr(feature = "serialize", derive(serde::Serialize))]
-#[derive_where(Debug; S::SourceId)]
+#[derive_where(Debug, Clone; S::SourceId)]
 pub struct Snippet<S: SourceMap> {
     label: String,
     kind: SnippetKind,
@@ -131,7 +131,7 @@ pub enum SnippetKind {
     Secondary,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config {
     pub context_size: usize,
 

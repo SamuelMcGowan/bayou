@@ -12,7 +12,7 @@ use crate::ast::*;
 use crate::lexer::TokenIter;
 use crate::token::{Keyword, Token, TokenKind};
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug, Clone)]
 pub struct ParseError {
     pub expected: String,
     pub span: Span,
@@ -32,6 +32,7 @@ impl IntoDiagnostic<SourceId> for ParseError {
 
 pub type ParseResult<T> = Result<T, ParseError>;
 
+#[derive(Debug, Clone)]
 pub struct Parser {
     tokens: TokenIter,
     errors: Vec<ParseError>,

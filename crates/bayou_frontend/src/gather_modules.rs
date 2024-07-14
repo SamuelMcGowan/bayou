@@ -6,6 +6,7 @@ use bayou_session::{
     sourcemap::{Source, SourceId},
     PackageSession, Session,
 };
+use derive_where::derive_where;
 
 use crate::{
     ast,
@@ -15,6 +16,7 @@ use crate::{
     LexerError, ParseError,
 };
 
+#[derive_where(Debug, Clone; <S::ModuleLoader as ModuleLoader>::Error)]
 pub enum GatherModulesError<S: Session> {
     ModuleLoaderError(<S::ModuleLoader as ModuleLoader>::Error),
 
@@ -55,6 +57,7 @@ impl<S: Session> IntoDiagnostic<Interner> for GatherModulesError<S> {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ParsedModule {
     pub scope_id: ModuleId,
     pub source_id: SourceId,

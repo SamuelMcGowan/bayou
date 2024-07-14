@@ -10,7 +10,7 @@ workspace = true
 termcolor = "1.4.1"
 unicode-width = "0.1.11"
 serde = { workspace = true, optional = true }
-derive-where = "1.2.7"
+derive-where = { workspace = true }
 
 [features]
 serialize = ["serde"]

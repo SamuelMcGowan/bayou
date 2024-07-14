@@ -35,6 +35,7 @@
 mod arena;
 
 use std::cell::RefCell;
+use std::fmt;
 use std::num::NonZeroU32;
 use std::ops::Index;
 
@@ -87,6 +88,12 @@ struct Lookup {
 pub struct Interner {
     lookup: RefCell<Lookup>,
     arena: InternerArena,
+}
+
+impl fmt::Debug for Interner {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Interner").finish_non_exhaustive()
+    }
 }
 
 impl Interner {

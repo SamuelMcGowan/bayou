@@ -13,3 +13,4 @@ bayou_diagnostic = { path = "../bayou_diagnostic", features = ["serialize"] }
 
 serde = { workspace = true }
 target-lexicon = { workspace = true }
+thiserror = { workspace = true }

@@ -12,6 +12,7 @@ bayou_ir = { path = "../bayou_ir" }
 bayou_session = { path = "../bayou_session" }
 bayou_interner = { path = "../bayou_interner" }
 
+derive-where = { workspace = true }
 insta = { workspace = true }
 macro_rules_attribute = { workspace = true }
 serde = { workspace = true }

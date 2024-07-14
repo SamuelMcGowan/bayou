@@ -53,6 +53,7 @@ impl ModulePath {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct DisplayModulePath<'a> {
     path: &'a ModulePath,
     interner: &'a Interner,
@@ -76,6 +77,7 @@ pub trait ModuleLoader {
     fn load_module(&self, path: &ModulePath, interner: &Interner) -> Result<String, Self::Error>;
 }
 
+#[derive(Debug, Clone)]
 pub struct FsLoader {
     pub root_dir: PathBuf,
 }
@@ -89,16 +91,28 @@ impl ModuleLoader for FsLoader {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct HashMapLoader {
     pub modules: HashMap<String, String>,
 }
 
+#[derive(thiserror::Error, Debug, Clone)]
+#[error("module `{path_displayed}` not found")]
+pub struct HashMapLoaderError {
+    path_displayed: String,
+}
+
 impl ModuleLoader for HashMapLoader {
-    type Error = ();
+    type Error = HashMapLoaderError;
 
     fn load_module(&self, path: &ModulePath, interner: &Interner) -> Result<String, Self::Error> {
         let path_str = path.display(interner).to_string();
-        self.modules.get(&path_str).cloned().ok_or(())
+        self.modules
+            .get(&path_str)
+            .cloned()
+            .ok_or(HashMapLoaderError {
+                path_displayed: path_str,
+            })
     }
 }
 

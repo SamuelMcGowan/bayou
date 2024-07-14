@@ -19,6 +19,7 @@ pub struct DuplicateGlobalError {
 
 declare_key_type! { pub struct ModuleId; }
 
+#[derive(Debug, Clone)]
 pub struct ModuleTree {
     entries: KeyVec<ModuleId, ModuleEntry>,
     root_id: ModuleId,
@@ -78,11 +79,13 @@ impl ModuleTree {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ModuleEntry {
     pub path: ModulePath,
     pub globals: HashMap<Istr, GlobalId>,
 }
 
+#[derive(Debug)]
 pub struct ModuleEntryMut<'a> {
     inner: &'a mut ModuleEntry,
 }

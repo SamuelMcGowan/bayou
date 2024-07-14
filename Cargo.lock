@@ -133,6 +133,7 @@ dependencies = [
  "bayou_ir",
  "bayou_session",
  "bayou_utils",
+ "derive-where",
  "insta",
  "macro_rules_attribute",
  "serde",
@@ -179,6 +180,7 @@ dependencies = [
  "bayou_utils",
  "serde",
  "target-lexicon",
+ "thiserror",
 ]
 
 [[package]]

@@ -21,6 +21,7 @@ pub enum LinkerError {
     Terminated { stderr: Vec<u8> },
 }
 
+#[derive(Debug, Clone)]
 pub enum Linker {
     Gcc,
     Custom(String, Vec<String>),

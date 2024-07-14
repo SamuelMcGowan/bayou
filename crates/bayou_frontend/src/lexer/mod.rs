@@ -9,13 +9,13 @@ use bayou_utils::peek::Peek;
 
 use crate::token::*;
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, Debug, Clone, Copy)]
 pub struct LexerError {
     pub kind: LexerErrorKind,
     pub span: Span,
 }
 
-#[derive(serde::Serialize, thiserror::Error, Debug)]
+#[derive(serde::Serialize, thiserror::Error, Debug, Clone, Copy)]
 pub enum LexerErrorKind {
     #[error("unexpected character {0:?}")]
     UnexpectedChar(char),
@@ -219,6 +219,7 @@ fn is_ident(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
 }
 
+#[derive(Debug, Clone)]
 pub struct TokenIter {
     tokens: std::vec::IntoIter<Token>,
     prev_span: Span,

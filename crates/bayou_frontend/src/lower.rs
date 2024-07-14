@@ -8,6 +8,7 @@ use crate::ast;
 use crate::gather_modules::ParsedModule;
 use crate::module_tree::ModuleTree;
 
+#[derive(Debug, Clone, Copy)]
 pub enum NameError {
     LocalUndefined(IdentWithSource),
 

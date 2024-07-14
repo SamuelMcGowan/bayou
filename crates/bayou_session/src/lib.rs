@@ -11,6 +11,8 @@ use module_loader::{FsLoader, HashMapLoader, ModuleLoader};
 use sourcemap::SourceMap;
 use target_lexicon::Triple;
 
+#[derive(thiserror::Error, Debug, Clone, Copy)]
+#[error("errors emitted")]
 pub struct ErrorsEmitted;
 
 /// Session shared between multiple package compilations.
@@ -70,12 +72,14 @@ pub trait Session {
 }
 
 /// Session for a single package compilation.
+#[derive(Debug)]
 pub struct PackageSession<S: Session + ?Sized> {
     pub name: String,
     pub interner: Interner,
     pub module_loader: S::ModuleLoader,
 }
 
+#[derive(Debug, Clone)]
 pub struct TestSession {
     pub target_triple: Triple,
     pub diagnostics: Vec<Diagnostic>,
@@ -129,6 +133,7 @@ pub struct TestSessionConfig {
     pub modules: HashMap<String, String>,
 }
 
+#[derive(Debug)]
 pub struct FullSession {
     pub target_triple: Triple,
 

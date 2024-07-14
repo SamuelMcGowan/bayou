@@ -22,6 +22,7 @@ impl DiagnosticEmitter for Vec<Diagnostic> {
     }
 }
 
+#[derive(Debug)]
 pub struct PrettyDiagnosticEmitter {
     pub stream: StandardStream,
     pub config: Config,

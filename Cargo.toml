@@ -5,7 +5,11 @@ resolver = "2"
 [workspace.lints.clippy]
 todo = "warn"
 
+[workspace.lints.rust]
+missing_copy_implementations = "warn"
+
 [workspace.dependencies]
+derive-where = "1.2.7"
 insta = { version = "1.34.0", features = ["yaml"] }
 macro_rules_attribute = "0.2.0"
 serde = { version = "1.0.195", features = ["derive"] }
