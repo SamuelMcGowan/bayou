@@ -9,6 +9,8 @@ mod module_tree;
 
 mod lower;
 
+mod scope;
+
 pub mod ast;
 pub mod token;
 
