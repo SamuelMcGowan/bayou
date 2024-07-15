@@ -118,7 +118,7 @@ impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
             }
         }
 
-        let line_num_width = 1 + (lines.end.saturating_sub(1).max(1)).ilog10() as usize;
+        let line_num_width = 1 + (lines.end.max(1)).ilog10() as usize;
 
         // all groups have at least one snippet
         let (line_num, col_num) = source
@@ -188,7 +188,7 @@ impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
         self.stream.set_color(&self.config.subtle)?;
 
         if let Some(line) = line {
-            write!(self.stream, "{line:>line_num_width$}")?;
+            write!(self.stream, "{:>line_num_width$}", line + 1)?;
         } else {
             write!(self.stream, "{:>line_num_width$}", "")?;
         }

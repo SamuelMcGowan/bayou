@@ -3,7 +3,7 @@ use bayou_diagnostic::{Config, Diagnostic, Snippet};
 use termcolor::{ColorChoice, StandardStream};
 
 fn main() {
-    let input = "fn (x, y!) => [5 + 4)]";
+    let input = "fn (x, y!) => [5 + 4)]\n\n\n\n\n\n\n\n\naaa";
 
     let sources = vec![Cached::new(("repl".to_owned(), input.to_owned()))];
 
@@ -23,6 +23,7 @@ fn main() {
                 0,
                 20..21,
             ))
+            .with_snippet(Snippet::secondary("Also look at this", 0, 0..34))
             .with_note("Nice weather today")
             .with_suggestion("Try fixing the problem"),
     ];
