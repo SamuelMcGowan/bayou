@@ -50,7 +50,7 @@ impl ConstantAsImm for Constant {
     fn as_imm(&self) -> Option<i64> {
         match self {
             Constant::I64(n) => Some(*n),
-            Constant::Bool(b) => Some(if *b { 1 } else { 0 }),
+            Constant::Bool(b) => Some(*b as i64),
             Constant::Void => None,
         }
     }

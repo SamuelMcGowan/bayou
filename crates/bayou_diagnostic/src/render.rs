@@ -166,9 +166,9 @@ impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
         self.stream.set_color(&self.config.subtle)?;
 
         if let Some(line) = line {
-            write!(self.stream, "{line:>width$}", width = line_num_width)?;
+            write!(self.stream, "{line:>line_num_width$}")?;
         } else {
-            write!(self.stream, "{:>width$}", "", width = line_num_width)?;
+            write!(self.stream, "{:>line_num_width$}", "")?;
         }
 
         write!(self.stream, " {} ", self.config.gutter)?;
@@ -392,12 +392,12 @@ mod tests {
     use crate::{Config, Diagnostic, Snippet};
 
     #[must_use]
-    fn diagnostic_to_string<S: SourceMap>(diagnostic: Diagnostic<S>, sources: S) -> String {
+    fn diagnostic_to_string<S: SourceMap>(diagnostic: Diagnostic<S>, sources: &S) -> String {
         let config = Config::default();
         let mut stream = Ansi::new(vec![]);
 
         diagnostic
-            .write_to_stream(&sources, &config, &mut stream)
+            .write_to_stream(sources, &config, &mut stream)
             .unwrap();
 
         let bytes = stream.into_inner();
@@ -451,7 +451,7 @@ mod tests {
 
         let s = diagnostic_to_string(
             diagnostic,
-            vec![Cached::new((
+            &vec![Cached::new((
                 "main".to_owned(),
                 PathBuf::from("sample.tao"),
                 SOURCE.to_owned(),

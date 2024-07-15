@@ -31,6 +31,7 @@ impl SourceMap {
         self.inner.insert(Cached::new(source))
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn insert_and_get(&mut self, source: Source) -> (SourceId, &Cached<Source>) {
         let id = self.insert(source);
         (id, self.get_source(id).unwrap())

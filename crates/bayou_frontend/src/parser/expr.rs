@@ -28,12 +28,12 @@ enum Prec {
     // Call,
 }
 
-fn should_parse_binop_in_prec(binop: &BinOp, in_prec: Prec) -> bool {
+fn should_parse_binop_in_prec(binop: BinOp, in_prec: Prec) -> bool {
     let prec = binop_prec(binop);
     prec > in_prec || binop_is_r_assoc(binop) && prec == in_prec
 }
 
-fn binop_prec(binop: &BinOp) -> Prec {
+fn binop_prec(binop: BinOp) -> Prec {
     match binop {
         // BinOp::LogicalOr => Prec::LogicalOr,
         // BinOp::LogicalAnd => Prec::LogicalAnd,
@@ -51,7 +51,7 @@ fn binop_prec(binop: &BinOp) -> Prec {
     }
 }
 
-fn binop_is_r_assoc(_binop: &BinOp) -> bool {
+fn binop_is_r_assoc(_binop: BinOp) -> bool {
     // nothing for now, but best to keep the framework in place
     false
 }
@@ -72,7 +72,7 @@ impl Parser {
             // the token themselves
             self.tokens.next();
 
-            let rhs = self.parse_prec(binop_prec(&op))?;
+            let rhs = self.parse_prec(binop_prec(op))?;
 
             let span = expr.span.union(rhs.span);
             expr = Expr::new(
@@ -215,6 +215,6 @@ impl Parser {
             _ => return None,
         };
 
-        should_parse_binop_in_prec(&op, prec).then_some(op)
+        should_parse_binop_in_prec(op, prec).then_some(op)
     }
 }

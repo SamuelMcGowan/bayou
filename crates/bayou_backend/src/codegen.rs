@@ -29,10 +29,11 @@ impl Codegen {
 
         let flags = settings::Flags::new(flag_builder);
 
-        let isa = match isa::lookup(target.clone()) {
+        let arch = target.architecture;
+        let isa = match isa::lookup(target) {
             Ok(isa_builder) => isa_builder.finish(flags)?,
             Err(_) => {
-                return Err(BackendError::UnsupportedArch(target.architecture));
+                return Err(BackendError::UnsupportedArch(arch));
             }
         };
 
@@ -60,8 +61,8 @@ impl Codegen {
         Ok(())
     }
 
-    pub fn finish(self) -> BackendResult<ObjectProduct> {
-        Ok(self.module.finish())
+    pub fn finish(self) -> ObjectProduct {
+        self.module.finish()
     }
 
     fn gen_func_decl(
@@ -146,9 +147,9 @@ impl FuncCodegen<'_> {
         let var = Variable::new(local.0);
 
         match self.gen_expr(expr)? {
-            RValue::Value(val, ty) => {
+            RValue::Value(value, ty) => {
                 self.builder.declare_var(var, ty);
-                self.builder.def_var(var, val);
+                self.builder.def_var(var, value);
             }
             RValue::Void => {}
         }

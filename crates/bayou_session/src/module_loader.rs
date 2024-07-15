@@ -27,6 +27,7 @@ impl ModulePath {
         self.components.push(name);
     }
 
+    #[must_use]
     pub fn join(&self, name: Istr) -> Self {
         let mut components = self.components.clone();
         components.push(name);

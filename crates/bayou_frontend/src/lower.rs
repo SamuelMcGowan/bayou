@@ -90,7 +90,7 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
 
     pub fn run(mut self) {
         self.declare_globals();
-        self.lower_module()
+        self.lower_module();
     }
 
     fn declare_globals(&mut self) {
@@ -121,7 +121,7 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
             self.errors.push(NameError::DuplicateGlobal {
                 first: self.symbols.get_global_ident(first_symbol).unwrap(),
                 second: ident,
-            })
+            });
         }
     }
 
@@ -229,7 +229,7 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
                             lowered_stmts.push(ir::Stmt::Assign {
                                 local: local_id,
                                 expr,
-                            })
+                            });
                         }
                     }
 

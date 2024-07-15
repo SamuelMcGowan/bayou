@@ -3,7 +3,16 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.lints.clippy]
+# pedantic = "warn"
+
+map-unwrap-or = "warn"
+missing_panics_doc = "warn"
+redundant-else = "warn"
+return-self-not-must-use = "warn"
+semicolon-if-nothing-returned = "warn"
 todo = "warn"
+uninlined-format-args = "warn"
+unnecessary-wraps = "warn"
 
 [workspace.lints.rust]
 missing_copy_implementations = "warn"

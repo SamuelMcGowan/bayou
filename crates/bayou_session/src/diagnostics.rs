@@ -32,7 +32,7 @@ impl Default for PrettyDiagnosticEmitter {
     fn default() -> Self {
         Self {
             stream: StandardStream::stderr(ColorChoice::Auto),
-            config: Default::default(),
+            config: Config::default(),
         }
     }
 }

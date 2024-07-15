@@ -63,10 +63,10 @@ pub trait Session {
             self.emit_diagnostic(diagnostic);
         }
 
-        if !had_error {
-            Ok(())
-        } else {
+        if had_error {
             Err(ErrorsEmitted)
+        } else {
+            Ok(())
         }
     }
 }

@@ -34,5 +34,5 @@ pub fn run_codegen<S: Session>(
     // TODO: refactor codegen to fit new model
     let mut codegen = Codegen::new(session.target_triple().clone(), &package.name)?;
     codegen.compile_package(package)?;
-    codegen.finish().map(|obj| obj.object)
+    Ok(codegen.finish().object)
 }

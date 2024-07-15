@@ -361,13 +361,12 @@ impl Parser {
                 Some(token) if token.kind == TokenKind::RBrace => {
                     if brace_depth == 0 {
                         return false;
-                    } else {
-                        self.tokens.next();
-
-                        brace_depth -= 1;
-
-                        paren_depth = paren_depth_stack.pop().unwrap_or(0);
                     }
+
+                    self.tokens.next();
+
+                    brace_depth -= 1;
+                    paren_depth = paren_depth_stack.pop().unwrap_or(0);
                 }
 
                 Some(token) if token.kind == TokenKind::LParen => {
@@ -378,10 +377,10 @@ impl Parser {
                 Some(token) if token.kind == TokenKind::RParen => {
                     if paren_depth == 0 {
                         return false;
-                    } else {
-                        self.tokens.next();
-                        paren_depth -= 1;
                     }
+
+                    self.tokens.next();
+                    paren_depth -= 1;
                 }
 
                 Some(_) => {

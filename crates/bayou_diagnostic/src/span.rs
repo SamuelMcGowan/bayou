@@ -28,6 +28,7 @@ impl Span {
         self.len() == 0
     }
 
+    #[must_use]
     pub fn union(self, other: Self) -> Span {
         Span {
             start: self.start.min(other.start),

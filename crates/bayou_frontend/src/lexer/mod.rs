@@ -232,7 +232,7 @@ impl TokenIter {
     }
 
     pub fn peek_span(&self) -> Span {
-        self.peek().map(|t| t.span).unwrap_or(self.eof_span)
+        self.peek().map_or(self.eof_span, |t| t.span)
     }
 
     pub fn eof_span(&self) -> Span {

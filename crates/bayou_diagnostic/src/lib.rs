@@ -47,21 +47,25 @@ impl<S: SourceMap> Diagnostic<S> {
         Self::new(Severity::Error)
     }
 
+    #[must_use]
     pub fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = Some(message.into());
         self
     }
 
+    #[must_use]
     pub fn with_id(mut self, id: impl Into<String>) -> Self {
         self.id = Some(id.into());
         self
     }
 
+    #[must_use]
     pub fn with_snippet(mut self, snippet: Snippet<S>) -> Self {
         self.snippets.push(snippet);
         self
     }
 
+    #[must_use]
     pub fn with_snippets(mut self, snippets: impl IntoIterator<Item = Snippet<S>>) -> Self {
         self.snippets.extend(snippets);
         self

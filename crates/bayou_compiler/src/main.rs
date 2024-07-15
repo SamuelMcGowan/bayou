@@ -80,7 +80,7 @@ fn run() -> CompilerResult<()> {
 
             // compilation
             let object = {
-                println!("compiling project `{}`", name);
+                println!("compiling project `{name}`");
 
                 compile_package(
                     &mut session,
