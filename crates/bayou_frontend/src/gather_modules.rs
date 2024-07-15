@@ -2,11 +2,10 @@ use bayou_interner::Interner;
 use bayou_ir::IdentWithSource;
 use bayou_session::{
     diagnostics::{prelude::*, sources::Source as _},
-    module_loader::{ModuleLoader, ModulePath},
-    sourcemap::{Source, SourceId},
+    module_loader::{ModuleLoader, ModuleLoaderError, ModulePath},
+    sourcemap::{Source, SourceId, SourceSpan},
     PackageSession, Session,
 };
-use derive_where::derive_where;
 
 use crate::{
     ast,
@@ -16,27 +15,23 @@ use crate::{
     LexerError, ParseError,
 };
 
-#[derive_where(Debug, Clone; <S::ModuleLoader as ModuleLoader>::Error)]
-pub enum GatherModulesError<S: Session> {
-    ModuleLoaderError(<S::ModuleLoader as ModuleLoader>::Error),
+#[derive(Debug)]
+pub enum GatherModulesError {
+    ModuleLoaderError(ModuleLoaderError, Option<SourceSpan>),
+    InvalidModuleName(IdentWithSource),
 
     LexerError(LexerError, SourceId),
     ParseError(ParseError, SourceId),
 
-    InvalidModuleName(IdentWithSource),
     DuplicateGlobal(DuplicateGlobalError),
 }
 
-impl<S: Session> IntoDiagnostic<Interner> for GatherModulesError<S> {
+impl IntoDiagnostic<Interner> for GatherModulesError {
     fn into_diagnostic(self, interner: &Interner) -> bayou_session::diagnostics::Diagnostic {
         match self {
-            Self::ModuleLoaderError(_) => {
-                // TODO: require ModuleLoader::Error to be IntoDiagnostic
-                todo!()
+            Self::ModuleLoaderError(err, source_span) => {
+                err.into_diagnostic(&(source_span, interner))
             }
-
-            Self::LexerError(err, source_id) => err.into_diagnostic(&source_id),
-            Self::ParseError(err, source_id) => err.into_diagnostic(&source_id),
 
             Self::InvalidModuleName(name) => Diagnostic::error()
                 .with_message("invalid module name")
@@ -48,6 +43,9 @@ impl<S: Session> IntoDiagnostic<Interner> for GatherModulesError<S> {
                     name.span.source_id,
                     name.span.span,
                 )),
+
+            Self::LexerError(err, source_id) => err.into_diagnostic(&source_id),
+            Self::ParseError(err, source_id) => err.into_diagnostic(&source_id),
 
             Self::DuplicateGlobal(_err) => {
                 // TODO: store source spans in duplicate global error
@@ -69,7 +67,7 @@ pub struct ModuleGatherer<'a, S: Session> {
     session: &'a mut S,
     package_session: &'a mut PackageSession<S>,
 
-    errors: Vec<GatherModulesError<S>>,
+    errors: Vec<GatherModulesError>,
 }
 
 impl<'a, S: Session> ModuleGatherer<'a, S> {
@@ -82,16 +80,16 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
         }
     }
 
-    pub fn run(mut self) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<S>>) {
+    pub fn run(mut self) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError>) {
         let mut global_scope_tree = ModuleTree::new();
         let mut parsed_modules = vec![];
 
-        let mut modules_to_load = vec![global_scope_tree.root_id()];
+        let mut modules_to_load = vec![(global_scope_tree.root_id(), None)];
 
-        while let Some(scope_id) = modules_to_load.pop() {
-            let module_path = &global_scope_tree.entry(scope_id).path;
+        while let Some((module_id, span)) = modules_to_load.pop() {
+            let module_path = &global_scope_tree.entry(module_id).path;
 
-            let Some((source_id, ast)) = self.parse_module(module_path) else {
+            let Some((source_id, ast)) = self.parse_module(module_path, span) else {
                 continue;
             };
 
@@ -105,14 +103,13 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
                 // clash with the root module. For now just check no modules are called `main`.
                 // TODO: handle cyclic modules properly?
                 if &self.package_session.interner[submodule_name.istr] == "main" {
-                    // span is in
                     self.errors
                         .push(GatherModulesError::InvalidModuleName(submodule_name));
                     continue;
                 }
 
                 let submodule_id =
-                    match global_scope_tree.insert_module(scope_id, submodule_name.istr) {
+                    match global_scope_tree.insert_module(module_id, submodule_name.istr) {
                         Ok(id) => id,
                         Err(err) => {
                             self.errors.push(GatherModulesError::DuplicateGlobal(err));
@@ -120,11 +117,11 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
                         }
                     };
 
-                modules_to_load.push(submodule_id);
+                modules_to_load.push((submodule_id, Some(submodule_name.span)));
             }
 
             parsed_modules.push(ParsedModule {
-                scope_id,
+                scope_id: module_id,
                 source_id,
                 ast,
             });
@@ -133,7 +130,11 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
         (global_scope_tree, parsed_modules, self.errors)
     }
 
-    fn parse_module(&mut self, module_path: &ModulePath) -> Option<(SourceId, ast::Module)> {
+    fn parse_module(
+        &mut self,
+        module_path: &ModulePath,
+        def_source_span: Option<SourceSpan>,
+    ) -> Option<(SourceId, ast::Module)> {
         let source_string = match self
             .package_session
             .module_loader
@@ -141,7 +142,8 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
         {
             Ok(s) => s,
             Err(err) => {
-                self.errors.push(GatherModulesError::ModuleLoaderError(err));
+                self.errors
+                    .push(GatherModulesError::ModuleLoaderError(err, def_source_span));
                 return None;
             }
         };

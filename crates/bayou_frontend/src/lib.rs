@@ -42,7 +42,7 @@ pub fn parse(tokens: TokenIter) -> (Module, Vec<ParseError>) {
 pub fn load_and_parse_modules<S: Session>(
     session: &mut S,
     package_session: &mut PackageSession<S>,
-) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError<S>>) {
+) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError>) {
     ModuleGatherer::new(session, package_session).run()
 }
 

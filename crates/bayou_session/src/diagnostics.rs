@@ -45,7 +45,7 @@ impl DiagnosticEmitter for PrettyDiagnosticEmitter {
     }
 }
 
-pub trait IntoDiagnostic<Context> {
+pub trait IntoDiagnostic<Context: ?Sized> {
     fn into_diagnostic(self, cx: &Context) -> Diagnostic;
 }
 

@@ -5,7 +5,10 @@ use std::{
     path::PathBuf,
 };
 
+use bayou_diagnostic::Snippet;
 use bayou_interner::{Interner, Istr};
+
+use crate::{sourcemap::SourceSpan, Diagnostic, IntoDiagnostic};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModulePath {
@@ -73,9 +76,43 @@ impl Display for DisplayModulePath<'_> {
 }
 
 pub trait ModuleLoader {
-    type Error;
+    fn load_module(
+        &self,
+        path: &ModulePath,
+        interner: &Interner,
+    ) -> Result<String, ModuleLoaderError>;
+}
 
-    fn load_module(&self, path: &ModulePath, interner: &Interner) -> Result<String, Self::Error>;
+#[derive(Debug)]
+pub struct ModuleLoaderError {
+    pub path: ModulePath,
+    pub cause: Option<Box<dyn std::error::Error>>,
+}
+
+impl IntoDiagnostic<(Option<SourceSpan>, &Interner)> for ModuleLoaderError {
+    fn into_diagnostic(
+        self,
+        &(source_span, interner): &(Option<SourceSpan>, &Interner),
+    ) -> Diagnostic {
+        let mut diagnostic = Diagnostic::error().with_message(format!(
+            "couldn't load module `{}`",
+            self.path.display(interner)
+        ));
+
+        if let Some(source_span) = source_span {
+            diagnostic = diagnostic.with_snippet(Snippet::primary(
+                "this module",
+                source_span.source_id,
+                source_span.span,
+            ));
+        }
+
+        if let Some(cause) = &self.cause {
+            diagnostic = diagnostic.with_note(cause.to_string());
+        }
+
+        diagnostic
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -84,12 +121,24 @@ pub struct FsLoader {
 }
 
 impl ModuleLoader for FsLoader {
-    type Error = io::Error;
-
-    fn load_module(&self, path: &ModulePath, interner: &Interner) -> Result<String, Self::Error> {
-        let path = module_path_to_pathbuf(path, &self.root_dir, interner);
-        fs::read_to_string(path)
+    fn load_module(
+        &self,
+        path: &ModulePath,
+        interner: &Interner,
+    ) -> Result<String, ModuleLoaderError> {
+        let pathbuf = module_path_to_pathbuf(path, &self.root_dir, interner);
+        fs::read_to_string(&pathbuf).map_err(|io_error| ModuleLoaderError {
+            path: path.clone(),
+            cause: Some(Box::new(FsLoaderError { pathbuf, io_error })),
+        })
     }
+}
+
+#[derive(thiserror::Error, Debug)]
+#[error("error reading file `{}`: {io_error}", pathbuf.display())]
+pub struct FsLoaderError {
+    pathbuf: PathBuf,
+    io_error: io::Error,
 }
 
 #[derive(Debug, Clone)]
@@ -97,22 +146,19 @@ pub struct HashMapLoader {
     pub modules: HashMap<String, String>,
 }
 
-#[derive(thiserror::Error, Debug, Clone)]
-#[error("module `{path_displayed}` not found")]
-pub struct HashMapLoaderError {
-    path_displayed: String,
-}
-
 impl ModuleLoader for HashMapLoader {
-    type Error = HashMapLoaderError;
-
-    fn load_module(&self, path: &ModulePath, interner: &Interner) -> Result<String, Self::Error> {
+    fn load_module(
+        &self,
+        path: &ModulePath,
+        interner: &Interner,
+    ) -> Result<String, ModuleLoaderError> {
         let path_str = path.display(interner).to_string();
         self.modules
             .get(&path_str)
             .cloned()
-            .ok_or(HashMapLoaderError {
-                path_displayed: path_str,
+            .ok_or(ModuleLoaderError {
+                path: path.clone(),
+                cause: None,
             })
     }
 }
