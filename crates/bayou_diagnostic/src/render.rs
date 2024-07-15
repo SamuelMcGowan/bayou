@@ -7,6 +7,7 @@ use unicode_width::UnicodeWidthStr;
 use super::sources::{Cached, Source, SourceMap};
 use super::{Config, Diagnostic, Severity, SnippetKind};
 use crate::span::Span;
+use crate::TagKind;
 
 const TAB: &str = "    ";
 
@@ -56,6 +57,12 @@ impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
             }
         }
 
+        for (tag, message) in &self.diagnostic.tags {
+            self.draw_tag(*tag, message)?;
+        }
+
+        writeln!(self.stream)?;
+
         Ok(())
     }
 
@@ -77,6 +84,21 @@ impl<'a, W: WriteColor, S: SourceMap> DiagnosticWriter<'_, 'a, W, S> {
         self.stream.reset()?;
 
         Ok(())
+    }
+
+    fn draw_tag(&mut self, tag: TagKind, message: &str) -> io::Result<()> {
+        write!(self.stream, "{}", self.config.before_tag)?;
+
+        match tag {
+            TagKind::Note => self.stream.set_color(&self.config.note_color)?,
+            TagKind::Suggestion => self.stream.set_color(&self.config.suggestion_color)?,
+        }
+
+        write!(self.stream, "{tag}:")?;
+
+        self.stream.reset()?;
+
+        writeln!(self.stream, " {message}")
     }
 
     fn draw_group(

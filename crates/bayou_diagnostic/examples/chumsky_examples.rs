@@ -22,7 +22,9 @@ fn main() {
                 "Must be closed before this `)`",
                 0,
                 20..21,
-            )),
+            ))
+            .with_note("Nice weather today")
+            .with_suggestion("Try fixing the problem"),
     ];
 
     let config = Config::default();

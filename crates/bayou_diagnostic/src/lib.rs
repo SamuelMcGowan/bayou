@@ -27,6 +27,8 @@ pub struct Diagnostic<S: SourceMap> {
         serde(bound(serialize = "S::SourceId: Serialize"))
     )]
     pub snippets: Vec<Snippet<S>>,
+
+    pub tags: Vec<(TagKind, String)>,
 }
 
 impl<S: SourceMap> Diagnostic<S> {
@@ -36,6 +38,7 @@ impl<S: SourceMap> Diagnostic<S> {
             message: None,
             id: None,
             snippets: vec![],
+            tags: vec![],
         }
     }
 
@@ -68,6 +71,46 @@ impl<S: SourceMap> Diagnostic<S> {
     #[must_use]
     pub fn with_snippets(mut self, snippets: impl IntoIterator<Item = Snippet<S>>) -> Self {
         self.snippets.extend(snippets);
+        self
+    }
+
+    #[must_use]
+    pub fn with_note(self, note: impl Into<String>) -> Self {
+        self.with_tag(TagKind::Note, note)
+    }
+
+    #[must_use]
+    pub fn with_notes<N: Into<String>>(self, notes: impl IntoIterator<Item = N>) -> Self {
+        self.with_tags(TagKind::Note, notes)
+    }
+
+    #[must_use]
+    pub fn with_suggestion(self, suggestion: impl Into<String>) -> Self {
+        self.with_tag(TagKind::Suggestion, suggestion)
+    }
+
+    #[must_use]
+    pub fn with_suggestions<T: Into<String>>(
+        self,
+        suggestions: impl IntoIterator<Item = T>,
+    ) -> Self {
+        self.with_tags(TagKind::Suggestion, suggestions)
+    }
+
+    #[must_use]
+    pub fn with_tag(mut self, kind: TagKind, message: impl Into<String>) -> Self {
+        self.tags.push((kind, message.into()));
+        self
+    }
+
+    #[must_use]
+    pub fn with_tags<N: Into<String>>(
+        mut self,
+        kind: TagKind,
+        messages: impl IntoIterator<Item = N>,
+    ) -> Self {
+        self.tags
+            .extend(messages.into_iter().map(|msg| (kind, msg.into())));
         self
     }
 }
@@ -135,12 +178,32 @@ pub enum SnippetKind {
     Secondary,
 }
 
+#[cfg_attr(feature = "serialize", derive(serde::Serialize))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TagKind {
+    Note,
+    Suggestion,
+}
+
+impl fmt::Display for TagKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let s = match self {
+            Self::Note => "Note",
+            Self::Suggestion => "Suggestion",
+        };
+        write!(f, "{s}")
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub context_size: usize,
 
     pub error_color: ColorSpec,
     pub warning_color: ColorSpec,
+
+    pub note_color: ColorSpec,
+    pub suggestion_color: ColorSpec,
 
     pub emphasis: ColorSpec,
     pub subtle: ColorSpec,
@@ -155,6 +218,8 @@ pub struct Config {
 
     pub underline: &'static str,
     pub underline_after: &'static str,
+
+    pub before_tag: &'static str,
 }
 
 impl Default for Config {
@@ -167,19 +232,31 @@ impl Default for Config {
         warning_color.set_fg(Some(Color::Yellow));
         warning_color.set_bold(true);
 
-        let mut subtle = ColorSpec::new();
-        subtle.set_italic(true);
-        subtle.set_dimmed(true);
+        let mut note_color = ColorSpec::new();
+        note_color.set_fg(Some(Color::Blue));
+        note_color.set_bold(true);
+
+        let mut suggestion_color = ColorSpec::new();
+        suggestion_color.set_fg(Some(Color::Green));
+        suggestion_color.set_bold(true);
 
         let mut emphasis = ColorSpec::new();
         // emphasis.set_fg(Some(Color::Blue));
         emphasis.set_bold(true);
+
+        let mut subtle = ColorSpec::new();
+        subtle.set_italic(true);
+        subtle.set_dimmed(true);
 
         Self {
             context_size: 2,
 
             error_color,
             warning_color,
+
+            note_color,
+            suggestion_color,
+
             emphasis,
             subtle,
 
@@ -193,6 +270,8 @@ impl Default for Config {
 
             underline: "^",
             underline_after: "  ",
+
+            before_tag: "  + ",
         }
     }
 }
