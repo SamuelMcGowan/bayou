@@ -10,7 +10,7 @@ use bayou_session::{
 use crate::{
     ast,
     lexer::Lexer,
-    module_tree::{DuplicateGlobalError, ModuleId, ModuleTree},
+    module_tree::{GlobalId, ModuleId, ModuleTree},
     parser::Parser,
     LexerError, ParseError,
 };
@@ -23,7 +23,7 @@ pub enum GatherModulesError {
     LexerError(LexerError, SourceId),
     ParseError(ParseError, SourceId),
 
-    DuplicateGlobal(DuplicateGlobalError),
+    DuplicateGlobal(IdentWithSource),
 }
 
 impl IntoDiagnostic<Interner> for GatherModulesError {
@@ -81,13 +81,13 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
     }
 
     pub fn run(mut self) -> (ModuleTree, Vec<ParsedModule>, Vec<GatherModulesError>) {
-        let mut global_scope_tree = ModuleTree::new();
+        let mut module_tree = ModuleTree::new();
         let mut parsed_modules = vec![];
 
-        let mut modules_to_load = vec![(global_scope_tree.root_id(), None)];
+        let mut modules_to_load = vec![(module_tree.root_id(), None)];
 
         while let Some((module_id, span)) = modules_to_load.pop() {
-            let module_path = &global_scope_tree.entry(module_id).path;
+            let module_path = &module_tree.entry(module_id).path;
 
             let Some((source_id, ast)) = self.parse_module(module_path, span) else {
                 continue;
@@ -108,13 +108,20 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
                     continue;
                 }
 
-                let submodule_id = match global_scope_tree.insert_module(module_id, submodule_name)
-                {
+                let submodule_id = match module_tree.insert_module(module_id, submodule_name) {
                     Ok(id) => id,
-                    Err(err) => {
-                        self.errors.push(GatherModulesError::DuplicateGlobal(err));
+
+                    Err(GlobalId::Module(first_module_id)) => {
+                        // module must have an identifier, otherwise there would be no error
+                        let first_module_ident = module_tree.entry(first_module_id).ident.unwrap();
+
+                        self.errors
+                            .push(GatherModulesError::DuplicateGlobal(first_module_ident));
+
                         continue;
                     }
+
+                    Err(_) => unreachable!(),
                 };
 
                 modules_to_load.push((submodule_id, Some(submodule_name.span)));
@@ -127,7 +134,7 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
             });
         }
 
-        (global_scope_tree, parsed_modules, self.errors)
+        (module_tree, parsed_modules, self.errors)
     }
 
     fn parse_module(

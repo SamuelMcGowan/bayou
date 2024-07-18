@@ -48,7 +48,8 @@ pub fn load_and_parse_modules<S: Session>(
 
 pub fn lower(
     modules: &[ParsedModule],
-    module_tree: &ModuleTree,
+    module_tree: &mut ModuleTree,
+    interner: &Interner,
 ) -> (
     bayou_ir::ir::PackageIr,
     bayou_ir::symbols::Symbols,
@@ -66,6 +67,7 @@ pub fn lower(
             &mut symbols,
             &mut package_ir,
             &mut errors,
+            interner,
         )
         .run();
     }

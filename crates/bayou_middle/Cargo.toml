@@ -7,4 +7,3 @@ edition = "2021"
 bayou_utils = { path = "../bayou_utils" }
 bayou_ir = { path = "../bayou_ir" }
 bayou_session = { path = "../bayou_session" }
-bayou_interner = { path = "../bayou_interner" }

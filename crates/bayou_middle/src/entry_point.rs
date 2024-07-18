@@ -1,5 +1,5 @@
-use bayou_interner::Interner;
-use bayou_ir::symbols::{GlobalId, Symbols};
+use bayou_ir::ir::PackageIr;
+use bayou_ir::symbols::Symbols;
 use bayou_ir::Type;
 use bayou_session::diagnostics::prelude::*;
 use bayou_session::sourcemap::SourceSpan;
@@ -37,15 +37,8 @@ impl IntoDiagnostic<()> for EntrypointError {
     }
 }
 
-pub fn check_entrypoint(symbols: &Symbols, interner: &Interner) -> Result<(), EntrypointError> {
-    let main_ident_str = interner
-        .get_interned("main")
-        .ok_or(EntrypointError::Missing)?;
-
-    let main_func_id = symbols
-        .lookup_global(main_ident_str)
-        .and_then(GlobalId::as_func)
-        .ok_or(EntrypointError::Missing)?;
+pub fn check_entrypoint(ir: &PackageIr, symbols: &Symbols) -> Result<(), EntrypointError> {
+    let main_func_id = ir.main_func.ok_or(EntrypointError::Missing)?;
 
     let func = &symbols.funcs[main_func_id];
 

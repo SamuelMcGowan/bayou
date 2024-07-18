@@ -165,7 +165,6 @@ dependencies = [
 name = "bayou_middle"
 version = "0.1.0"
 dependencies = [
- "bayou_interner",
  "bayou_ir",
  "bayou_session",
  "bayou_utils",

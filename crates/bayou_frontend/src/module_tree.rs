@@ -8,12 +8,6 @@ use bayou_ir::{
 use bayou_session::module_loader::ModulePath;
 use bayou_utils::{declare_key_type, keyvec::KeyVec};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DuplicateGlobalError {
-    pub first: GlobalId,
-    pub second: GlobalId,
-}
-
 declare_key_type! { pub struct ModuleId; }
 
 #[derive(Debug, Clone)]
@@ -63,7 +57,7 @@ impl ModuleTree {
         &mut self,
         parent: ModuleId,
         ident: IdentWithSource,
-    ) -> Result<ModuleId, DuplicateGlobalError> {
+    ) -> Result<ModuleId, GlobalId> {
         let path = self.entries[parent].path.join(ident.istr);
 
         let id = self.entries.insert(ModuleEntry {
@@ -102,17 +96,10 @@ impl Deref for ModuleEntryMut<'_> {
 }
 
 impl ModuleEntryMut<'_> {
-    pub fn insert_global(
-        &mut self,
-        name: Istr,
-        global: GlobalId,
-    ) -> Result<(), DuplicateGlobalError> {
+    pub fn insert_global(&mut self, name: Istr, global: GlobalId) -> Result<(), GlobalId> {
         match self.inner.globals.insert(name, global) {
             None => Ok(()),
-            Some(first) => Err(DuplicateGlobalError {
-                first,
-                second: global,
-            }),
+            Some(first) => Err(first),
         }
     }
 }
@@ -121,6 +108,15 @@ impl ModuleEntryMut<'_> {
 pub enum GlobalId {
     Module(ModuleId),
     Func(FuncId),
+}
+
+impl GlobalId {
+    pub fn as_func(self) -> Option<FuncId> {
+        match self {
+            Self::Module(_) => None,
+            Self::Func(id) => Some(id),
+        }
+    }
 }
 
 pub fn get_global_ident(

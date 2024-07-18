@@ -6,7 +6,7 @@ use bayou_session::sourcemap::SourceSpan;
 
 use crate::ast;
 use crate::gather_modules::ParsedModule;
-use crate::module_tree::ModuleTree;
+use crate::module_tree::{get_global_ident, GlobalId, ModuleTree};
 
 #[derive(Debug, Clone, Copy)]
 pub enum NameError {
@@ -59,11 +59,13 @@ struct LocalEntry {
 
 pub struct ModuleLowerer<'a, 'b> {
     module: &'a ParsedModule,
-    module_tree: &'a ModuleTree,
+    module_tree: &'b mut ModuleTree,
 
     symbols: &'b mut Symbols,
     package_ir: &'b mut ir::PackageIr,
     errors: &'b mut Vec<NameError>,
+
+    interner: &'a Interner,
 
     local_stack: Vec<LocalEntry>,
 }
@@ -71,10 +73,13 @@ pub struct ModuleLowerer<'a, 'b> {
 impl<'a, 'b> ModuleLowerer<'a, 'b> {
     pub fn new(
         module: &'a ParsedModule,
-        module_tree: &'a ModuleTree,
+        module_tree: &'b mut ModuleTree,
+
         symbols: &'b mut Symbols,
         package_ir: &'b mut ir::PackageIr,
         errors: &'b mut Vec<NameError>,
+
+        interner: &'a Interner,
     ) -> Self {
         Self {
             module,
@@ -84,6 +89,8 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
             package_ir,
             errors,
 
+            interner,
+
             local_stack: vec![],
         }
     }
@@ -91,6 +98,21 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
     pub fn run(mut self) {
         self.declare_globals();
         self.lower_module();
+
+        if self.module.module_id == self.module_tree.root_id() {
+            self.get_main_func();
+        }
+    }
+
+    fn get_main_func(&mut self) {
+        let main_istr = self.interner.intern("main");
+
+        self.package_ir.main_func = self
+            .module_tree
+            .entry(self.module.module_id)
+            .globals
+            .get(&main_istr)
+            .and_then(|id| id.as_func());
     }
 
     fn declare_globals(&mut self) {
@@ -113,15 +135,17 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
 
         let func_id = self.symbols.funcs.insert(symbol);
 
-        if let Some(first_symbol) = self
-            .symbols
-            .global_lookup
-            .insert(ident.istr, GlobalId::Func(func_id))
+        if let Err(first_global_id) = self
+            .module_tree
+            .entry_mut(self.module.module_id)
+            .insert_global(ident.istr, GlobalId::Func(func_id))
         {
             self.errors.push(NameError::DuplicateGlobal {
-                first: self.symbols.get_global_ident(first_symbol).unwrap(),
+                // global must have an identifier, otherwise there would be no error
+                first: get_global_ident(first_global_id, &self.module_tree, &self.symbols).unwrap(),
+
                 second: ident,
-            });
+            })
         }
     }
 
@@ -145,7 +169,7 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
 
         let block = self.lower_block_expr(&func_decl.block)?;
 
-        let id = self.symbols.global_lookup[&func_decl.ident.istr]
+        let id = self.module_tree.entry(self.module.module_id).globals[&func_decl.ident.istr]
             .as_func()
             .unwrap();
 

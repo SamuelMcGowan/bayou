@@ -16,6 +16,7 @@ pub struct Package {
 #[derive(Default, NodeTraits!)]
 pub struct PackageIr {
     pub items: Vec<Item>,
+    pub main_func: Option<FuncId>,
 }
 
 #[derive(NodeTraits!)]

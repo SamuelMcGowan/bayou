@@ -10,11 +10,12 @@ pub fn compile_package<S: Session>(
 ) -> CompilerResult<Object<'static>> {
     let mut package_session = session.build_package_session(config);
 
-    let (module_tree, parsed_modules, errors) =
+    let (mut module_tree, parsed_modules, errors) =
         bayou_frontend::load_and_parse_modules(session, &mut package_session);
     session.report_all(errors, &package_session.interner)?;
 
-    let (mut ir, mut symbols, errors) = bayou_frontend::lower(&parsed_modules, &module_tree);
+    let (mut ir, mut symbols, errors) =
+        bayou_frontend::lower(&parsed_modules, &mut module_tree, &package_session.interner);
     session.report_all(errors, &package_session.interner)?;
 
     let type_checker = TypeChecker::new(&mut symbols);
@@ -23,7 +24,9 @@ pub fn compile_package<S: Session>(
     let type_errors = type_checker.run(&mut ir);
     session.report_all(type_errors, &())?;
 
-    // TODO: check entrypoint
+    if let Err(err) = bayou_middle::entry_point::check_entrypoint(&ir, &symbols) {
+        session.report(err, &())?;
+    }
 
     // TODO: remove `Package` type.
     let package = Package {
