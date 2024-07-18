@@ -1,20 +1,14 @@
 use std::{collections::HashMap, ops::Deref};
 
 use bayou_interner::Istr;
-use bayou_ir::symbols::FuncId;
+use bayou_ir::symbols::GlobalId;
 use bayou_session::module_loader::ModulePath;
 use bayou_utils::{declare_key_type, keyvec::KeyVec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GlobalId {
-    Module(ModuleId),
-    Func(FuncId),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DuplicateGlobalError {
-    pub first: GlobalId,
-    pub second: GlobalId,
+    pub first: GlobalOrModuleId,
+    pub second: GlobalOrModuleId,
 }
 
 declare_key_type! { pub struct ModuleId; }
@@ -73,7 +67,7 @@ impl ModuleTree {
         });
 
         self.entry_mut(parent)
-            .insert_global(name, GlobalId::Module(id))?;
+            .insert_global(name, GlobalOrModuleId::Module(id))?;
 
         Ok(id)
     }
@@ -82,7 +76,7 @@ impl ModuleTree {
 #[derive(Debug, Clone)]
 pub struct ModuleEntry {
     pub path: ModulePath,
-    pub globals: HashMap<Istr, GlobalId>,
+    pub globals: HashMap<Istr, GlobalOrModuleId>,
 }
 
 #[derive(Debug)]
@@ -102,7 +96,7 @@ impl ModuleEntryMut<'_> {
     pub fn insert_global(
         &mut self,
         name: Istr,
-        global: GlobalId,
+        global: GlobalOrModuleId,
     ) -> Result<(), DuplicateGlobalError> {
         match self.inner.globals.insert(name, global) {
             None => Ok(()),
@@ -112,4 +106,10 @@ impl ModuleEntryMut<'_> {
             }),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum GlobalOrModuleId {
+    Global(GlobalId),
+    Module(ModuleId),
 }

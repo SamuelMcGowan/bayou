@@ -38,7 +38,7 @@ pub struct LocalSymbol {
     pub ty_span: SourceSpan,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum GlobalId {
     Func(FuncId),
 }
