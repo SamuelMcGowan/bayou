@@ -1,14 +1,17 @@
 use std::{collections::HashMap, ops::Deref};
 
 use bayou_interner::Istr;
-use bayou_ir::{symbols::GlobalId, IdentWithSource};
+use bayou_ir::{
+    symbols::{FuncId, Symbols},
+    IdentWithSource,
+};
 use bayou_session::module_loader::ModulePath;
 use bayou_utils::{declare_key_type, keyvec::KeyVec};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DuplicateGlobalError {
-    pub first: GlobalOrModuleId,
-    pub second: GlobalOrModuleId,
+    pub first: GlobalId,
+    pub second: GlobalId,
 }
 
 declare_key_type! { pub struct ModuleId; }
@@ -30,7 +33,7 @@ impl ModuleTree {
         let mut scopes = KeyVec::new();
 
         let root_id = scopes.insert(ModuleEntry {
-            definition: None,
+            ident: None,
 
             path: ModulePath::root(),
             globals: HashMap::new(),
@@ -64,14 +67,14 @@ impl ModuleTree {
         let path = self.entries[parent].path.join(ident.istr);
 
         let id = self.entries.insert(ModuleEntry {
-            definition: Some(ident),
+            ident: Some(ident),
 
             path,
             globals: HashMap::new(),
         });
 
         self.entry_mut(parent)
-            .insert_global(ident.istr, GlobalOrModuleId::Module(id))?;
+            .insert_global(ident.istr, GlobalId::Module(id))?;
 
         Ok(id)
     }
@@ -79,10 +82,10 @@ impl ModuleTree {
 
 #[derive(Debug, Clone)]
 pub struct ModuleEntry {
-    pub definition: Option<IdentWithSource>,
+    pub ident: Option<IdentWithSource>,
 
     pub path: ModulePath,
-    pub globals: HashMap<Istr, GlobalOrModuleId>,
+    pub globals: HashMap<Istr, GlobalId>,
 }
 
 #[derive(Debug)]
@@ -102,7 +105,7 @@ impl ModuleEntryMut<'_> {
     pub fn insert_global(
         &mut self,
         name: Istr,
-        global: GlobalOrModuleId,
+        global: GlobalId,
     ) -> Result<(), DuplicateGlobalError> {
         match self.inner.globals.insert(name, global) {
             None => Ok(()),
@@ -115,7 +118,18 @@ impl ModuleEntryMut<'_> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum GlobalOrModuleId {
-    Global(GlobalId),
+pub enum GlobalId {
     Module(ModuleId),
+    Func(FuncId),
+}
+
+pub fn get_global_ident(
+    global: GlobalId,
+    modules: &ModuleTree,
+    symbols: &Symbols,
+) -> Option<IdentWithSource> {
+    match global {
+        GlobalId::Module(id) => modules.entry(id).ident,
+        GlobalId::Func(id) => Some(symbols.funcs[id].ident),
+    }
 }
