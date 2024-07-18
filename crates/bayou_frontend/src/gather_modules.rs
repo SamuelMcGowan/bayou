@@ -57,7 +57,7 @@ impl IntoDiagnostic<Interner> for GatherModulesError {
 
 #[derive(Debug, Clone)]
 pub struct ParsedModule {
-    pub scope_id: ModuleId,
+    pub module_id: ModuleId,
     pub source_id: SourceId,
 
     pub ast: ast::Module,
@@ -108,20 +108,20 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
                     continue;
                 }
 
-                let submodule_id =
-                    match global_scope_tree.insert_module(module_id, submodule_name.istr) {
-                        Ok(id) => id,
-                        Err(err) => {
-                            self.errors.push(GatherModulesError::DuplicateGlobal(err));
-                            continue;
-                        }
-                    };
+                let submodule_id = match global_scope_tree.insert_module(module_id, submodule_name)
+                {
+                    Ok(id) => id,
+                    Err(err) => {
+                        self.errors.push(GatherModulesError::DuplicateGlobal(err));
+                        continue;
+                    }
+                };
 
                 modules_to_load.push((submodule_id, Some(submodule_name.span)));
             }
 
             parsed_modules.push(ParsedModule {
-                scope_id: module_id,
+                module_id,
                 source_id,
                 ast,
             });

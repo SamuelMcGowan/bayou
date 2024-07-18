@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::Deref};
 
 use bayou_interner::Istr;
-use bayou_ir::symbols::GlobalId;
+use bayou_ir::{symbols::GlobalId, IdentWithSource};
 use bayou_session::module_loader::ModulePath;
 use bayou_utils::{declare_key_type, keyvec::KeyVec};
 
@@ -30,6 +30,8 @@ impl ModuleTree {
         let mut scopes = KeyVec::new();
 
         let root_id = scopes.insert(ModuleEntry {
+            definition: None,
+
             path: ModulePath::root(),
             globals: HashMap::new(),
         });
@@ -57,17 +59,19 @@ impl ModuleTree {
     pub fn insert_module(
         &mut self,
         parent: ModuleId,
-        name: Istr,
+        ident: IdentWithSource,
     ) -> Result<ModuleId, DuplicateGlobalError> {
-        let path = self.entries[parent].path.join(name);
+        let path = self.entries[parent].path.join(ident.istr);
 
         let id = self.entries.insert(ModuleEntry {
+            definition: Some(ident),
+
             path,
             globals: HashMap::new(),
         });
 
         self.entry_mut(parent)
-            .insert_global(name, GlobalOrModuleId::Module(id))?;
+            .insert_global(ident.istr, GlobalOrModuleId::Module(id))?;
 
         Ok(id)
     }
@@ -75,6 +79,8 @@ impl ModuleTree {
 
 #[derive(Debug, Clone)]
 pub struct ModuleEntry {
+    pub definition: Option<IdentWithSource>,
+
     pub path: ModulePath,
     pub globals: HashMap<Istr, GlobalOrModuleId>,
 }
