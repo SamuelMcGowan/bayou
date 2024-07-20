@@ -2,9 +2,9 @@ use crate::CompilerResult;
 use bayou_backend::object::write::Object;
 use bayou_ir::ir::Package;
 use bayou_middle::type_check::TypeChecker;
-use bayou_session::Session;
+use bayou_session::CodegenSession;
 
-pub fn compile_package<S: Session>(
+pub fn compile_package<S: CodegenSession>(
     session: &mut S,
     config: S::PackageConfig,
 ) -> CompilerResult<Object<'static>> {

@@ -22,8 +22,6 @@ pub trait Session {
 
     fn build_package_session(&self, config: Self::PackageConfig) -> PackageSession<Self>;
 
-    fn target_triple(&self) -> &Triple;
-
     fn source_map(&self) -> &SourceMap;
     fn source_map_mut(&mut self) -> &mut SourceMap;
 
@@ -71,6 +69,11 @@ pub trait Session {
     }
 }
 
+/// Like [`Session`] but supporting code generation.
+pub trait CodegenSession: Session {
+    fn target_triple(&self) -> &Triple;
+}
+
 /// Session for a single package compilation.
 #[derive(Debug)]
 pub struct PackageSession<S: Session + ?Sized> {
@@ -81,15 +84,13 @@ pub struct PackageSession<S: Session + ?Sized> {
 
 #[derive(Debug, Clone)]
 pub struct TestSession {
-    pub target_triple: Triple,
     pub diagnostics: Vec<Diagnostic>,
     pub source_map: SourceMap,
 }
 
 impl TestSession {
-    pub fn new(target_triple: Triple) -> Self {
+    pub fn new() -> Self {
         Self {
-            target_triple,
             diagnostics: vec![],
             source_map: SourceMap::default(),
         }
@@ -100,18 +101,15 @@ impl Session for TestSession {
     type ModuleLoader = HashMapLoader;
     type PackageConfig = TestSessionConfig;
 
-    fn build_package_session(&self, config: Self::PackageConfig) -> PackageSession<Self> {
+    fn build_package_session(
+        &self,
+        TestSessionConfig { name, modules }: Self::PackageConfig,
+    ) -> PackageSession<Self> {
         PackageSession {
-            name: config.name,
+            name,
             interner: Interner::new(),
-            module_loader: HashMapLoader {
-                modules: config.modules,
-            },
+            module_loader: HashMapLoader { modules },
         }
-    }
-
-    fn target_triple(&self) -> &Triple {
-        &self.target_triple
     }
 
     fn source_map(&self) -> &SourceMap {
@@ -155,18 +153,15 @@ impl Session for FullSession {
     type ModuleLoader = FsLoader;
     type PackageConfig = FullSessionConfig;
 
-    fn build_package_session(&self, config: Self::PackageConfig) -> PackageSession<Self> {
+    fn build_package_session(
+        &self,
+        FullSessionConfig { name, root_dir }: Self::PackageConfig,
+    ) -> PackageSession<Self> {
         PackageSession {
-            name: config.name,
+            name,
             interner: Interner::new(),
-            module_loader: FsLoader {
-                root_dir: config.root_dir,
-            },
+            module_loader: FsLoader { root_dir },
         }
-    }
-
-    fn target_triple(&self) -> &Triple {
-        &self.target_triple
     }
 
     fn source_map(&self) -> &SourceMap {
@@ -180,6 +175,12 @@ impl Session for FullSession {
     fn emit_diagnostic(&mut self, diagnostic: Diagnostic) {
         self.diagnostics
             .emit_diagnostic(diagnostic, &self.source_map);
+    }
+}
+
+impl CodegenSession for FullSession {
+    fn target_triple(&self) -> &Triple {
+        &self.target_triple
     }
 }
 
