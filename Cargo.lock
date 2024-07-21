@@ -185,6 +185,9 @@ dependencies = [
 [[package]]
 name = "bayou_utils"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "bumpalo"

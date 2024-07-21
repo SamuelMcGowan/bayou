@@ -4,7 +4,10 @@ use bayou_diagnostic::{
 };
 use bayou_utils::keyvec::{declare_key_type, KeyVec};
 
-declare_key_type! { pub struct SourceId; }
+declare_key_type! {
+    #[derive(serde::Serialize)]
+    pub struct SourceId;
+}
 
 #[derive(Default, Debug, Clone)]
 pub struct SourceMap {

@@ -131,6 +131,15 @@ pub struct TestSessionConfig {
     pub modules: HashMap<String, String>,
 }
 
+impl TestSessionConfig {
+    pub fn new(name: impl Into<String>, modules: impl Into<HashMap<String, String>>) -> Self {
+        Self {
+            name: name.into(),
+            modules: modules.into(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct FullSession {
     pub target_triple: Triple,

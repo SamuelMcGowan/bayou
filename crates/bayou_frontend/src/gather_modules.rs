@@ -15,7 +15,7 @@ use crate::{
     LexerError, ParseError,
 };
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize)]
 pub enum GatherModulesError {
     ModuleLoaderError(ModuleLoaderError, Option<SourceSpan>),
     InvalidModuleName(IdentWithSource),
@@ -55,7 +55,7 @@ impl IntoDiagnostic<Interner> for GatherModulesError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ParsedModule {
     pub module_id: ModuleId,
     pub source_id: SourceId,
@@ -178,5 +178,44 @@ impl<'a, S: Session> ModuleGatherer<'a, S> {
         );
 
         Some((source_id, ast))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bayou_ir::{ir::PackageIr, symbols::Symbols};
+    use bayou_session::{Session, TestSession, TestSessionConfig};
+    use bayou_utils::assert_yaml_snapshot_with_source;
+
+    use crate::NameError;
+
+    fn lower(source: &str) -> (PackageIr, Symbols, Vec<NameError>) {
+        let mut session = TestSession::new();
+        let mut package_session = session.build_package_session(TestSessionConfig::new(
+            "test_package",
+            [(String::from("package"), String::from(source))],
+        ));
+
+        let (mut module_tree, modules, errors) =
+            crate::load_and_parse_modules(&mut session, &mut package_session);
+
+        assert!(
+            errors.is_empty(),
+            "non-lowering errors while testing lowering"
+        );
+
+        crate::lower(&modules, &mut module_tree, &package_session.interner)
+    }
+
+    macro_rules! assert_lower {
+        ($source:expr) => {{
+            let source = $source;
+            assert_yaml_snapshot_with_source!(source => lower(source));
+        }};
+    }
+
+    #[test]
+    fn basic_lower() {
+        assert_lower!("func main() -> i64 { return 0; }");
     }
 }

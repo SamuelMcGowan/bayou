@@ -7,10 +7,11 @@ use std::{
 
 use bayou_diagnostic::Snippet;
 use bayou_interner::{Interner, Istr};
+use serde::ser::SerializeStruct;
 
 use crate::{sourcemap::SourceSpan, Diagnostic, IntoDiagnostic};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
 pub struct ModulePath {
     components: Vec<Istr>,
 }
@@ -112,6 +113,20 @@ impl IntoDiagnostic<(Option<SourceSpan>, &Interner)> for ModuleLoaderError {
         }
 
         diagnostic
+    }
+}
+
+impl serde::Serialize for ModuleLoaderError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_struct("ModuleLoaderError", 2)?;
+
+        s.serialize_field("path", &self.path)?;
+        s.serialize_field("cause", &self.cause.as_ref().map(|cause| cause.to_string()))?;
+
+        s.end()
     }
 }
 

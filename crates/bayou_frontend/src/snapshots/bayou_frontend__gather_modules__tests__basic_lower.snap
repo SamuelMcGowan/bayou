@@ -1,0 +1,51 @@
+---
+source: crates/bayou_frontend/src/gather_modules.rs
+info: "func main() -> i64 { return 0; }"
+---
+- items:
+    - FuncDecl:
+        id: 0
+        block:
+          statements:
+            - Return:
+                kind:
+                  Constant:
+                    I64: 0
+                span:
+                  span:
+                    start: 28
+                    end: 29
+                  source_id: 0
+                ty: ~
+          final_expr:
+            kind:
+              Constant: Void
+            span:
+              span:
+                start: 31
+                end: 32
+              source_id: 0
+            ty: ~
+          span:
+            span:
+              start: 19
+              end: 32
+            source_id: 0
+  main_func: 0
+- locals: {}
+  funcs:
+    0:
+      ident:
+        istr: 1
+        span:
+          span:
+            start: 5
+            end: 9
+          source_id: 0
+      ret_ty: I64
+      ret_ty_span:
+        span:
+          start: 15
+          end: 18
+        source_id: 0
+- []

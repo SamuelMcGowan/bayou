@@ -8,9 +8,12 @@ use bayou_ir::{
 use bayou_session::module_loader::ModulePath;
 use bayou_utils::{declare_key_type, keyvec::KeyVec};
 
-declare_key_type! { pub struct ModuleId; }
+declare_key_type! {
+    #[derive(serde::Serialize)]
+    pub struct ModuleId;
+}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ModuleTree {
     entries: KeyVec<ModuleId, ModuleEntry>,
     root_id: ModuleId,
@@ -74,7 +77,7 @@ impl ModuleTree {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct ModuleEntry {
     pub ident: Option<IdentWithSource>,
 
@@ -104,7 +107,7 @@ impl ModuleEntryMut<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
 pub enum GlobalId {
     Module(ModuleId),
     Func(FuncId),

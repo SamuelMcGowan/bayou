@@ -8,7 +8,7 @@ use crate::ast;
 use crate::gather_modules::ParsedModule;
 use crate::module_tree::{get_global_ident, GlobalId, ModuleTree};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 pub enum NameError {
     LocalUndefined(IdentWithSource),
 

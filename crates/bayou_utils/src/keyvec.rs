@@ -103,6 +103,25 @@ impl<K: Key + fmt::Debug, V: fmt::Debug> fmt::Debug for KeyVec<K, V> {
     }
 }
 
+#[cfg(feature = "serialize")]
+impl<K: Key + serde::Serialize, V: serde::Serialize> serde::Serialize for KeyVec<K, V> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut s = serializer.serialize_map(Some(self.len()))?;
+
+        for (index, value) in self.iter().enumerate() {
+            let key = K::from_usize(index);
+            s.serialize_entry(&key, value)?;
+        }
+
+        s.end()
+    }
+}
+
 impl<K, V: Clone> Clone for KeyVec<K, V> {
     fn clone(&self) -> Self {
         Self {
@@ -126,8 +145,9 @@ pub trait Key: Copy {
 // TODO: use `NonZero...`` integers and allow using u32s
 #[macro_export]
 macro_rules! declare_key_type {
-    ($v:vis struct $i:ident;) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize)]
+    ($(#[$meta:meta])* $v:vis struct $i:ident;) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         $v struct $i(pub usize);
 
         impl $crate::keyvec::Key for $i {
