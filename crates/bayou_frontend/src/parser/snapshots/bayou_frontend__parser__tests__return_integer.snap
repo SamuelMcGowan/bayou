@@ -10,6 +10,9 @@ info: "func main() -> i64 { return 0; }"
             start: 5
             end: 9
         ret_ty: I64
+        ret_ty_span:
+          start: 15
+          end: 18
         block:
           statements:
             - Return:
@@ -23,4 +26,7 @@ info: "func main() -> i64 { return 0; }"
             span:
               start: 31
               end: 32
+          span:
+            start: 19
+            end: 32
 - []

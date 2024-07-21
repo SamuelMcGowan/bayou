@@ -10,6 +10,9 @@ info: "func main( { return 0; }"
             start: 5
             end: 9
         ret_ty: Void
+        ret_ty_span:
+          start: 11
+          end: 11
         block:
           statements:
             - Return:
@@ -23,6 +26,9 @@ info: "func main( { return 0; }"
             span:
               start: 23
               end: 24
+          span:
+            start: 11
+            end: 24
 - - expected: "`)`"
     span:
       start: 11
