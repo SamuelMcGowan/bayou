@@ -142,10 +142,10 @@ impl<'a, 'b> ModuleLowerer<'a, 'b> {
         {
             self.errors.push(NameError::DuplicateGlobal {
                 // global must have an identifier, otherwise there would be no error
-                first: get_global_ident(first_global_id, &self.module_tree, &self.symbols).unwrap(),
+                first: get_global_ident(first_global_id, self.module_tree, self.symbols).unwrap(),
 
                 second: ident,
-            })
+            });
         }
     }
 

@@ -82,7 +82,7 @@ pub struct PackageSession<S: Session + ?Sized> {
     pub module_loader: S::ModuleLoader,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct TestSession {
     pub diagnostics: Vec<Diagnostic>,
     pub source_map: SourceMap,
